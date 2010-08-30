@@ -1,0 +1,47 @@
+# Distribution file for the Example project.
+# http://www.openengine.dk/wiki/Projects/MRISIM
+
+# main repository
+darcs / http://openengine.dk/code/openengine
+darcs-dev / fh.daimi.au.dk:/users/cgd/code/openengine
+
+# project repository
+# (uncomment the following two lines after uploading your project)
+#darcs /projects/MRISIM http://openengine.dk/code/projects/MRISIM
+#darcs-dev /projects/MRISIM fh.daimi.au.dk:/users/cgd/code/projects/MRISIM
+
+# required extensions
+darcs /extensions/SetupHelpers           http://openengine.dk/code/extensions/SetupHelpers
+darcs /extensions/HUD                    http://openengine.dk/code/extensions/HUD
+darcs /extensions/SDL                    http://openengine.dk/code/extensions/SDL
+darcs /extensions/SDLImage               http://openengine.dk/code/extensions/SDLImage
+darcs /extensions/CairoResource          http://openengine.dk/code/extensions/CairoResource
+darcs /extensions/OpenGLRenderer         http://openengine.dk/code/extensions/OpenGLRenderer
+darcs /extensions/TGAResource            http://openengine.dk/code/extensions/TGAResource
+darcs /extensions/OBJResource            http://openengine.dk/code/extensions/OBJResource
+darcs /extensions/AccelerationStructures http://openengine.dk/code/extensions/AccelerationStructures
+
+darcs-dev /extensions/SetupHelpers           fh.daimi.au.dk:/users/cgd/code/extensions/SetupHelpers
+darcs-dev /extensions/HUD                    fh.daimi.au.dk:/users/cgd/code/extensions/HUD
+darcs-dev /extensions/SDL                    fh.daimi.au.dk:/users/cgd/code/extensions/SDL
+darcs-dev /extensions/SDLImage               fh.daimi.au.dk:/users/cgd/code/extensions/SDLImage
+darcs-dev /extensions/CairoResource          fh.daimi.au.dk:/users/cgd/code/extensions/CairoResource
+darcs-dev /extensions/OpenGLRenderer         fh.daimi.au.dk:/users/cgd/code/extensions/OpenGLRenderer
+darcs-dev /extensions/TGAResource            fh.daimi.au.dk:/users/cgd/code/extensions/TGAResource
+darcs-dev /extensions/OBJResource            fh.daimi.au.dk:/users/cgd/code/extensions/OBJResource
+darcs-dev /extensions/AccelerationStructures fh.daimi.au.dk:/users/cgd/code/extensions/AccelerationStructures
+
+# windows libraries
+win32 /libraries http://openengine.dk/data/libraries/boost-win32.zip
+win32 /libraries http://openengine.dk/data/libraries/glew-win32.zip
+win32 /libraries http://openengine.dk/data/libraries/sdl-win32.zip
+win32 /libraries http://openengine.dk/data/libraries/dlls-win32.zip
+
+# darwin libraries
+darwin /libraries http://openengine.dk/data/libraries/pcre-osx-i32.zip
+darwin /libraries http://openengine.dk/data/libraries/pcrecpp-osx-i32.zip
+
+# linux libraries
+
+# project data
+
