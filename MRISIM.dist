@@ -7,8 +7,12 @@ darcs-dev / fh.daimi.au.dk:/users/cgd/code/openengine
 
 # project repository
 # (uncomment the following two lines after uploading your project)
-#darcs /projects/MRISIM http://openengine.dk/code/projects/MRISIM
-#darcs-dev /projects/MRISIM fh.daimi.au.dk:/users/cgd/code/projects/MRISIM
+darcs /projects/MRISIM http://openengine.dk/code/projects/MRISIM
+darcs-dev /projects/MRISIM fh.daimi.au.dk:/users/cgd/code/projects/MRISIM
+
+dist /extensions/MathGL/MathGL           http://openengine.dk/code/extensions/MathGL/MathGL.dist
+dist /extensions/Plotting/Plotting.dist  http://openengine.dk/code/extensions/Plotting/Plotting.dist
+
 
 # required extensions
 darcs /extensions/SetupHelpers           http://openengine.dk/code/extensions/SetupHelpers
