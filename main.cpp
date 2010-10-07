@@ -14,20 +14,26 @@
 #include <Core/Engine.h>
 #include <Resources/ITexture2D.h>
 #include <Resources/ResourceManager.h>
+#include <Resources/IFontResource.h>
 #include <Scene/TransformationNode.h>
 #include <Scene/SceneNode.h>
 #include <Geometry/FaceSet.h>
 #include <Renderers/TextureLoader.h>
-#include <Utils/CairoTextTool.h>
+//#include <Utils/CairoTextTool.h>
 #include <Science/Plot.h>
 #include <Science/MathGLPlot.h>
 #include <Science/PointGraphDataSet.h>
 
+//#include <Resources/CairoFont.h>
+#include <Resources/SDLFont.h>
+
 // SimpleSetup
 #include <Utils/SimpleSetup.h>
+#include <Display/ICanvas.h>
+#include <Display/OpenGL/SplitScreenCanvas.h>
 
-// Game factory
-//#include "GameFactory.h"
+#include <Display/WallCanvas.h>
+#include <Display/IFrame.h>
 
 // name spaces that we will be using.
 // this combined with the above imports is almost the same as
@@ -40,135 +46,147 @@ using namespace OpenEngine::Scene;
 using namespace OpenEngine::Geometry;
 using namespace OpenEngine::Renderers;
 using namespace OpenEngine::Science;
+using namespace OpenEngine::Display;
 
-// Helpers
-static TransformationNode* CreateTextureBillboard(ITextureResourcePtr texture,
-                                                  float scale) {
-    unsigned int textureHosisontalSize = texture->GetWidth();
-    unsigned int textureVerticalSize = texture->GetHeight();
+// // Helpers
+// static TransformationNode* CreateTextureBillboard(ITextureResourcePtr texture,
+//                                                   float scale) {
+//     unsigned int textureHosisontalSize = texture->GetWidth();
+//     unsigned int textureVerticalSize = texture->GetHeight();
 
-    logger.info << "w x h = " << texture->GetWidth()
-                << " x " << texture->GetHeight() << logger.end;
-    float fullxtexcoord = 1;
-    float fullytexcoord = 1;
+//     logger.info << "w x h = " << texture->GetWidth()
+//                 << " x " << texture->GetHeight() << logger.end;
+//     float fullxtexcoord = 1;
+//     float fullytexcoord = 1;
   
-    FaceSet* faces = new FaceSet();
+//     FaceSet* faces = new FaceSet();
 
-    float horisontalhalfsize = textureHosisontalSize * 0.5;
-    Vector<3,float> lowerleft = Vector<3,float>(horisontalhalfsize,0,0);
-    Vector<3,float> lowerright = Vector<3,float>(-horisontalhalfsize,0,0);
-    Vector<3,float> upperleft = Vector<3,float>(horisontalhalfsize,textureVerticalSize,0);
-    Vector<3,float> upperright = Vector<3,float>(-horisontalhalfsize,textureVerticalSize,0);
+//     float horisontalhalfsize = textureHosisontalSize * 0.5;
+//     Vector<3,float> lowerleft = Vector<3,float>(horisontalhalfsize,0,0);
+//     Vector<3,float> lowerright = Vector<3,float>(-horisontalhalfsize,0,0);
+//     Vector<3,float> upperleft = Vector<3,float>(horisontalhalfsize,textureVerticalSize,0);
+//     Vector<3,float> upperright = Vector<3,float>(-horisontalhalfsize,textureVerticalSize,0);
 
-    FacePtr leftside = FacePtr(new Face(lowerleft,lowerright,upperleft));
+//     FacePtr leftside = FacePtr(new Face(lowerleft,lowerright,upperleft));
 
-    /*
-      leftside->texc[1] = Vector<2,float>(1,0);
-      leftside->texc[0] = Vector<2,float>(0,0);
-      leftside->texc[2] = Vector<2,float>(0,1);
-    */
-    leftside->texc[1] = Vector<2,float>(0,fullytexcoord);
-    leftside->texc[0] = Vector<2,float>(fullxtexcoord,fullytexcoord);
-    leftside->texc[2] = Vector<2,float>(fullxtexcoord,0);
-    leftside->norm[0] = leftside->norm[1] = leftside->norm[2] = Vector<3,float>(0,0,1);
-    leftside->CalcHardNorm();
-    leftside->Scale(scale);
-    faces->Add(leftside);
+//     /*
+//       leftside->texc[1] = Vector<2,float>(1,0);
+//       leftside->texc[0] = Vector<2,float>(0,0);
+//       leftside->texc[2] = Vector<2,float>(0,1);
+//     */
+//     leftside->texc[1] = Vector<2,float>(0,fullytexcoord);
+//     leftside->texc[0] = Vector<2,float>(fullxtexcoord,fullytexcoord);
+//     leftside->texc[2] = Vector<2,float>(fullxtexcoord,0);
+//     leftside->norm[0] = leftside->norm[1] = leftside->norm[2] = Vector<3,float>(0,0,1);
+//     leftside->CalcHardNorm();
+//     leftside->Scale(scale);
+//     faces->Add(leftside);
 
-    FacePtr rightside = FacePtr(new Face(lowerright,upperright,upperleft));
-    /*
-      rightside->texc[2] = Vector<2,float>(0,1);
-      rightside->texc[1] = Vector<2,float>(1,1);
-      rightside->texc[0] = Vector<2,float>(1,0);
-    */
-    rightside->texc[2] = Vector<2,float>(fullxtexcoord,0);
-    rightside->texc[1] = Vector<2,float>(0,0);
-    rightside->texc[0] = Vector<2,float>(0,fullytexcoord);
-    rightside->norm[0] = rightside->norm[1] = rightside->norm[2] = Vector<3,float>(0,0,1);
-    rightside->CalcHardNorm();
-    rightside->Scale(scale);
-    faces->Add(rightside);
+//     FacePtr rightside = FacePtr(new Face(lowerright,upperright,upperleft));
+//     /*
+//       rightside->texc[2] = Vector<2,float>(0,1);
+//       rightside->texc[1] = Vector<2,float>(1,1);
+//       rightside->texc[0] = Vector<2,float>(1,0);
+//     */
+//     rightside->texc[2] = Vector<2,float>(fullxtexcoord,0);
+//     rightside->texc[1] = Vector<2,float>(0,0);
+//     rightside->texc[0] = Vector<2,float>(0,fullytexcoord);
+//     rightside->norm[0] = rightside->norm[1] = rightside->norm[2] = Vector<3,float>(0,0,1);
+//     rightside->CalcHardNorm();
+//     rightside->Scale(scale);
+//     faces->Add(rightside);
 
-    MaterialPtr m = leftside->mat = rightside->mat = MaterialPtr(new Material());
-    m->AddTexture(texture);
+//     MaterialPtr m = leftside->mat = rightside->mat = MaterialPtr(new Material());
+//     m->AddTexture(texture);
 
-    GeometryNode* node = new GeometryNode();
-    node->SetFaceSet(faces);
-    TransformationNode* tnode = new TransformationNode();
-    tnode->AddNode(node);
-    return tnode;
-}
+//     GeometryNode* node = new GeometryNode();
+//     node->SetFaceSet(faces);
+//     TransformationNode* tnode = new TransformationNode();
+//     tnode->AddNode(node);
+//     return tnode;
+// }
 
-struct WallItem {
-    ITextureResourcePtr texture;
-    string title;
-    Vector<2,unsigned int> scale;
+// struct WallItem {
+//     ITextureResourcePtr texture;
+//     string title;
+//     Vector<2,unsigned int> scale;
 
-    WallItem() {}
+//     WallItem() {}
 
-    WallItem(ITextureResourcePtr t, 
-             string s)
-        : texture(t)
-        , title(s)
-        , scale(Vector<2,unsigned int>(1,1)) {
+//     WallItem(ITextureResourcePtr t, 
+//              string s)
+//         : texture(t)
+//         , title(s)
+//         , scale(Vector<2,unsigned int>(1,1)) {
         
-    }
-};
+//     }
+// };
 
-struct Wall {
-    WallItem tex[12];
-    TextureLoader& loader;
+// struct Wall {
+//     WallItem tex[12];
+//     TextureLoader& loader;
+//     IFontResourcePtr font;
 
-    Wall(TextureLoader& l) : loader(l) {
+//     Wall(TextureLoader& l, IFontResourcePtr font) : loader(l)
+//                                                 , font(font) {
         
-    }
+//     }
 
-    WallItem& operator()(int x, int y) {
-        return tex[x*3+y];
-    }
-    ISceneNode* MakeScene() {
-        SceneNode *sn = new SceneNode();
-        CairoTextTool textTool;
+//     WallItem& operator()(int x, int y) {
+//         return tex[x*3+y];
+//     }
+//     ISceneNode* MakeScene() {
+//         SceneNode *sn = new SceneNode();
+//         CairoTextTool textTool;
         
-        for (int x=0;x<4;x++) {
-            for (int y=0;y<3;y++) {
-                WallItem itm = (*this)(x,y);
-                ITextureResourcePtr t = itm.texture;
-                if (t) {
-                    Vector<2,unsigned int> scale = itm.scale;
-                    loader.Load(t,TextureLoader::RELOAD_QUEUED);
-                    TransformationNode* node = new TransformationNode();
-                    TransformationNode* bnode = CreateTextureBillboard(t,0.05);
-                    bnode->SetScale(Vector<3,float>( 1.0 * scale[0],
-                                                   -1.0 * scale[1],
-                                                    1.0));
-                    node->Move(x*35-25,y*35-25,0);
-                    node->AddNode(bnode);
+//         for (int x=0;x<4;x++) {
+//             for (int y=0;y<3;y++) {
+//                 WallItem itm = (*this)(x,y);
+//                 ITextureResourcePtr t = itm.texture;
+//                 if (t) {
+//                     Vector<2,unsigned int> scale = itm.scale;
+//                     loader.Load(t,TextureLoader::RELOAD_QUEUED);
+//                     TransformationNode* node = new TransformationNode();
+//                     TransformationNode* bnode = CreateTextureBillboard(t,0.05);
+//                     bnode->SetScale(Vector<3,float>( 1.0 * scale[0],
+//                                                    -1.0 * scale[1],
+//                                                     1.0));
+//                     node->Move(x*35-25,y*35-25,0);
+//                     node->AddNode(bnode);
                     
-                    CairoResourcePtr textRes = CairoResource::Create(128,32);
-                    textRes->Load();
-
-                    ostringstream out;
-                    out << "(" << x << "," << y << ") " << itm.title;
-
-                    textTool.DrawText(out.str(), textRes);
-
-                    loader.Load(textRes);
-                    TransformationNode* textNode = CreateTextureBillboard(textRes,0.15);
-
-                    textNode->Move(0,-28,-0.01);
 
 
-                    node->AddNode(textNode);
-                    //sn->AddNode(textNode);
-                    sn->AddNode(node);
-                }
-            }
-        }
+//                     // CairoResourcePtr textRes = CairoResource::Create(128,32);
+//                     // textRes->Load();
 
-        return sn;
-    }
-};
+//                     ostringstream out;
+//                     out << "(" << x << "," << y << ") " << itm.title;
+
+//                     //textTool.DrawText(out.str(), textRes);
+
+//                     Vector<2,int> size = font->TextDim(out.str());
+
+//                     IFontTextureResourcePtr textRes = 
+//                         font->CreateFontTexture(size[0], size[1]);
+//                     textRes->Load();
+//                     font->RenderText(out.str(), textRes, 0, 0);
+
+//                     loader.Load(textRes);
+//                     TransformationNode* textNode = CreateTextureBillboard(textRes,0.15);
+
+//                     textNode->Move(0,-28,-0.01);
+
+
+//                     node->AddNode(textNode);
+//                     //sn->AddNode(textNode);
+//                     sn->AddNode(node);
+//                 }
+//             }
+//         }
+
+//         return sn;
+//     }
+// };
 
 
 /**
@@ -178,21 +196,45 @@ struct Wall {
  * method in Java.
  */
 int main(int argc, char** argv) {
-    // Setup logging facilities.
-    Logger::AddLogger(new StreamLogger(&std::cout));
-
-    // Print usage info.
+    SimpleSetup* setup = new SimpleSetup("MRISIM"); 
     logger.info << "========= Running OpenEngine Test Project =========" << logger.end;
 
-    // Create simple setup
-    SimpleSetup* setup = new SimpleSetup("MRISIM");
 
-    Wall wall(setup->GetTextureLoader());
+
+    DirectoryManager::AppendPath("projects/MRISIM/data/");
+    //ResourceManager<IFontResource>::AddPlugin(new CairoFontPlugin());
+    ResourceManager<IFontResource>::AddPlugin(new SDLFontPlugin());
     
+
+    IFontResourcePtr font = ResourceManager<IFontResource>::Create("Fonts/FreeSerifBold.ttf");
+    font->Load();
+    font->SetSize(24);
+    font->SetColor(Vector<3,float>(1,0,0));
+
+    //Wall wall(setup->GetTextureLoader(), font);
+    
+    WallCanvas *wc = new WallCanvas(setup->GetTextureLoader(), font);
+
+    setup->GetMouse().MouseMovedEvent().Attach(*wc);
+    setup->GetMouse().MouseButtonEvent().Attach(*wc);
+
+    ICanvas *mainC = setup->GetCanvas();
+    IFrame& frame = setup->GetFrame();
+    ICanvas *splitCanvas = new SplitScreenCanvas(*mainC, *wc);
+
+    frame.SetCanvas(splitCanvas);
+    //frame.SetCanvas(wc);
+
+
+
+
+
     ITextureResourcePtr img = ResourceManager<ITextureResource>::Create("test.png");
     img->Load();
 
-    wall(0,0) = WallItem(img, "test");
+    //wall(0,0) = WallItem(img, "test");
+
+    wc->AddTextureWithText(img, "test");
 
     Plot* plot = new Plot(Vector<2,float>(0, 100),
                           Vector<2,float>(0, 1));
@@ -209,15 +251,19 @@ int main(int argc, char** argv) {
     EmptyTextureResourcePtr plotTex = EmptyTextureResource::Create(200,200,24);
     plot->RenderInEmptyTexture(plotTex);
 
-    wall(0,1) = WallItem(plotTex, "plot");
+    //wall(0,1) = WallItem(plotTex, "plot");
+    wc->AddTextureWithText(plotTex, "plot");
 
     MathGLPlot *plot2 = new MathGLPlot(400,400);
-    wall(1,1) = WallItem(plot2->GetTexture(), "mathgl");
+    //wall(1,1) = WallItem(plot2->GetTexture(), "mathgl");
+    wc->AddTextureWithText(plot2->GetTexture(), "mathgl");
+
+    //ISceneNode* wallNode = wall.MakeScene();
+
+
     
 
-    ISceneNode* wallNode = wall.MakeScene();
-
-    setup->SetScene(*wallNode);
+    //    setup->SetScene(*wallNode);
 
     float h = -25/2;
     setup->GetCamera()->SetPosition(Vector<3,float>(0.0,h,80));

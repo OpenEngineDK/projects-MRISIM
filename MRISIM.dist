@@ -10,7 +10,8 @@ darcs-dev / fh.daimi.au.dk:/users/cgd/code/openengine
 darcs /projects/MRISIM http://openengine.dk/code/projects/MRISIM
 darcs-dev /projects/MRISIM fh.daimi.au.dk:/users/cgd/code/projects/MRISIM
 
-dist /extensions/MathGL/MathGL           http://openengine.dk/code/extensions/MathGL/MathGL.dist
+dist /extensions/MathGL/MathGL.dist      http://openengine.dk/code/extensions/MathGL/MathGL.dist
+dist /extensions/Wall/Wall.dist      http://openengine.dk/code/extensions/Wall/Wall.dist
 dist /extensions/Plotting/Plotting.dist  http://openengine.dk/code/extensions/Plotting/Plotting.dist
 
 
@@ -18,6 +19,7 @@ dist /extensions/Plotting/Plotting.dist  http://openengine.dk/code/extensions/Pl
 darcs /extensions/SetupHelpers           http://openengine.dk/code/extensions/SetupHelpers
 darcs /extensions/HUD                    http://openengine.dk/code/extensions/HUD
 darcs /extensions/SDL                    http://openengine.dk/code/extensions/SDL
+darcs /extensions/SDLFont                    http://openengine.dk/code/extensions/SDLFont
 darcs /extensions/SDLImage               http://openengine.dk/code/extensions/SDLImage
 darcs /extensions/CairoResource          http://openengine.dk/code/extensions/CairoResource
 darcs /extensions/OpenGLRenderer         http://openengine.dk/code/extensions/OpenGLRenderer

@@ -31,4 +31,6 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_SetupHelpers  
   Extensions_Plotting
   Extensions_MathGL
+  Extensions_Wall
+  Extensions_SDLFont
 )
