@@ -92,8 +92,8 @@ int main(int argc, char** argv) {
     IFrame& frame = setup->GetFrame();
     ICanvas *splitCanvas = new SplitScreenCanvas(*mainC, *wc);
 
-    frame.SetCanvas(splitCanvas);
-    //frame.SetCanvas(wc);
+    //frame.SetCanvas(splitCanvas);
+    frame.SetCanvas(wc);
 
     ITextureResourcePtr img = ResourceManager<ITextureResource>::Create("test.png");
     img->Load();
