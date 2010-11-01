@@ -33,6 +33,7 @@
 #include <Display/OpenGL/SplitScreenCanvas.h>
 
 #include <Display/WallCanvas.h>
+#include <Display/GridLayout.h>
 #include <Display/IFrame.h>
 
 
@@ -82,7 +83,7 @@ int main(int argc, char** argv) {
     //Wall wall(setup->GetTextureLoader(), font);
     
     TextureLoader& tl = setup->GetTextureLoader(); 
-    WallCanvas *wc = new WallCanvas(setup->GetRenderer(), tl, font);
+    WallCanvas *wc = new WallCanvas(setup->GetRenderer(), tl, font, new GridLayout());
 
     setup->GetMouse().MouseMovedEvent().Attach(*wc);
     setup->GetMouse().MouseButtonEvent().Attach(*wc);
@@ -124,8 +125,8 @@ int main(int argc, char** argv) {
     wc->AddTextureWithText(plot2->GetTexture(), "mathgl");
 
     //ISceneNode* wallNode = wall.MakeScene();
-
-
+    
+    
     
 
     //    setup->SetScene(*wallNode);
