@@ -6,6 +6,8 @@ SET( PROJECT_NAME "MRISIM")
 SET( PROJECT_SOURCES
   # Add all the cpp source files here
   main.cpp
+  Resources/MINCResource.h
+  Resources/MINCResource.cpp
 )
 
 # Include needed to use SDL under Mac OS X
@@ -33,4 +35,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_MathGL
   Extensions_Wall
   Extensions_SDLFont
+  minc2 # ugly hack... use a find script
 )

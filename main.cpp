@@ -35,6 +35,10 @@
 #include <Display/WallCanvas.h>
 #include <Display/IFrame.h>
 
+
+// medical data loader
+#include "Resources/MINCResource.h"
+
 // name spaces that we will be using.
 // this combined with the above imports is almost the same as
 // fx. import OpenEngine.Logging.*; in Java.
@@ -60,11 +64,15 @@ int main(int argc, char** argv) {
     logger.info << "========= Running OpenEngine Test Project =========" << logger.end;
 
 
-
     DirectoryManager::AppendPath("projects/MRISIM/data/");
     //ResourceManager<IFontResource>::AddPlugin(new CairoFontPlugin());
     ResourceManager<IFontResource>::AddPlugin(new SDLFontPlugin());
+    ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
     
+    
+    // load medical data
+    MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_gry.mnc");
+    phantom->Load();
 
     IFontResourcePtr font = ResourceManager<IFontResource>::Create("Fonts/FreeSerifBold.ttf");
     font->Load();
@@ -83,12 +91,8 @@ int main(int argc, char** argv) {
     IFrame& frame = setup->GetFrame();
     ICanvas *splitCanvas = new SplitScreenCanvas(*mainC, *wc);
 
-    //frame.SetCanvas(splitCanvas);
-    frame.SetCanvas(wc);
-
-
-
-
+    frame.SetCanvas(splitCanvas);
+    //frame.SetCanvas(wc);
 
     ITextureResourcePtr img = ResourceManager<ITextureResource>::Create("test.png");
     img->Load();
