@@ -31,6 +31,7 @@
 #include <Utils/SimpleSetup.h>
 #include <Display/ICanvas.h>
 #include <Display/OpenGL/SplitScreenCanvas.h>
+#include <Display/OpenGL/TextureCopy.h>
 
 #include <Display/WallCanvas.h>
 #include <Display/GridLayout.h>
@@ -52,6 +53,7 @@ using namespace OpenEngine::Geometry;
 using namespace OpenEngine::Renderers;
 using namespace OpenEngine::Science;
 using namespace OpenEngine::Display;
+using namespace OpenEngine::Display::OpenGL;
 
 
 /**
@@ -83,14 +85,14 @@ int main(int argc, char** argv) {
     //Wall wall(setup->GetTextureLoader(), font);
     
     TextureLoader& tl = setup->GetTextureLoader(); 
-    WallCanvas *wc = new WallCanvas(setup->GetRenderer(), tl, font, new GridLayout());
+    WallCanvas<TextureCopy> *wc = new WallCanvas<TextureCopy>(setup->GetRenderer(), tl, font, new GridLayout());
 
     setup->GetMouse().MouseMovedEvent().Attach(*wc);
     setup->GetMouse().MouseButtonEvent().Attach(*wc);
 
     ICanvas *mainC = setup->GetCanvas();
     IFrame& frame = setup->GetFrame();
-    ICanvas *splitCanvas = new SplitScreenCanvas(*mainC, *wc);
+    ICanvas *splitCanvas = new SplitScreenCanvas<TextureCopy>(*mainC, *wc);
 
     //frame.SetCanvas(splitCanvas);
     frame.SetCanvas(wc);
