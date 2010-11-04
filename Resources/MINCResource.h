@@ -14,7 +14,8 @@
 
 #include <Resources/IResourcePlugin.h>
 #include <Resources/IResource.h>
-#include <Resources/ITexture3D.h>
+#include <Resources/Texture3D.h>
+#include <Resources/Texture2D.h>
 
 #include <string>
 
@@ -38,7 +39,9 @@ private:
     // inner material structure
     string file; //!< minc file path
     bool loaded;
-    mihandle_t* handle;
+    mihandle_t handle;
+    FloatTexture3DPtr tex;
+    unsigned int w, h, d;
 public:
     MINCResource(string file);
     virtual ~MINCResource();
@@ -47,6 +50,10 @@ public:
     void Unload();
     
     ITexture3DPtr GetTexture3D();
+    ITexture2DPtr CreateSagitalSlice(unsigned int index);
+    ITexture2DPtr CreateCoronalSlice(unsigned int index);
+    ITexture2DPtr CreateTransverseSlice(unsigned int index);
+
 };
 
 /**

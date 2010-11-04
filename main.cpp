@@ -30,16 +30,22 @@
 // SimpleSetup
 #include <Utils/SimpleSetup.h>
 #include <Display/ICanvas.h>
+#include <Display/CanvasQueue.h>
 #include <Display/OpenGL/SplitScreenCanvas.h>
 #include <Display/OpenGL/TextureCopy.h>
 
 #include <Display/WallCanvas.h>
 #include <Display/GridLayout.h>
 #include <Display/IFrame.h>
+#include <Renderers/OpenGL/Renderer.h>
 
+#include <Display/AntTweakBar.h>
+#include <Utils/InspectionBar.h>
+#include <Utils/IInspector.h>
 
 // medical data loader
 #include "Resources/MINCResource.h"
+#include "Display/OpenGL/SliceCanvas.h"
 
 // name spaces that we will be using.
 // this combined with the above imports is almost the same as
@@ -51,10 +57,44 @@ using namespace OpenEngine::Resources;
 using namespace OpenEngine::Scene;
 using namespace OpenEngine::Geometry;
 using namespace OpenEngine::Renderers;
+using namespace OpenEngine::Renderers::OpenGL;
 using namespace OpenEngine::Science;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Display::OpenGL;
 
+
+namespace OpenEngine {
+    namespace Utils {
+        namespace Inspection {
+
+ValueList Inspect(SliceCanvas* sc) {
+    ValueList values;
+    {
+        RWValueCall<SliceCanvas, unsigned int > *v
+            = new RWValueCall<SliceCanvas, unsigned int >(*sc,
+                                                          &SliceCanvas::GetSlice,
+                                                          &SliceCanvas::SetSlice);
+        v->name = "slice";
+        v->properties[MIN] = 0;
+        values.push_back(v);
+    }
+    return values;
+    
+}
+
+}}}
+
+
+// class Delayed3dTextureLoader 
+//     : public IListener<Renderers::RenderingEventArg> {
+// private:
+//     ITexture3DPtr tex;
+// public:
+//     Delayed3dTextureLoader(ITexture3DPtr tex) : tex(tex) {}
+//     void Handle(RenderingEventArg arg) {
+//         arg.renderer.LoadTexture(tex);
+//     }
+// };
 
 /**
  * Main method for the first quarter project of CGD.
@@ -72,36 +112,70 @@ int main(int argc, char** argv) {
     ResourceManager<IFontResource>::AddPlugin(new SDLFontPlugin());
     ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
     
+
+    IRenderer* r = new Renderer();
+    // TextureLoader& tl = setup->GetTextureLoader(); 
+    TextureLoader* tl = new TextureLoader(*r);
+    
     
     // load medical data
     MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_gry.mnc");
+    // MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_csf.mnc");
     phantom->Load();
-
+ 
+    SliceCanvas* sc = new SliceCanvas(new TextureCopy(), phantom->GetTexture3D());    
+    
     IFontResourcePtr font = ResourceManager<IFontResource>::Create("Fonts/FreeSerifBold.ttf");
     font->Load();
     font->SetSize(24);
     font->SetColor(Vector<3,float>(1,0,0));
 
     //Wall wall(setup->GetTextureLoader(), font);
-    
-    TextureLoader& tl = setup->GetTextureLoader(); 
-    WallCanvas<TextureCopy> *wc = new WallCanvas<TextureCopy>(setup->GetRenderer(), tl, font, new GridLayout());
 
-    setup->GetMouse().MouseMovedEvent().Attach(*wc);
-    setup->GetMouse().MouseButtonEvent().Attach(*wc);
+    AntTweakBar *atb = new AntTweakBar();
+    atb->AttachTo(*r);
+
+    ITweakBar *bar = new InspectionBar("minc",OpenEngine::Utils::Inspection::Inspect(sc));     
+    atb->AddBar(bar);
+    bar->SetPosition(Vector<2,float>(20,40));
+    bar->SetIconify(false);
+    
+    WallCanvas *wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
+
+    setup->GetKeyboard().KeyEvent().Attach(*atb);
+    setup->GetMouse().MouseMovedEvent().Attach(*atb);
+    setup->GetMouse().MouseButtonEvent().Attach(*atb);
+
+    atb->MouseMovedEvent().Attach(*wc);
+    atb->MouseButtonEvent().Attach(*wc);
 
     ICanvas *mainC = setup->GetCanvas();
     IFrame& frame = setup->GetFrame();
-    ICanvas *splitCanvas = new SplitScreenCanvas<TextureCopy>(*mainC, *wc);
+    // ICanvas *splitCanvas = new SplitScreenCanvas<TextureCopy>(*mainC, *wc);
 
+    CanvasQueue* cq = new CanvasQueue();
+    cq->PushCanvas(wc);
+    cq->PushCanvas(sc);
     //frame.SetCanvas(splitCanvas);
-    frame.SetCanvas(wc);
+    //frame.SetCanvas(wc);
+    frame.SetCanvas(cq);
 
-    ITextureResourcePtr img = ResourceManager<ITextureResource>::Create("test.png");
-    img->Load();
-    tl.Load(img);
+    // ITextureResourcePtr trans = phantom->CreateTransverseSlice(50);
+    // trans->Load();
+    // tl.Load(trans);
+    // wc->AddTextureWithText(trans, "Transverse");
 
-    wc->AddTextureWithText(img, "test");
+    // ITextureResourcePtr sag = phantom->CreateSagitalSlice(50);    
+    // sag->Load();
+    // tl.Load(sag, TextureLoader::RELOAD_QUEUED);
+    // wc->AddTextureWithText(sag, "Sagital");
+
+    // ITextureResourcePtr cor = phantom->CreateCoronalSlice(50);
+    // cor->Load();
+    // tl.Load(cor);
+    // wc->AddTextureWithText(cor, "Coronal");
+
+    wc->AddTextureWithText(sc->GetTexture(), "hest");
 
     Plot* plot = new Plot(Vector<2,float>(0, 100),
                           Vector<2,float>(0, 1));
@@ -117,12 +191,11 @@ int main(int argc, char** argv) {
 
     EmptyTextureResourcePtr plotTex = EmptyTextureResource::Create(200,200,24);
     plot->RenderInEmptyTexture(plotTex);
-    tl.Load(plotTex);
-    
+    tl->Load(plotTex);
     wc->AddTextureWithText(plotTex, "plot");
 
     MathGLPlot *plot2 = new MathGLPlot(400,400);
-    tl.Load(plot2->GetTexture());
+    tl->Load(plot2->GetTexture());
     
     wc->AddTextureWithText(plot2->GetTexture(), "mathgl");
 
