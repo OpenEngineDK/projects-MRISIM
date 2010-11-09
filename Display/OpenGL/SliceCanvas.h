@@ -48,6 +48,8 @@ public:
         backend->Create(width, height);
     }
 
+    unsigned int GetMaxSlice() { return sliceMax; }
+    
     virtual ~SliceCanvas() {
     }
 
