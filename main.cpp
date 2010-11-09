@@ -46,6 +46,12 @@
 // medical data loader
 #include "Resources/MINCResource.h"
 #include "Display/OpenGL/SliceCanvas.h"
+#include "Display/OpenGL/PhantomCanvas.h"
+
+#include "Resources/Phantom.h"
+#include "Resources/SimplePhantomBuilder.h"
+
+#include <Utils/PropertyTree.h>
 
 // name spaces that we will be using.
 // this combined with the above imports is almost the same as
@@ -112,6 +118,15 @@ int main(int argc, char** argv) {
     ResourceManager<IFontResource>::AddPlugin(new SDLFontPlugin());
     ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
     
+    IPhantomBuilder* pb = new SimplePhantomBuilder();
+    Phantom p = pb->GetPhantom();
+    // Phantom::Save("test", p);
+
+    // PropertyTree ptree("brain.yaml");
+    //PropertyTree ptree("test.yaml");
+    // Phantom p(ptree);
+
+    PhantomCanvas* pc = new PhantomCanvas(new TextureCopy(), p);
 
     IRenderer* r = new Renderer();
     // TextureLoader& tl = setup->GetTextureLoader(); 
@@ -119,12 +134,14 @@ int main(int argc, char** argv) {
     
     
     // load medical data
-    MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_gry.mnc");
-    // MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_csf.mnc");
-    phantom->Load();
+    // MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_gry.mnc"); 
+    // MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/test.mnc");
+   // MINCResourcePtr phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_csf.mnc");
+    // phantom->Load();
  
-    SliceCanvas* sc = new SliceCanvas(new TextureCopy(), phantom->GetTexture3D());    
-    
+    // SliceCanvas* sc = new SliceCanvas(new TextureCopy(), phantom->GetTexture3D());    
+
+   
     IFontResourcePtr font = ResourceManager<IFontResource>::Create("Fonts/FreeSerifBold.ttf");
     font->Load();
     font->SetSize(24);
@@ -135,7 +152,7 @@ int main(int argc, char** argv) {
     AntTweakBar *atb = new AntTweakBar();
     atb->AttachTo(*r);
 
-    ITweakBar *bar = new InspectionBar("minc",OpenEngine::Utils::Inspection::Inspect(sc));     
+    ITweakBar *bar = new InspectionBar("minc",OpenEngine::Utils::Inspection::Inspect(pc->GetSliceCanvas()));     
     atb->AddBar(bar);
     bar->SetPosition(Vector<2,float>(20,40));
     bar->SetIconify(false);
@@ -155,7 +172,7 @@ int main(int argc, char** argv) {
 
     CanvasQueue* cq = new CanvasQueue();
     cq->PushCanvas(wc);
-    cq->PushCanvas(sc);
+    cq->PushCanvas(pc);
     //frame.SetCanvas(splitCanvas);
     //frame.SetCanvas(wc);
     frame.SetCanvas(cq);
@@ -175,7 +192,7 @@ int main(int argc, char** argv) {
     // tl.Load(cor);
     // wc->AddTextureWithText(cor, "Coronal");
 
-    wc->AddTextureWithText(sc->GetTexture(), "hest");
+    wc->AddTextureWithText(pc->GetTexture(), "phantom");
 
     Plot* plot = new Plot(Vector<2,float>(0, 100),
                           Vector<2,float>(0, 1));

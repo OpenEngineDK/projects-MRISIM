@@ -13,6 +13,7 @@ darcs-dev /projects/MRISIM fh.daimi.au.dk:/users/cgd/code/projects/MRISIM
 dist /extensions/MathGL/MathGL.dist      http://openengine.dk/code/extensions/MathGL/MathGL.dist
 dist /extensions/Wall/Wall.dist      http://openengine.dk/code/extensions/Wall/Wall.dist
 dist /extensions/Plotting/Plotting.dist  http://openengine.dk/code/extensions/Plotting/Plotting.dist
+dist /extensions/PropertyTree/PropertyTree.dist  http://openengine.dk/code/extensions/PropertyTree/PropertyTree.dist
 
 dist /extensions/InspectionBar/InspectionBar.dist       http://www.openengine.dk/code/extensions/InspectionBar/InspectionBar.dist
 

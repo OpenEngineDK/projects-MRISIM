@@ -14,6 +14,7 @@
 #include <Resources/ITexture3D.h>
 #include <Renderers/OpenGL/Renderer.h>
 #include <Display/RenderCanvas.h>
+#include <Display/OrthogonalViewingVolume.h>
 
 namespace OpenEngine {
 namespace Display {
@@ -32,6 +33,7 @@ private:
     ITexture3DPtr tex;
     SlicePlane plane;
     unsigned int slice, sliceMax;
+    unsigned int width, height;
 public:
     SliceCanvas(ICanvasBackend* backend, ITexture3DPtr tex, SlicePlane plane = XY) 
         : ICanvas(backend)
@@ -39,8 +41,12 @@ public:
         , tex(tex)
         , plane(plane)
         , slice(0)
-        , sliceMax(0)
-    {}
+        , sliceMax(tex->GetHeight())
+        , width(tex->GetWidth())
+        , height(tex->GetDepth())
+    {
+        backend->Create(width, height);
+    }
 
     virtual ~SliceCanvas() {
     }
@@ -54,8 +60,7 @@ public:
         r.Handle(Renderers::InitializeEventArg(rc));
         r.LoadTexture(tex);
 
-        backend->Init(tex->GetWidth(), tex->GetDepth());//Height());
-        sliceMax = tex->GetHeight();
+        backend->Init(width, height);//Height());
         init = true;
     }
 
@@ -155,12 +160,11 @@ public:
     }
 
     unsigned int GetWidth() const {
-        return tex->GetWidth();
+        return width;
     }
 
     unsigned int GetHeight() const {
-        // return tex->GetHeight();
-        return tex->GetDepth();
+        return height;
     }
 
     void SetWidth(const unsigned int width) {

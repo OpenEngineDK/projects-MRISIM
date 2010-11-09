@@ -8,6 +8,13 @@ SET( PROJECT_SOURCES
   main.cpp
   Resources/MINCResource.h
   Resources/MINCResource.cpp
+  Resources/Phantom.h
+  Resources/Phantom.cpp
+  Resources/IPhantomBuilder.h
+  Resources/SimplePhantomBuilder.h
+  Resources/SimplePhantomBuilder.cpp
+  Display/OpenGL/PhantomCanvas.h
+  Display/OpenGL/PhantomCanvas.cpp
 )
 
 # Include needed to use SDL under Mac OS X
@@ -38,5 +45,6 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_AntTweakBar
   Extensions_Inspection
   Extensions_InspectionBar
+  Extensions_PropertyTree
   minc2 # ugly hack... use a find script
 )
