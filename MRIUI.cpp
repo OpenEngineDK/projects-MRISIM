@@ -152,7 +152,8 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
 
     QApplication *app = env->GetApplication();
-    app->setStyle("motif");
+    //app->setStyle("plastique");
+    //app->setStyle("motif");
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);
@@ -203,6 +204,6 @@ MRIUI::MRIUI(QtEnvironment *env) {
 }
 
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 800, 600);
+    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }
