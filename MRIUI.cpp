@@ -29,6 +29,7 @@
 #include "Resources/MINCResource.h"
 #include "Resources/Phantom.h"
 #include "Resources/SimplePhantomBuilder.h"
+#include "Resources/MINCPhantomBuilder.h"
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 
@@ -97,13 +98,15 @@ void MRIUI::SetupCanvas() {
 
 
     
-    IPhantomBuilder* pb = new SimplePhantomBuilder();
-    Phantom p = pb->GetPhantom();
+    // IPhantomBuilder* pb = new SimplePhantomBuilder();
+    // Phantom p = pb->GetPhantom();
     // Phantom::Save("test", p);
 
-    //PropertyTree ptree(DirectoryManager::FindFileInPath("brain.yaml"));
-    //PropertyTree ptree("test.yaml");
-    //Phantom p(ptree);
+    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
+    // Phantom p = pb->GetPhantom();
+    // Phantom::Save("test", p);
+
+    Phantom p("brain.yaml");
 
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
@@ -126,7 +129,7 @@ void MRIUI::SetupCanvas() {
 void MRIUI::LoadResources() {
     phantom = ResourceManager<MINCResource>::Create("brain/2/phantom_1.0mm_normal_gry.mnc");
     phantom->Load();
-    font = ResourceManager<IFontResource>::Create("Fonts/FreeSerifBold.ttf");
+    font = ResourceManager<IFontResource>::Create("Fonts/FreeSansBold.ttf");
     font->Load();
     font->SetSize(24);
     font->SetColor(Vector<3,float>(1,0,0));
@@ -149,7 +152,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
 
     QApplication *app = env->GetApplication();
-    //app->setStyle("cleanlooks");
+    app->setStyle("motif");
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);

@@ -24,6 +24,8 @@ SET( PROJECT_SOURCES
   Resources/IPhantomBuilder.h
   Resources/SimplePhantomBuilder.h
   Resources/SimplePhantomBuilder.cpp
+  Resources/MINCPhantomBuilder.h
+  Resources/MINCPhantomBuilder.cpp
   Display/OpenGL/PhantomCanvas.h
   Display/OpenGL/PhantomCanvas.cpp
 

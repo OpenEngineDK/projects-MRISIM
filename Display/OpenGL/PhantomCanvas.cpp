@@ -26,19 +26,23 @@ namespace OpenGL {
 
         unsigned char* data = new unsigned char[texr->GetWidth()*texr->GetHeight()*texr->GetDepth()*3];
 
-        vector<Vector<3,unsigned char> > colors(11);
+        vector<Vector<3,unsigned char> > colors(16);
         colors[0] = Vector<3,unsigned char>();
-        colors[1] = Vector<3,unsigned char>(255,0,0);
-        colors[2] = Vector<3,unsigned char>(0,255,0);
-        colors[3] = Vector<3,unsigned char>(0,0,255);
-        colors[4] = Vector<3,unsigned char>(255,0,0);
-        colors[5] = Vector<3,unsigned char>(0,255,0);
-        colors[6] = Vector<3,unsigned char>(0,0,255);
-        colors[7] = Vector<3,unsigned char>(255,0,0);
-        colors[8] = Vector<3,unsigned char>(0,255,0);
-        colors[9] = Vector<3,unsigned char>(0,0,255);
-        colors[10] = Vector<3,unsigned char>(0,255,0);
-        colors[11] = Vector<3,unsigned char>(0,0,255);
+        colors[1] = Vector<3,unsigned char>(255,51,51);
+        colors[2] = Vector<3,unsigned char>(255,153,51);
+        colors[3] = Vector<3,unsigned char>(255,255,51);
+        colors[4] = Vector<3,unsigned char>(153,255,51);
+        colors[5] = Vector<3,unsigned char>(255,51,153);
+        colors[6] = Vector<3,unsigned char>(245,0,0);
+        colors[7] = Vector<3,unsigned char>(51,255,51);
+        colors[8] = Vector<3,unsigned char>(255,51,255);
+        colors[9] = Vector<3,unsigned char>(0,184,184);
+        colors[10] = Vector<3,unsigned char>(0,245,245);
+        colors[11] = Vector<3,unsigned char>(51,255,153);
+        colors[12] = Vector<3,unsigned char>(153,51,255);
+        colors[13] = Vector<3,unsigned char>(51,51,255);
+        colors[14] = Vector<3,unsigned char>(51,153,255);
+        colors[15] = Vector<3,unsigned char>(51,255,255);
 
         for (unsigned int i = 0; i < texr->GetWidth()*texr->GetHeight()*texr->GetDepth(); ++i) {
             Vector<3,unsigned char> col = colors[phanData[i]];

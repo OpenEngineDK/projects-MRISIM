@@ -9,6 +9,9 @@
 
 #include "Phantom.h"
 
+#include <Resources/DirectoryManager.h>
+#include <Resources/File.h>
+
 #include <fstream>
 
 namespace OpenEngine {
@@ -21,7 +24,10 @@ Phantom::Phantom() {
 
 }
 
-Phantom::Phantom(PropertyTree& ptree) {
+Phantom::Phantom(string filename) {
+    filename = DirectoryManager::FindFileInPath(filename);
+    string filedir = File::Parent(filename);
+    PropertyTree ptree(filename);
     ptree.Reload();
     if (ptree.HaveNode("voxels")) {
         PropertyTreeNode voxels = ptree.GetNode("voxels");

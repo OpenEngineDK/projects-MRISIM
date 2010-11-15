@@ -36,7 +36,7 @@ public:
     UCharTexture3DPtr texr;    
 
     Phantom();
-    Phantom(Utils::PropertyTree& ptree);
+    Phantom(string filename);
     virtual ~Phantom();
 
     static void Save(string filename, Phantom phantom);
