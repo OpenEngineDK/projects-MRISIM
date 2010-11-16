@@ -32,6 +32,8 @@ class QtEnvironment;
 }
 
 
+namespace MRI { namespace Scene { class SpinNode; }}
+
 using namespace OpenEngine::Resources;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Devices;
@@ -47,6 +49,8 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
+
+    MRI::Scene::SpinNode *spinNode;
 
     
     void SetupPlugins();

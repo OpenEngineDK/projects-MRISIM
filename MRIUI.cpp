@@ -15,12 +15,19 @@
 #include <Display/QtEnvironment.h>
 #include <Display/CanvasQueue.h>
 #include <Display/WallCanvas.h>
+#include <Display/RenderCanvas.h>
 #include <Display/GridLayout.h>
 #include <Display/InspectionWidget.h>
+
+#include <Display/Camera.h>
+#include <Display/PerspectiveViewingVolume.h>
+
+
 
 #include <Display/OpenGL/TextureCopy.h>
 
 #include <Renderers/OpenGL/Renderer.h>
+#include <Renderers/OpenGL/RenderingView.h>
 
 #include <Utils/SimpleSetup.h>
 #include <Utils/IInspector.h>
@@ -33,6 +40,9 @@
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 
+#include "Scene/SpinNode.h"
+
+#include "Science/BlochTest.h"
 
 #undef main // Evil hack :/
 
@@ -48,6 +58,8 @@ using namespace OpenEngine::Renderers::OpenGL;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Display::OpenGL;
 
+using namespace MRI::Scene;
+using namespace MRI::Science;
 
 namespace OpenEngine {
     namespace Utils {
@@ -95,8 +107,6 @@ void MRIUI::SetupCanvas() {
 
     wc->AddTextureWithText(sliceCanvas->GetTexture(), "hest");
 
-
-
     
     // IPhantomBuilder* pb = new SimplePhantomBuilder();
     // Phantom p = pb->GetPhantom();
@@ -113,11 +123,34 @@ void MRIUI::SetupCanvas() {
 
     wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
 
+    RenderCanvas *rc = new RenderCanvas(new TextureCopy(),Vector<2,int>(400,400));
+    
+    r = new Renderer();
+    r->SetBackgroundColor(Vector<4,float>(0,0,0,1));
+    RenderingView *rv = new RenderingView();
+
+    r->ProcessEvent().Attach(*rv);
+    r->InitializeEvent().Attach(*rv);
+    
+
+    rc->SetRenderer(r);
+    Camera* cam = new Camera(*(new PerspectiveViewingVolume()));
+    cam->SetPosition(Vector<3,float>(10,10,-10));
+    cam->LookAt(Vector<3,float>(0,0,0));
+    rc->SetViewingVolume(cam);
+
+    SpinNode *sn = new SpinNode();
+    rc->SetScene(sn);
+
+    spinNode = sn;
+
+    wc->AddTextureWithText(rc->GetTexture(), "render");
 
     CanvasQueue *cq = new CanvasQueue();
     cq->PushCanvas(wc);
     cq->PushCanvas(sliceCanvas);
     cq->PushCanvas(phantomCanvas);
+    cq->PushCanvas(rc);
 
     
 
@@ -147,20 +180,21 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     SetupCanvas();
     
-
-
-
-
     QApplication *app = env->GetApplication();
     //app->setStyle("plastique");
     //app->setStyle("motif");
+
+    BlochTest *bt = new BlochTest();
+    bt->SetNode(spinNode);
+    setup->GetEngine().ProcessEvent().Attach(*bt);
+
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);
 
     ui->topLayout->addWidget(env->GetGLWidget());
     SelectionSet<ISceneNode>* ss = new SelectionSet<ISceneNode>(); 
-    SceneGraphGUI *graphGui = new SceneGraphGUI(setup->GetScene(), 
+    SceneGraphGUI *graphGui = new SceneGraphGUI(spinNode,
                                                 &setup->GetTextureLoader(), *ss);
     SceneNodeGUI *nodeGui = new SceneNodeGUI();
 
@@ -169,23 +203,34 @@ MRIUI::MRIUI(QtEnvironment *env) {
     ValueList vl2 = Inspection::Inspect(phantomCanvas->GetSliceCanvas());
     vl.merge(vl2);
     InspectionWidget *iw = new InspectionWidget("Slice",vl) ;
+    iw->setMinimumWidth(200);
     setup->GetEngine().ProcessEvent().Attach(*iw);
+
+    InspectionWidget *iw2 = new InspectionWidget("Bloch",bt->Inspect());
+    iw2->setMinimumWidth(200);
+    setup->GetEngine().ProcessEvent().Attach(*iw2);
 
     QDockWidget* dwSG = new QDockWidget("Scene Graph",this);
     QDockWidget* dwSN = new QDockWidget("Scene Node",this);
     QDockWidget *dwI = new QDockWidget("Slice Inspector",this);
+    QDockWidget *dwI2 = new QDockWidget("Bloch Inspector",this);
 
     dwSG->setWidget(graphGui);
     dwSN->setWidget(nodeGui);
     dwI->setWidget(iw);
+    dwI2->setWidget(iw2);
    
     addDockWidget(Qt::RightDockWidgetArea, dwSG);
+    dwSG->close();
     addDockWidget(Qt::RightDockWidgetArea, dwSN);
+    dwSN->close();
     addDockWidget(Qt::RightDockWidgetArea, dwI);
+    addDockWidget(Qt::RightDockWidgetArea, dwI2);
 
     ui->menuView->addAction(dwSG->toggleViewAction());
     ui->menuView->addAction(dwSN->toggleViewAction());
     ui->menuView->addAction(dwI->toggleViewAction());
+    ui->menuView->addAction(dwI2->toggleViewAction());
     
     graphGui->SelectionEvent().Attach(*nodeGui);
     graphGui->SelectionEvent().Attach(*graphGui);
@@ -194,16 +239,13 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().InitializeEvent().Attach(*graphGui);
 
 
-    
-
-
-
 
     show();
     setup->GetEngine().Start();
 }
 
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, FrameOption(), argc, argv);
+    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, 
+                                           FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }

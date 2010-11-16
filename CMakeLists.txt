@@ -29,6 +29,12 @@ SET( PROJECT_SOURCES
   Display/OpenGL/PhantomCanvas.h
   Display/OpenGL/PhantomCanvas.cpp
 
+  Scene/SpinNode.h
+  Scene/SpinNode.cpp
+
+  Science/BlochTest.h
+  Science/BlochTest.cpp
+
   ${MOC_SOURCE}
   ${UI_SOURCE}
   MRIUI.cpp
