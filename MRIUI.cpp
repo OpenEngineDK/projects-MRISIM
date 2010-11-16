@@ -135,7 +135,7 @@ void MRIUI::SetupCanvas() {
 
     rc->SetRenderer(r);
     Camera* cam = new Camera(*(new PerspectiveViewingVolume()));
-    cam->SetPosition(Vector<3,float>(10,10,-10));
+    cam->SetPosition(Vector<3,float>(10,10,10));
     cam->LookAt(Vector<3,float>(0,0,0));
     rc->SetViewingVolume(cam);
 
@@ -207,7 +207,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().ProcessEvent().Attach(*iw);
 
     InspectionWidget *iw2 = new InspectionWidget("Bloch",bt->Inspect());
-    iw2->setMinimumWidth(200);
+    iw2->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw2);
 
     QDockWidget* dwSG = new QDockWidget("Scene Graph",this);

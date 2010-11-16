@@ -35,13 +35,18 @@ class BlochTest : public IListener<Core::ProcessEventArg> {
     Vector<3,float> B_0;
     float gyro;
     Vector<3,float> M;
+    float M_0;
     float T_1;
     float T_2;
+    float last_dt;
 public:
     BlochTest();
 
     float GetTimeScale() { return timeScale; }
     void SetTimeScale(float s) { timeScale = s; }
+
+    float GetTime() {return time;};
+    float GetTimeDT() {return last_dt;};
 
     void SetNode(Scene::SpinNode *sn);
     void Handle(Core::ProcessEventArg arg);

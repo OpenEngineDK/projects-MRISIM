@@ -6,9 +6,12 @@ namespace MRI {
 namespace Scene {
 
 using namespace OpenEngine::Renderers;
+using namespace std;
 
 SpinNode::SpinNode() {
     scale = 10;
+    trace = vector<Vector<3,float> >(10);
+    traceTimer.Start();
 }
 
 void SpinNode::Apply(Renderers::RenderingEventArg arg, ISceneNodeVisitor& v) {
@@ -27,7 +30,21 @@ void SpinNode::Apply(Renderers::RenderingEventArg arg, ISceneNodeVisitor& v) {
 
     Line l(zero,
            M*scale);
-    rend.DrawLine(l, Vector<3,float>(1,1,1));
+    if (traceTimer.GetElapsedIntervals(100000)) {
+        trace[trace_idx++ % 10] = l.point2;    
+        
+        traceTimer.Reset();
+    }
+
+    rend.DrawLine(l, Vector<3,float>(1,1,1),2);
+    // tracer
+    for (int i=0;i<10;i++) {
+        l = Line(l.point2, trace[(trace_idx-1 - i) % 10]);
+        rend.DrawLine(l, Vector<3,float>(1.0-i/10.0));
+    }
+
+        
+    
 }
 
 }
