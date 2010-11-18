@@ -173,6 +173,10 @@ void MRIUI::LoadResources() {
 
 }
 
+void MRIUI::Exit() {
+    exit(0);
+}
+
 MRIUI::MRIUI(QtEnvironment *env) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
     frame = &setup->GetFrame();
@@ -219,6 +223,11 @@ MRIUI::MRIUI(QtEnvironment *env) {
     ValueList vl = Inspection::Inspect(sliceCanvas);
     ValueList vl2 = Inspection::Inspect(phantomCanvas->GetSliceCanvas());
     vl.merge(vl2);
+    
+
+    ActionValue* av = new ActionValueCall<MRIUI>(*this, &MRIUI::Exit);
+    av->name = "Exit";
+    vl.push_back(av);
     InspectionWidget *iw = new InspectionWidget("Slice",vl) ;
     iw->setMinimumWidth(200);
     setup->GetEngine().ProcessEvent().Attach(*iw);

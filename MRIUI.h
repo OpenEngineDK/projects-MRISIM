@@ -56,9 +56,10 @@ class MRIUI : public QMainWindow {
     void SetupPlugins();
     void SetupCanvas();
     void LoadResources();
+
+    void Exit();
 public:
-    MRIUI(OpenEngine::Display::QtEnvironment *env);
-          
+    MRIUI(OpenEngine::Display::QtEnvironment *env);    
 
 };
 
