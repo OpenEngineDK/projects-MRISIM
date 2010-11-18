@@ -19,27 +19,25 @@ namespace MRI {
     namespace Scene {
         class SpinNode;
     }
-}
-
-namespace OpenEngine {
 namespace Science {
 
-using Resources::Phantom;
-using MRI::Scene::SpinNode;
+using OpenEngine::Resources::Phantom;
+using Scene::SpinNode;
+using namespace OpenEngine;
 
 class IMRIKernel {
 public:
     virtual ~IMRIKernel() {}
 
     virtual void Init(Phantom phantom) = 0;
-    virtual Vector<3,float> Step(float dt) = 0;    
+    virtual Vector<3,float> Step(float dt, float time) = 0;    
 };
 
-class MRISim: public Core::IModule {
+class MRISim: public OpenEngine::Core::IModule {
 private:
     Phantom phantom;
     IMRIKernel* kernel;
-    float kernelStep;
+    float kernelStep, stepsPerSecond, theAccTime, theSimTime;
     bool running;
     SpinNode* spinNode;
 public:
@@ -56,6 +54,12 @@ public:
     void Handle(Core::ProcessEventArg arg);
 
     void SetNode(SpinNode *sn);
+
+    float GetTime();
+    void SetStepSize(float);
+    float GetStepSize();
+    void SetStepsPerSecond(float);
+    float GetStepsPerSecond();
 
     Utils::Inspection::ValueList Inspect();
 };

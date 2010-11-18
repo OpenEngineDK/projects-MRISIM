@@ -9,10 +9,14 @@
 
 #include "CPUKernel.h"
 
+#include <Math/Matrix.h>
 #include <Logging/Logger.h>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Science {
+
+using namespace OpenEngine::Utils::Inspection;
+using namespace OpenEngine::Math;
 
 CPUKernel::CPUKernel() 
     : magnets(NULL)
@@ -24,7 +28,6 @@ CPUKernel::CPUKernel()
     , sz(0)
     , b0(0.5)
     , gyro(42.576e06) // hz/Tesla
-    , time(0.0)
 {}
 
 CPUKernel::~CPUKernel() {
@@ -32,7 +35,6 @@ CPUKernel::~CPUKernel() {
 
 void CPUKernel::Init(Phantom phantom) {
     this->phantom = phantom;
-    time = 0.0;
     width   = phantom.texr->GetWidth();
     height  = phantom.texr->GetHeight();
     depth   = phantom.texr->GetDepth();
@@ -46,15 +48,14 @@ void CPUKernel::Init(Phantom phantom) {
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         eq[i] = phantom.spinPackets[data[i]].ro*b0;
-        magnets[i] = Vector<3,float>(0.0, eq[i], 0.0);
+        magnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
         signal += magnets[i];
     }
     signal /= sz;
     // logger.info << "Signal: " << signal << logger.end;
 }
 
-Vector<3,float> CPUKernel::Step(float dt) {
-    time += dt;
+Vector<3,float> CPUKernel::Step(float dt, float time) {
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         if (data[i] == 0) continue;
@@ -80,6 +81,45 @@ Vector<3,float> CPUKernel::Step(float dt) {
     return signal;
 }
 
+void CPUKernel::Flip() {
+    RFPulse(Math::PI * 0.5);
+}
+
+void CPUKernel::Flop() {
+    RFPulse(Math::PI);
+}
+
+void CPUKernel::RFPulse(float angle) {
+    Matrix<3,3,float> rot(1.0, 0.0, 0.0,
+                          0.0, cos(angle), sin(angle),
+                          0.0,-sin(angle), cos(angle)
+                          );
+
+    for (unsigned int i = 0; i < sz; ++i) {
+        if (data[i] == 0) continue;
+        magnets[i] = rot*magnets[i];
+    }
+}
+
+ValueList CPUKernel::Inspect() {
+    ValueList values;
+    {
+        ActionValueCall<CPUKernel> *v
+            = new ActionValueCall<CPUKernel> (*this,
+                                           &CPUKernel::Flip);
+        v->name = "flip 90";
+        values.push_back(v);
+    }
+    {
+        ActionValueCall<CPUKernel> *v
+            = new ActionValueCall<CPUKernel> (*this,
+                                              &CPUKernel::Flop);
+        v->name = "flip 180";
+        values.push_back(v);
+    }
+    return values;
+
+}
     
 } // NS Science
 } // NS OpenEngine

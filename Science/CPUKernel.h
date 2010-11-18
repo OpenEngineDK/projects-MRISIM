@@ -13,8 +13,9 @@
 #include "MRISim.h"
 #include "../Resources/Phantom.h"
 
+#include <Utils/IInspector.h>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Science {
 
 using Resources::Phantom;
@@ -27,16 +28,22 @@ private:
     float* eq;
     unsigned char* data;
     unsigned int width, height, depth, sz;
-    float b0, gyro, time;
+    float b0, gyro;
     Vector<3,float> signal;
 public:
     CPUKernel();
     virtual ~CPUKernel();
 
     void Init(Phantom phantom);
-    Vector<3,float> Step(float dt);    
+    Vector<3,float> Step(float dt, float time);    
 
     void RFPulse(float angle);
+
+    void Flip();
+    void Flop();
+
+    Utils::Inspection::ValueList Inspect();
+
 };
 
 

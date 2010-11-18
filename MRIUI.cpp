@@ -63,7 +63,6 @@ using namespace OpenEngine::Display::OpenGL;
 using namespace MRI::Scene;
 using namespace MRI::Science;
 
-using namespace OpenEngine::Science;
 
 namespace OpenEngine {
     namespace Utils {
@@ -203,7 +202,8 @@ MRIUI::MRIUI(QtEnvironment *env) {
     Phantom p = pb->GetPhantom();
     // Phantom::Save("test", p);
 
-    MRISim* sim = new MRISim(p, new CPUKernel());
+    CPUKernel* kern = new CPUKernel();
+    MRISim* sim = new MRISim(p, kern);
     setup->GetEngine().InitializeEvent().Attach(*sim);
     setup->GetEngine().ProcessEvent().Attach(*sim);
     setup->GetEngine().DeinitializeEvent().Attach(*sim);
@@ -232,19 +232,26 @@ MRIUI::MRIUI(QtEnvironment *env) {
     iw->setMinimumWidth(200);
     setup->GetEngine().ProcessEvent().Attach(*iw);
 
-    InspectionWidget *iw2 = new InspectionWidget("Bloch",bt->Inspect());
+    // InspectionWidget *iw2 = new InspectionWidget("Bloch",bt->Inspect());
+    InspectionWidget *iw2 = new InspectionWidget("MRISim",sim->Inspect());
     iw2->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw2);
+
+    InspectionWidget *iw3 = new InspectionWidget("MRISim",kern->Inspect());
+    iw3->setMinimumWidth(300);
+    setup->GetEngine().ProcessEvent().Attach(*iw3);
 
     QDockWidget* dwSG = new QDockWidget("Scene Graph",this);
     QDockWidget* dwSN = new QDockWidget("Scene Node",this);
     QDockWidget *dwI = new QDockWidget("Slice Inspector",this);
-    QDockWidget *dwI2 = new QDockWidget("Bloch Inspector",this);
+    QDockWidget *dwI2 = new QDockWidget("MRISim Inspector",this);
+    QDockWidget *dwI3 = new QDockWidget("Kernel Inspector",this);
 
     dwSG->setWidget(graphGui);
     dwSN->setWidget(nodeGui);
     dwI->setWidget(iw);
     dwI2->setWidget(iw2);
+    dwI3->setWidget(iw3);
    
     addDockWidget(Qt::RightDockWidgetArea, dwSG);
     dwSG->close();
@@ -252,11 +259,13 @@ MRIUI::MRIUI(QtEnvironment *env) {
     dwSN->close();
     addDockWidget(Qt::RightDockWidgetArea, dwI);
     addDockWidget(Qt::RightDockWidgetArea, dwI2);
+    addDockWidget(Qt::RightDockWidgetArea, dwI3);
 
     ui->menuView->addAction(dwSG->toggleViewAction());
     ui->menuView->addAction(dwSN->toggleViewAction());
     ui->menuView->addAction(dwI->toggleViewAction());
     ui->menuView->addAction(dwI2->toggleViewAction());
+    ui->menuView->addAction(dwI3->toggleViewAction());
     
     graphGui->SelectionEvent().Attach(*nodeGui);
     graphGui->SelectionEvent().Attach(*graphGui);
@@ -271,7 +280,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 }
 
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, 
+    QtEnvironment* env = new QtEnvironment(false, 640, 480, 32, 
                                            FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }
