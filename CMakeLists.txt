@@ -70,9 +70,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_MathGL
   Extensions_Wall
   Extensions_SDLFont
-  Extensions_AntTweakBar
   Extensions_Inspection
-  Extensions_InspectionBar
   Extensions_InspectionWidget
   Extensions_PropertyTree
   minc2 # ugly hack... use a find script
