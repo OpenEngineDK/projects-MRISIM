@@ -11,6 +11,7 @@
 #define _MRI_SIMULATOR_
 
 #include "../Resources/Phantom.h"
+#include "../EventTimer.h"
 
 #include <Core/IModule.h>
 #include <Utils/IInspector.h>
@@ -35,37 +36,42 @@ public:
     virtual Vector<3,float> Step(float dt, float time) = 0;    
 };
 
-class MRISim: public OpenEngine::Core::IModule {
+class MRISim : public OpenEngine::Core::IModule
+             , public IListener<TimerEventArg>
+ {
 private:
-    Phantom phantom;
-    IMRIKernel* kernel;
-    float kernelStep, stepsPerSecond, theAccTime, theSimTime;
-    bool running;
-    SpinNode* spinNode;
-    MathGLPlot* plot;
-public:
+     Phantom phantom;
+     IMRIKernel* kernel;
+     float kernelStep, stepsPerSecond, theAccTime, theSimTime;
+     bool running;
+     SpinNode* spinNode;
+     MathGLPlot* plot;
+     EventTimer *plotTimer;
+ public:
+     
+     MRISim(Phantom phantom, IMRIKernel* kernel);
+     virtual ~MRISim();
 
-    MRISim(Phantom phantom, IMRIKernel* kernel);
-    virtual ~MRISim();
+     void Start();
+     void Stop();
+     void Reset();
 
-    void Start();
-    void Stop();
-    void Reset();
+     void Handle(Core::InitializeEventArg arg);
+     void Handle(Core::DeinitializeEventArg arg);
+     void Handle(Core::ProcessEventArg arg);
 
-    void Handle(Core::InitializeEventArg arg);
-    void Handle(Core::DeinitializeEventArg arg);
-    void Handle(Core::ProcessEventArg arg);
+     void Handle(TimerEventArg arg);
 
-    void SetNode(SpinNode *sn);
-    void SetPlot(MathGLPlot* plot);
+     void SetNode(SpinNode *sn);
+     void SetPlot(MathGLPlot* plot);
 
-    float GetTime();
-    void SetStepSize(float);
-    float GetStepSize();
-    void SetStepsPerSecond(float);
-    float GetStepsPerSecond();
+     float GetTime();
+     void SetStepSize(float);
+     float GetStepSize();
+     void SetStepsPerSecond(float);
+     float GetStepsPerSecond();
 
-    Utils::Inspection::ValueList Inspect();
+     Utils::Inspection::ValueList Inspect();
 };
 
 } // NS Science

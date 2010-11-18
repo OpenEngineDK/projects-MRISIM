@@ -26,7 +26,10 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     , theSimTime(0.0)
     , running(false)
     , spinNode(NULL)
-{}
+    , plotTimer(new EventTimer(1))
+{
+    plotTimer->TimerEvent().Attach(*this);
+}
 
 MRISim::~MRISim() {
     
@@ -66,6 +69,9 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         if (spinNode) spinNode->M = signal;
         theAccTime -= invStep;
     }
+    plotTimer->Handle(arg);
+}
+void MRISim::Handle(TimerEventArg arg) {
     plot->Redraw();
 }
 

@@ -125,7 +125,7 @@ void MRIUI::SetupCanvas() {
 
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
-    plot = new MathGLPlot(200,200);
+    plot = new MathGLPlot(400,200);
     tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
     //wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
     wc->AddTextureWithText(plot->GetTexture(), "plot");
