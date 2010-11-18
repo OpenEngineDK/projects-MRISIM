@@ -14,6 +14,7 @@
 
 #include <Core/IModule.h>
 #include <Utils/IInspector.h>
+#include <Science/MathGLPlot.h>
 
 namespace MRI {
     namespace Scene {
@@ -24,6 +25,7 @@ namespace Science {
 using OpenEngine::Resources::Phantom;
 using Scene::SpinNode;
 using namespace OpenEngine;
+using namespace OpenEngine::Science;
 
 class IMRIKernel {
 public:
@@ -40,6 +42,7 @@ private:
     float kernelStep, stepsPerSecond, theAccTime, theSimTime;
     bool running;
     SpinNode* spinNode;
+    MathGLPlot* plot;
 public:
 
     MRISim(Phantom phantom, IMRIKernel* kernel);
@@ -54,6 +57,7 @@ public:
     void Handle(Core::ProcessEventArg arg);
 
     void SetNode(SpinNode *sn);
+    void SetPlot(MathGLPlot* plot);
 
     float GetTime();
     void SetStepSize(float);

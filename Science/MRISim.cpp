@@ -62,14 +62,20 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
     while (theAccTime - invStep > 0.0) {
         theSimTime += kernelStep;
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
+        plot->AddPoint(theSimTime,signal[0]);
         if (spinNode) spinNode->M = signal;
         theAccTime -= invStep;
     }
+    plot->Redraw();
 }
 
 void MRISim::SetNode(SpinNode *sn) {
     spinNode = sn;
 }    
+
+void MRISim::SetPlot(MathGLPlot* p) {
+    plot = p;
+}
 
 float MRISim::GetTime() {
     return theSimTime;

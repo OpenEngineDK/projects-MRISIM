@@ -98,6 +98,8 @@ void MRIUI::SetupPlugins() {
 void MRIUI::SetupCanvas() {
     IRenderer* r = new Renderer();
     TextureLoader* tl = new TextureLoader(*r);
+    r->PreProcessEvent().Attach(*tl);
+
     WallCanvas *wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
 
 
@@ -108,7 +110,7 @@ void MRIUI::SetupCanvas() {
     sliceCanvas = new SliceCanvas(new TextureCopy(), phantom->GetTexture3D());    
 
 
-    wc->AddTextureWithText(sliceCanvas->GetTexture(), "hest");
+    //wc->AddTextureWithText(sliceCanvas->GetTexture(), "hest");
 
     
     // IPhantomBuilder* pb = new SimplePhantomBuilder();
@@ -123,8 +125,10 @@ void MRIUI::SetupCanvas() {
 
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
-
-    wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
+    plot = new MathGLPlot(200,200);
+    tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    //wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
+    wc->AddTextureWithText(plot->GetTexture(), "plot");
 
     RenderCanvas *rc = new RenderCanvas(new TextureCopy(),Vector<2,int>(400,400));
     
@@ -187,12 +191,12 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     SetupCanvas();
     
-    QApplication *app = env->GetApplication();
+    //QApplication *app = env->GetApplication();
     //app->setStyle("plastique");
     //app->setStyle("motif");
 
-    BlochTest *bt = new BlochTest();
-    bt->SetNode(spinNode);
+    // BlochTest *bt = new BlochTest();
+    // bt->SetNode(spinNode);
     // setup->GetEngine().ProcessEvent().Attach(*bt);
 
     
@@ -208,6 +212,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().ProcessEvent().Attach(*sim);
     setup->GetEngine().DeinitializeEvent().Attach(*sim);
     sim->SetNode(spinNode);
+    sim->SetPlot(plot);
     sim->Start();
 
     ui = new Ui::MRIUI();
@@ -243,7 +248,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     QDockWidget* dwSG = new QDockWidget("Scene Graph",this);
     QDockWidget* dwSN = new QDockWidget("Scene Node",this);
-    QDockWidget *dwI = new QDockWidget("Slice Inspector",this);
+    QDockWidget *dwI  = new QDockWidget("Slice Inspector",this);
     QDockWidget *dwI2 = new QDockWidget("MRISim Inspector",this);
     QDockWidget *dwI3 = new QDockWidget("Kernel Inspector",this);
 
@@ -272,15 +277,15 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
 
     setup->GetEngine().InitializeEvent().Attach(*graphGui);
-
-
-
+    
     show();
     setup->GetEngine().Start();
 }
 
+
+
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 640, 480, 32, 
+    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, 
                                            FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }

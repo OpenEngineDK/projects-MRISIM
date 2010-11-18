@@ -17,6 +17,7 @@
 #include <Display/IFrame.h>
 #include "Resources/MINCResource.h"
 #include <Devices/IMouse.h>
+#include <Science/MathGLPlot.h>
 
 namespace Ui { class MRIUI; }
 
@@ -38,6 +39,7 @@ using namespace OpenEngine::Resources;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Devices;
 using namespace OpenEngine::Display::OpenGL;
+using namespace OpenEngine::Science;
 
 class MRIUI : public QMainWindow {
     Q_OBJECT;
@@ -49,7 +51,7 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
-
+    MathGLPlot *plot;
     MRI::Scene::SpinNode *spinNode;
 
     
