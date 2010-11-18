@@ -43,6 +43,8 @@
 #include "Scene/SpinNode.h"
 
 #include "Science/BlochTest.h"
+#include "Science/MRISim.h"
+#include "Science/CPUKernel.h"
 
 #undef main // Evil hack :/
 
@@ -60,6 +62,8 @@ using namespace OpenEngine::Display::OpenGL;
 
 using namespace MRI::Scene;
 using namespace MRI::Science;
+
+using namespace OpenEngine::Science;
 
 namespace OpenEngine {
     namespace Utils {
@@ -186,8 +190,21 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     BlochTest *bt = new BlochTest();
     bt->SetNode(spinNode);
-    setup->GetEngine().ProcessEvent().Attach(*bt);
+    // setup->GetEngine().ProcessEvent().Attach(*bt);
 
+    
+    // test cpu simulator
+    
+    IPhantomBuilder* pb = new SimplePhantomBuilder();
+    Phantom p = pb->GetPhantom();
+    // Phantom::Save("test", p);
+
+    MRISim* sim = new MRISim(p, new CPUKernel());
+    setup->GetEngine().InitializeEvent().Attach(*sim);
+    setup->GetEngine().ProcessEvent().Attach(*sim);
+    setup->GetEngine().DeinitializeEvent().Attach(*sim);
+    sim->SetNode(spinNode);
+    sim->Start();
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);

@@ -33,10 +33,10 @@ Phantom SimplePhantomBuilder::GetPhantom() {
     // Connective; 500; 70; 0.77; -9.05
     // CSF; 2569; 329; 1; -9.05
     // Fat; 350; 70; 1; -7 to -8
-    spinPackets[0] = SpinPacket("Air", 0.0, 0.0);
-    spinPackets[1] = SpinPacket("Connective", 500.0, 70.0);
-    spinPackets[2] = SpinPacket("CSF", 2569.0, 329.0);
-    spinPackets[3] = SpinPacket("Fat", 350.0, 70.0);
+    spinPackets[0] = SpinPacket("Air", 0.0, 0.0, 0.0);
+    spinPackets[1] = SpinPacket("Connective", 0.500, 0.070, 0.77);
+    spinPackets[2] = SpinPacket("CSF", 2.569, 0.329, 1.0);
+    spinPackets[3] = SpinPacket("Fat", 0.350, 0.070, 1.0);
 
     phantom.spinPackets = spinPackets;
 

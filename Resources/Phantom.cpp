@@ -82,7 +82,8 @@ Phantom::Phantom(string filename) {
             PropertyTreeNode entry = sp.GetNode(i);
             spinPackets[i] = SpinPacket(entry.Get("name", string("")),
                                         entry.Get("t1", 0.0),
-                                        entry.Get("t2", 0.0));
+                                        entry.Get("t2", 0.0),
+                                        entry.Get("ro", 0.0));
         }
     }
 }
@@ -116,6 +117,7 @@ void Phantom::Save(string filename, Phantom phantom) {
         out << "  - name: " << sp.name << "\n";
         out << "    t1: " << sp.t1 << "\n";
         out << "    t2: " << sp.t2 << "\n";
+        out << "    ro: " << sp.ro << "\n";
     }
     out.close();
 

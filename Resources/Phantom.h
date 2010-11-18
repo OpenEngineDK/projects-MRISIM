@@ -23,9 +23,9 @@ using std::string;
 
 struct SpinPacket {
     string name;
-    float t1, t2;
-    SpinPacket(): t1(0.0), t2(0.0) {}
-    SpinPacket(string name, float t1, float t2): name(name), t1(t1), t2(t2) {}
+    float t1, t2, ro;
+    SpinPacket(): t1(0.0), t2(0.0), ro(0.0) {}
+    SpinPacket(string name, float t1, float t2, float ro): name(name), t1(t1), t2(t2), ro(ro) {}
 };
 
 struct Phantom {

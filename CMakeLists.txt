@@ -28,6 +28,10 @@ SET( PROJECT_SOURCES
   Resources/MINCPhantomBuilder.cpp
   Display/OpenGL/PhantomCanvas.h
   Display/OpenGL/PhantomCanvas.cpp
+  Science/MRISim.h
+  Science/MRISim.cpp
+  Science/CPUKernel.h
+  Science/CPUKernel.cpp
 
   Scene/SpinNode.h
   Scene/SpinNode.cpp

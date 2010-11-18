@@ -60,8 +60,9 @@ Phantom MINCPhantomBuilder::GetPhantom() {
         for (unsigned int i = 0; i < count; ++i) {
             PropertyTreeNode entry = sp.GetNode(i);
             phantom.spinPackets[i] = SpinPacket(entry.Get("name", string("")),
-                                                  entry.Get("t1", 0.0),
-                                                  entry.Get("t2", 0.0));
+                                                entry.Get("t1", 0.0),
+                                                entry.Get("t2", 0.0),
+                                                entry.Get("ro", 0.0));
             mincs[i] = entry.Get("minc", string(""));
         }
 
