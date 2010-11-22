@@ -126,9 +126,13 @@ void MRIUI::SetupCanvas() {
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
     plot = new MathGLPlot(400,200);
+    fftPlot = new MathGLPlot(400,200);
     tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
-    //wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
+    tl->Load(fftPlot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
+
     wc->AddTextureWithText(plot->GetTexture(), "plot");
+
+    wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
 
     RenderCanvas *rc = new RenderCanvas(new TextureCopy(),Vector<2,int>(400,400));
     
@@ -213,6 +217,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().DeinitializeEvent().Attach(*sim);
     sim->SetNode(spinNode);
     sim->SetPlot(plot);
+    sim->SetFFTPlot(fftPlot);
     sim->Start();
 
     ui = new Ui::MRIUI();
@@ -257,7 +262,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     dwI->setWidget(iw);
     dwI2->setWidget(iw2);
     dwI3->setWidget(iw3);
-   
+    
     addDockWidget(Qt::RightDockWidgetArea, dwSG);
     dwSG->close();
     addDockWidget(Qt::RightDockWidgetArea, dwSN);

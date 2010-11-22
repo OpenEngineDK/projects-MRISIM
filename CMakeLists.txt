@@ -35,6 +35,13 @@ SET( PROJECT_SOURCES
   Science/AcquisitionData.h
   Science/AcquisitionData.cpp
 
+  Science/FFTData.h
+  Science/FFTData.cpp
+
+  Science/IFFT.h
+  Science/CPUFFT.h
+  Science/CPUFFT.cpp
+
   Scene/SpinNode.h
   Scene/SpinNode.cpp
 
@@ -76,4 +83,5 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_InspectionWidget
   Extensions_PropertyTree
   minc2 # ugly hack... use a find script
+  fftw3
 )

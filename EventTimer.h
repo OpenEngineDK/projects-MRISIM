@@ -1,4 +1,4 @@
-// 
+//
 // -------------------------------------------------------------------
 // Copyright (C) 2007 OpenEngine.dk (See AUTHORS)
 //
@@ -29,7 +29,7 @@ using OpenEngine::Core::ProcessEventArg;
 class EventTimer;
 
 class TimerEventArg {
-public:    
+public:
     EventTimer* et;
     TimerEventArg(EventTimer* et) : et(et) {}
 };
@@ -42,18 +42,18 @@ public:
     EventTimer(float time) : time(time) {
         t.Start();
     }
-    
+
     void Handle(ProcessEventArg arg) {
-        if (t.GetElapsedTime().AsInt() / 1000000.0 > time ) {            
+        if (t.GetElapsedTime().AsInt() / 1000000.0 > time ) {
             timerEvent.Notify(TimerEventArg(this));
             t.Reset();
         }
     }
-    
+
     IEvent<TimerEventArg>& TimerEvent() {
         return timerEvent;
     }
-};    
+};
 
 } // NS MRI
 

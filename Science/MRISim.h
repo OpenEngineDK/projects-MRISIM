@@ -17,6 +17,8 @@
 #include <Core/IModule.h>
 #include <Utils/IInspector.h>
 #include <Science/MathGLPlot.h>
+#include "IFFT.h"
+#include "FFTData.h"
 
 namespace MRI {
     namespace Scene {
@@ -45,7 +47,7 @@ public:
     virtual ~IMRIKernel() {}
 
     virtual void Init(Phantom phantom) = 0;
-    virtual Vector<3,float> Step(float dt, float time) = 0;    
+    virtual Vector<3,float> Step(float dt, float time) = 0;
 };
 
 class MRISim : public OpenEngine::Core::IModule
@@ -58,8 +60,11 @@ private:
      bool running;
      SpinNode* spinNode;
      MathGLPlot* plot;
+     MathGLPlot* fftPlot;
      EventTimer *plotTimer;
      AcquisitionData* acq;
+     IFFT* fft;
+     FFTData* fftData;
  public:
      
      MRISim(Phantom phantom, IMRIKernel* kernel);
@@ -77,6 +82,9 @@ private:
 
      void SetNode(SpinNode *sn);
      void SetPlot(MathGLPlot* plot);
+     void SetFFTPlot(MathGLPlot* plot);
+
+     void DoFFT();
 
      float GetTime();
      void SetStepSize(float);

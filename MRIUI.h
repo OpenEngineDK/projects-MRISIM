@@ -51,7 +51,8 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
-    MathGLPlot *plot;
+    MathGLPlot* plot;
+    MathGLPlot* fftPlot;
     MRI::Scene::SpinNode *spinNode;
 
     

@@ -10,6 +10,7 @@
 #include "MRISim.h"
 
 #include "../Scene/SpinNode.h"
+#include "CPUFFT.h"
 
 namespace MRI {
 namespace Science {
@@ -28,6 +29,8 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     , spinNode(NULL)
     , plotTimer(new EventTimer(1))
     , acq(new AcquisitionData(kernelStep, 2000))
+    , fft(new CPUFFT())
+    , fftData(new FFTData())
 {
     plotTimer->TimerEvent().Attach(*this);
 }
@@ -85,6 +88,10 @@ void MRISim::SetPlot(MathGLPlot* p) {
     plot = p;
     plot->SetData(acq);
 }
+void MRISim::SetFFTPlot(MathGLPlot* p) {
+    fftPlot = p;
+    fftPlot->SetData(fftData);
+}
 
 float MRISim::GetTime() {
     return theSimTime;
@@ -104,6 +111,21 @@ void MRISim::SetStepsPerSecond(float steps) {
 
 float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
+}
+
+void MRISim::DoFFT() {
+    vector<complex<double> > input,output;
+    vector<float> data = acq->GetYData();
+    for (vector<float>::iterator itr = data.begin();
+         itr != data.end();
+         itr++) {
+        input.push_back(complex<double>(*itr,0));
+    }
+    output = fft->FFT1D(input);
+    
+    fftData->SetFFTOutput(output);
+
+    fftPlot->Redraw();
 }
 
 ValueList MRISim::Inspect() {
@@ -140,14 +162,13 @@ ValueList MRISim::Inspect() {
         v->properties[MAX] = 1000.0;
         values.push_back(v);
     }
+    {
+        ActionValueCall<MRISim> *v =
+            new ActionValueCall<MRISim>(*this, &MRISim::DoFFT);
+        v->name = "fft";
+        values.push_back(v);
+    }
 
-    // {
-    //     RValueCall<MRISim, float> *v
-    //         = new RValueCall<MRISim,float> (*this,
-    //                                            &MRISim::GetTimeDT);
-    //     v->name = "last dt";
-    //     values.push_back(v);
-    // }
     return values;
 
 }
