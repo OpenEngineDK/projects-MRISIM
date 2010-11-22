@@ -21,12 +21,13 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     : phantom(phantom)
     , kernel(kernel)
     , kernelStep(0.001)
-    , stepsPerSecond(8.0)
+    , stepsPerSecond(50.0)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
     , spinNode(NULL)
     , plotTimer(new EventTimer(1))
+    , acq(new AcquisitionData(kernelStep, 2000))
 {
     plotTimer->TimerEvent().Attach(*this);
 }
@@ -65,7 +66,8 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
     while (theAccTime - invStep > 0.0) {
         theSimTime += kernelStep;
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
-        plot->AddPoint(theSimTime,signal[0]);
+        // plot->AddPoint(theSimTime,signal[0]);
+        acq->AddSample(signal[0]);
         if (spinNode) spinNode->M = signal;
         theAccTime -= invStep;
     }
@@ -81,6 +83,7 @@ void MRISim::SetNode(SpinNode *sn) {
 
 void MRISim::SetPlot(MathGLPlot* p) {
     plot = p;
+    plot->SetData(acq);
 }
 
 float MRISim::GetTime() {

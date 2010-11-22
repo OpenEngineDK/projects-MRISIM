@@ -32,6 +32,8 @@ SET( PROJECT_SOURCES
   Science/MRISim.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
+  Science/AcquisitionData.h
+  Science/AcquisitionData.cpp
 
   Scene/SpinNode.h
   Scene/SpinNode.cpp

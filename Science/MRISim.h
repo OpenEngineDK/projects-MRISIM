@@ -12,6 +12,7 @@
 
 #include "../Resources/Phantom.h"
 #include "../EventTimer.h"
+#include "AcquisitionData.h"
 
 #include <Core/IModule.h>
 #include <Utils/IInspector.h>
@@ -28,7 +29,18 @@ using Scene::SpinNode;
 using namespace OpenEngine;
 using namespace OpenEngine::Science;
 
+class IMRIKernel;
+
+class UpdateEventArg {
+public:
+    IMRIKernel& kernel;
+    float dt, time;
+    UpdateEventArg(IMRIKernel& kernel, float dt, float time)
+        : kernel(kernel), dt(dt), time(time) {}
+};
+
 class IMRIKernel {
+protected:
 public:
     virtual ~IMRIKernel() {}
 
@@ -47,6 +59,7 @@ private:
      SpinNode* spinNode;
      MathGLPlot* plot;
      EventTimer *plotTimer;
+     AcquisitionData* acq;
  public:
      
      MRISim(Phantom phantom, IMRIKernel* kernel);

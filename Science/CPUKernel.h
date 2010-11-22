@@ -14,22 +14,27 @@
 #include "../Resources/Phantom.h"
 
 #include <Utils/IInspector.h>
+#include <Math/RandomGenerator.h>
 
 namespace MRI {
 namespace Science {
 
 using Resources::Phantom;
 using MRI::Scene::SpinNode;
+using OpenEngine::Math::RandomGenerator;
 
 class CPUKernel: public IMRIKernel {
 private:
     Phantom phantom;
     Vector<3,float>* magnets;
-    float* eq;
+    float *eq, *deltaB0;
     unsigned char* data;
     unsigned int width, height, depth, sz;
     float b0, gyro;
     Vector<3,float> signal;
+    RandomGenerator randomgen;
+
+    inline float RandomAttribute(float base, float variance);
 public:
     CPUKernel();
     virtual ~CPUKernel();

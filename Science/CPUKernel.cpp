@@ -21,6 +21,7 @@ using namespace OpenEngine::Math;
 CPUKernel::CPUKernel() 
     : magnets(NULL)
     , eq(NULL)
+    , deltaB0(NULL)
     , data(NULL)
     , width(0)
     , height(0)
@@ -28,9 +29,15 @@ CPUKernel::CPUKernel()
     , sz(0)
     , b0(0.5)
     , gyro(42.576e06) // hz/Tesla
-{}
+{
+    randomgen.SeedWithTime();
+}
 
 CPUKernel::~CPUKernel() {
+}
+
+float CPUKernel::RandomAttribute(float base, float variance) {
+    return base + randomgen.UniformFloat(-1.0,1.0) * variance;
 }
 
 void CPUKernel::Init(Phantom phantom) {
@@ -41,30 +48,47 @@ void CPUKernel::Init(Phantom phantom) {
     sz = width*height*depth;
     magnets = new Vector<3,float>[sz];
     eq = new float[sz];
+    deltaB0 = new float[sz];
     data = phantom.texr->GetData();
     
     // initialize magnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
-        eq[i] = phantom.spinPackets[data[i]].ro*b0;
+        deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
+        //deltaB0[i] = 0.0;
+        eq[i] = 1.0;//phantom.spinPackets[data[i]].ro*b0;
         magnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
         signal += magnets[i];
     }
-    signal /= sz;
+    // signal /= sz;
     // logger.info << "Signal: " << signal << logger.end;
 }
 
+inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
+    Matrix<3,3,float> m(cos(angle), sin(angle), 0.0,
+                        -sin(angle), cos(angle), 0.0,
+                        0.0, 0.0, 1.0);
+    return m*vec;
+}
+
 Vector<3,float> CPUKernel::Step(float dt, float time) {
+    float T_1 = 2200/1000.0;
+    float T_2 = 500/1000.0;
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         if (data[i] == 0) continue;
-        float dtt1 = dt/phantom.spinPackets[data[i]].t1;
-        float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+        float dtt1 = dt/T_1;//phantom.spinPackets[data[i]].t1;
+        float dtt2 = dt/T_2;//phantom.spinPackets[data[i]].t2;
         // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
         magnets[i] += Vector<3,float>(-magnets[i][0]*dtt2, 
                                       -magnets[i][1]*dtt2, 
                                       (eq[i]-magnets[i][2])*dtt1);
+
+        magnets[i] = RotateZ(gyro * deltaB0[i] * dt, magnets[i]);
+        // signal += Vector<3,float>(magnets[i][0] * cos(omega * time) - magnets[i][1] * sin(omega*time), 
+        //                           magnets[i][0] * sin(omega * time) + magnets[i][1] * cos(omega*time),  
+        //                           magnets[i][2]);
         signal += magnets[i];
     }    
    
@@ -73,7 +97,7 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
     // done in the for-loop, but as long as our operations are
     // distributive over addition this optimization should work just fine.
     float omega = gyro * b0;
-    signal /= sz;
+    // signal /= sz;
     signal = Vector<3,float>(signal[0] * cos(omega * time) - signal[1] * sin(omega*time), 
                              signal[0] * sin(omega * time) + signal[1] * cos(omega*time),  
                              signal[2]);
