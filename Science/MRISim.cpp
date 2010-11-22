@@ -21,8 +21,8 @@ using namespace Utils::Inspection;
 MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     : phantom(phantom)
     , kernel(kernel)
-    , kernelStep(0.001)
-    , stepsPerSecond(50.0)
+    , kernelStep(1e-4)
+    , stepsPerSecond(1e01)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
@@ -33,6 +33,7 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     , fftData(new FFTData())
 {
     plotTimer->TimerEvent().Attach(*this);
+    kernel->Init(phantom);    
 }
 
 MRISim::~MRISim() {
@@ -55,7 +56,6 @@ void MRISim::Reset() {
 
 void MRISim::Handle(Core::InitializeEventArg arg) {
     theSimTime = theAccTime = 0.0;
-    kernel->Init(phantom);    
 }
 
 void MRISim::Handle(Core::DeinitializeEventArg arg) {

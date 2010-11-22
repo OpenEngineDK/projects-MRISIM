@@ -57,6 +57,8 @@ class MRIUI : public QMainWindow {
     CanvasQueue* cq;
     MathGLPlot* plot;
     MathGLPlot* fftPlot;
+    IRenderer* r;
+    TextureLoader* tl;
     MRI::Scene::SpinNode *spinNode;
 
     

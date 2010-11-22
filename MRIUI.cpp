@@ -85,6 +85,23 @@ ValueList Inspect(SliceCanvas* sc) {
     
 }
 
+ValueList Inspect(SpinCanvas* sc) {
+    ValueList values;
+    {
+        RWValueCall<SpinCanvas, unsigned int > *v
+            = new RWValueCall<SpinCanvas, unsigned int >(*sc,
+                                                          &SpinCanvas::GetSlice,
+                                                          &SpinCanvas::SetSlice);
+        v->name = "spin slice";
+        v->properties[MIN] = 0;
+        v->properties[MAX] = sc->GetMaxSlice();
+        values.push_back(v);
+    }
+    return values;
+    
+}
+
+
 }}}
 
 
@@ -97,8 +114,8 @@ void MRIUI::SetupPlugins() {
 }
 
 void MRIUI::SetupCanvas() {
-    IRenderer* r = new Renderer();
-    TextureLoader* tl = new TextureLoader(*r);
+    r = new Renderer();
+    tl = new TextureLoader(*r);
     r->PreProcessEvent().Attach(*tl);
 
     wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
@@ -155,7 +172,7 @@ void MRIUI::SetupCanvas() {
 
     spinNode = sn;
 
-    wc->AddTextureWithText(rc->GetTexture(), "render");
+    //wc->AddTextureWithText(rc->GetTexture(), "render");
 
     cq = new CanvasQueue();
     cq->PushCanvas(wc);
@@ -176,8 +193,7 @@ void MRIUI::LoadResources() {
     font = ResourceManager<IFontResource>::Create("Fonts/FreeSansBold.ttf");
     font->Load();
     font->SetSize(24);
-    font->SetColor(Vector<3,float>(1,0,0));
-
+    font->SetColor(Vector<3,float>(193.0/256.0,21.0/256.0,21.0/256.0));
 }
 
 void MRIUI::Exit() {
@@ -221,9 +237,9 @@ MRIUI::MRIUI(QtEnvironment *env) {
     sim->Start();
 
  
-    SpinCanvas* sc = new SpinCanvas(new TextureCopy(), *kern, setup->GetRenderer(), 200, 200);
-    cq->PushCanvas(sc);
-    wc->AddTextureWithText(sc->GetTexture(), "spins");
+    SpinCanvas* spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
+    cq->PushCanvas(spinCanvas);
+    wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);
@@ -236,7 +252,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     // inspector
     ValueList vl = Inspection::Inspect(sliceCanvas);
-    ValueList vl2 = Inspection::Inspect(phantomCanvas->GetSliceCanvas());
+    ValueList vl2 = Inspection::Inspect(spinCanvas);
     vl.merge(vl2);
     
 

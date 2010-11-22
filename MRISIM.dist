@@ -61,3 +61,4 @@ darwin /libraries http://openengine.dk/data/libraries/pcrecpp-osx-i32.zip
 any /projects/MRISIM/data/Fonts  http://openengine.dk/data/fonts/freefont-ttf-20090104.tar.gz
 any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/brain.tar.gz
 any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/brain-yaml.tar.gz
+any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/magnet.png
