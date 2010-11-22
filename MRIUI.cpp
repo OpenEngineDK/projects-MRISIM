@@ -13,8 +13,6 @@
 #include <Display/SceneGraphGUI.h>
 #include <Display/SceneNodeGUI.h>
 #include <Display/QtEnvironment.h>
-#include <Display/CanvasQueue.h>
-#include <Display/WallCanvas.h>
 #include <Display/RenderCanvas.h>
 #include <Display/GridLayout.h>
 #include <Display/InspectionWidget.h>
@@ -46,6 +44,8 @@
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
 
+#include "Display/OpenGL/SpinCanvas.h"
+
 #undef main // Evil hack :/
 
 using namespace OpenEngine::Logging;
@@ -62,6 +62,7 @@ using namespace OpenEngine::Display::OpenGL;
 
 using namespace MRI::Scene;
 using namespace MRI::Science;
+using namespace MRI::Display::OpenGL;
 
 
 namespace OpenEngine {
@@ -100,7 +101,7 @@ void MRIUI::SetupCanvas() {
     TextureLoader* tl = new TextureLoader(*r);
     r->PreProcessEvent().Attach(*tl);
 
-    WallCanvas *wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
+    wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
 
 
     mouse->MouseMovedEvent().Attach(*wc);
@@ -122,7 +123,6 @@ void MRIUI::SetupCanvas() {
     // Phantom::Save("test", p);
 
     Phantom p("brain.yaml");
-
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
     plot = new MathGLPlot(400,200);
@@ -157,7 +157,7 @@ void MRIUI::SetupCanvas() {
 
     wc->AddTextureWithText(rc->GetTexture(), "render");
 
-    CanvasQueue *cq = new CanvasQueue();
+    cq = new CanvasQueue();
     cq->PushCanvas(wc);
     cq->PushCanvas(sliceCanvas);
     cq->PushCanvas(phantomCanvas);
@@ -219,6 +219,11 @@ MRIUI::MRIUI(QtEnvironment *env) {
     sim->SetPlot(plot);
     sim->SetFFTPlot(fftPlot);
     sim->Start();
+
+ 
+    SpinCanvas* sc = new SpinCanvas(new TextureCopy(), *kern, setup->GetRenderer(), 200, 200);
+    cq->PushCanvas(sc);
+    wc->AddTextureWithText(sc->GetTexture(), "spins");
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);

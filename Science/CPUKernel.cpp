@@ -19,7 +19,8 @@ using namespace OpenEngine::Utils::Inspection;
 using namespace OpenEngine::Math;
 
 CPUKernel::CPUKernel() 
-    : magnets(NULL)
+    : refMagnets(NULL)
+    , labMagnets(NULL)
     , eq(NULL)
     , deltaB0(NULL)
     , data(NULL)
@@ -46,20 +47,21 @@ void CPUKernel::Init(Phantom phantom) {
     height  = phantom.texr->GetHeight();
     depth   = phantom.texr->GetDepth();
     sz = width*height*depth;
-    magnets = new Vector<3,float>[sz];
+    refMagnets = new Vector<3,float>[sz]; 
+    labMagnets = new Vector<3,float>[sz]; 
     eq = new float[sz];
     deltaB0 = new float[sz];
     data = phantom.texr->GetData();
     
-    // initialize magnets to b0 * spin density 
+    // initialize refMagnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
-        deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
-        //deltaB0[i] = 0.0;
-        eq[i] = 1.0;//phantom.spinPackets[data[i]].ro*b0;
-        magnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
-        signal += magnets[i];
+      deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
+      //deltaB0[i] = 0.0;
+      eq[i] = phantom.spinPackets[data[i]].ro*b0;
+      refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
+      signal += labMagnets[i];
     }
     // signal /= sz;
     // logger.info << "Signal: " << signal << logger.end;
@@ -76,31 +78,33 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
     float T_1 = 2200/1000.0;
     float T_2 = 500/1000.0;
     signal = Vector<3,float>();
+    const float omega = gyro * b0;
     for (unsigned int i = 0; i < sz; ++i) {
         if (data[i] == 0) continue;
-        float dtt1 = dt/T_1;//phantom.spinPackets[data[i]].t1;
-        float dtt2 = dt/T_2;//phantom.spinPackets[data[i]].t2;
-        // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
-        magnets[i] += Vector<3,float>(-magnets[i][0]*dtt2, 
-                                      -magnets[i][1]*dtt2, 
-                                      (eq[i]-magnets[i][2])*dtt1);
+        float dtt1 = dt/T_1;
+        float dtt2 = dt/T_2;
+        // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
+        // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+	// logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
+        refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
+                                      -refMagnets[i][1]*dtt2, 
+                                      (eq[i]-refMagnets[i][2])*dtt1);
 
-        magnets[i] = RotateZ(gyro * deltaB0[i] * dt, magnets[i]);
-        // signal += Vector<3,float>(magnets[i][0] * cos(omega * time) - magnets[i][1] * sin(omega*time), 
-        //                           magnets[i][0] * sin(omega * time) + magnets[i][1] * cos(omega*time),  
-        //                           magnets[i][2]);
-        signal += magnets[i];
+        refMagnets[i] = RotateZ(gyro * deltaB0[i] * dt, refMagnets[i]);
+	labMagnets[i] = 
+	  Vector<3,float>(refMagnets[i][0] * cos(omega * time) - refMagnets[i][1] * sin(omega*time), 
+			  refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time),  
+			  refMagnets[i][2]);
+	signal += labMagnets[i];
     }    
    
 
     // Convert from reference to laboratory system. This should be
     // done in the for-loop, but as long as our operations are
     // distributive over addition this optimization should work just fine.
-    float omega = gyro * b0;
-    // signal /= sz;
-    signal = Vector<3,float>(signal[0] * cos(omega * time) - signal[1] * sin(omega*time), 
-                             signal[0] * sin(omega * time) + signal[1] * cos(omega*time),  
-                             signal[2]);
+    // signal = Vector<3,float>(signal[0] * cos(omega * time) - signal[1] * sin(omega*time), 
+    //                          signal[0] * sin(omega * time) + signal[1] * cos(omega*time),  
+    //                          signal[2]);
     // logger.info << "Magnitude: " << signal.GetLength() << logger.end;
     return signal;
 }
@@ -121,7 +125,7 @@ void CPUKernel::RFPulse(float angle) {
 
     for (unsigned int i = 0; i < sz; ++i) {
         if (data[i] == 0) continue;
-        magnets[i] = rot*magnets[i];
+        refMagnets[i] = rot*refMagnets[i];
     }
 }
 
@@ -144,7 +148,15 @@ ValueList CPUKernel::Inspect() {
     return values;
 
 }
-    
+
+Vector<3,float>* CPUKernel::GetMagnets() {
+  return labMagnets;
+}
+
+Phantom CPUKernel::GetPhantom() {
+  return phantom;
+}
+
 } // NS Science
 } // NS OpenEngine
 

@@ -26,7 +26,7 @@ using OpenEngine::Math::RandomGenerator;
 class CPUKernel: public IMRIKernel {
 private:
     Phantom phantom;
-    Vector<3,float>* magnets;
+    Vector<3,float>* refMagnets, *labMagnets;
     float *eq, *deltaB0;
     unsigned char* data;
     unsigned int width, height, depth, sz;
@@ -41,6 +41,8 @@ public:
 
     void Init(Phantom phantom);
     Vector<3,float> Step(float dt, float time);    
+    Vector<3,float>* GetMagnets();
+    Phantom GetPhantom();
 
     void RFPulse(float angle);
 

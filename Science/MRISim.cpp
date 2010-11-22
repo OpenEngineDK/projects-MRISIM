@@ -71,6 +71,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
         // plot->AddPoint(theSimTime,signal[0]);
         acq->AddSample(signal[0]);
+	// logger.info << "sample added: " << signal[0] << logger.end;
         if (spinNode) spinNode->M = signal;
         theAccTime -= invStep;
     }

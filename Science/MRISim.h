@@ -48,6 +48,8 @@ public:
 
     virtual void Init(Phantom phantom) = 0;
     virtual Vector<3,float> Step(float dt, float time) = 0;
+    virtual Vector<3,float>* GetMagnets() = 0;
+    virtual Phantom GetPhantom() = 0;
 };
 
 class MRISim : public OpenEngine::Core::IModule

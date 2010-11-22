@@ -18,6 +18,8 @@
 #include "Resources/MINCResource.h"
 #include <Devices/IMouse.h>
 #include <Science/MathGLPlot.h>
+#include <Display/WallCanvas.h>
+#include <Display/CanvasQueue.h>
 
 namespace Ui { class MRIUI; }
 
@@ -51,6 +53,8 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
+    WallCanvas* wc;
+    CanvasQueue* cq;
     MathGLPlot* plot;
     MathGLPlot* fftPlot;
     MRI::Scene::SpinNode *spinNode;
