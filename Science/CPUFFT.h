@@ -25,6 +25,7 @@ private:
 
 public:
     CPUFFT();
+    vector<complex<double > > FFT1D_Real(vector<double> input);
     vector<complex<double > > FFT1D(vector<complex<double> > input) ;
 };
 

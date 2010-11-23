@@ -18,6 +18,14 @@ void FFTData::SetFFTOutput(vector<complex<double> > data) {
     }
 }
 
+void FFTData::SetSampleRate(float dt) {
+    max_x = 1/(dt*2);
+}
+
+pair<float,float> FFTData::GetXRange() {
+    return std::make_pair(0,max_x);
+}
+
 string FFTData::GetYName() {
     return "FFT";
 }

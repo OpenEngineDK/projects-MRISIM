@@ -27,6 +27,7 @@ class IFFT {
 private:
 
 public:
+    virtual vector<complex<double > > FFT1D_Real(vector<double> input) =0;
     virtual vector<complex<double > > FFT1D(vector<complex<double> > input) =0;
 };
 

@@ -22,6 +22,7 @@ namespace Science {
 using std::vector;
 using std::string;
 using std::complex;
+using std::pair;
 
 
 using OpenEngine::Science::IDataSet1D;
@@ -34,10 +35,13 @@ using OpenEngine::Science::IDataSet1D;
 class  FFTData : public IDataSet1D {
 private:
     vector<float> convertedData;
+    float max_x;
 public:
     FFTData();
     string GetYName();
     vector<float> GetYData();
+    pair<float,float> GetXRange();
+    void SetSampleRate(float dt);
     void SetFFTOutput(vector<complex<double> > outp);
 };
 

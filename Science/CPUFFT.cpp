@@ -8,7 +8,50 @@ namespace Science {
 CPUFFT::CPUFFT() {
 }
 
+vector<complex<double > > CPUFFT::FFT1D_Real(vector<double > input) {
+    vector<complex<double > > output;
+    if (!input.size()) return output;
+
+
+    int N1 = input.size();
+    int N2 = N1/2+1;
+
+    double *in;
+    fftw_complex *out;    
+    fftw_plan plan;
+
+    in = (double*)fftw_malloc(sizeof(double) * N1);
+    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N2);
+    
+    int i = 0;
+    for (vector<double >::iterator itr = input.begin();
+         itr != input.end();
+         itr++) {
+        double c = *itr;
+        in[i] = c;
+        ++i;
+    }
+
+    plan = fftw_plan_dft_r2c_1d(N1, in, out, FFTW_ESTIMATE);
+
+    fftw_execute(plan);
+
+    fftw_destroy_plan(plan);
+
+    for (int n=0;n<N2;n++) {
+        output.push_back(complex<double>(out[n][0],out[n][1]));
+    }
+
+    fftw_free(in);
+    fftw_free(out);
+
+
+    return output;
+}
+
+
 vector<complex<double > > CPUFFT::FFT1D(vector<complex<double> > input) {
+    if (!input.size()) return input;
     vector<complex<double > > output;
 
     int N = input.size();
@@ -29,7 +72,7 @@ vector<complex<double > > CPUFFT::FFT1D(vector<complex<double> > input) {
         ++i;
     }
 
-    plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+    plan = fftw_plan_dft_1d(N, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 
     fftw_execute(plan);
 
@@ -41,8 +84,6 @@ vector<complex<double > > CPUFFT::FFT1D(vector<complex<double> > input) {
 
     fftw_free(in);
     fftw_free(out);
-
-    logger.info << "fft done" << logger.end;
 
     return output;
 }

@@ -27,7 +27,7 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
     , theSimTime(0.0)
     , running(false)
     , spinNode(NULL)
-    , plotTimer(new EventTimer(1))
+    , plotTimer(new EventTimer(.1))
     , acq(new AcquisitionData(kernelStep, 2000))
     , fft(new CPUFFT())
     , fftData(new FFTData())
@@ -79,6 +79,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
 }
 void MRISim::Handle(TimerEventArg arg) {
     plot->Redraw();
+    DoFFT();
 }
 
 void MRISim::SetNode(SpinNode *sn) {
@@ -114,17 +115,23 @@ float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
 }
 
-void MRISim::DoFFT() {
-    vector<complex<double> > input,output;
+
+void MRISim::DoFFT() {    
+    //vector<complex<double> > input;
+    vector<double > input;
+    vector<complex<double> > output;
     vector<float> data = acq->GetYData();
     for (vector<float>::iterator itr = data.begin();
          itr != data.end();
          itr++) {
-        input.push_back(complex<double>(*itr,0));
+        //input.push_back(complex<double>(*itr,0));
+        input.push_back(*itr);
     }
-    output = fft->FFT1D(input);
+    //output = fft->FFT1D(input);
+    output = fft->FFT1D_Real(input);
     
     fftData->SetFFTOutput(output);
+    fftData->SetSampleRate(kernelStep);
 
     fftPlot->Redraw();
 }

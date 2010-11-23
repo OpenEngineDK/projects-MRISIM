@@ -118,7 +118,7 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
             // calculate the rotation
             // since we normalize using three components we get a
             // scaling based on the equilibrium magnetization
-            Vector<3,float> m = magnets[i + j*w + slice*w*d];        
+            Vector<3,float> m = magnets[i + j*w + slice*w*d];
             m.Normalize(); 
             Matrix<2,2,float> rot(m[0], -m[1],
                                   m[1], m[0]);
