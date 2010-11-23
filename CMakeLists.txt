@@ -36,6 +36,8 @@ SET( PROJECT_SOURCES
   Science/CPUKernel.cpp
   Science/AcquisitionData.h
   Science/AcquisitionData.cpp
+  Science/SpinEchoSequence.h
+  Science/SpinEchoSequence.cpp
 
   Science/FFTData.h
   Science/FFTData.cpp

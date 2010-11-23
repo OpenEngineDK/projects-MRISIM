@@ -23,6 +23,7 @@ CPUKernel::CPUKernel()
     , labMagnets(NULL)
     , eq(NULL)
     , deltaB0(NULL)
+    , gradient(Vector<3,float>(0.0,1e-2,0.0))
     , data(NULL)
     , width(0)
     , height(0)
@@ -53,18 +54,7 @@ void CPUKernel::Init(Phantom phantom) {
     deltaB0 = new float[sz];
     data = phantom.texr->GetData();
     
-    // initialize refMagnets to b0 * spin density 
-    // Signal should at all times be the sum of the spins (or not?)
-    signal = Vector<3,float>();
-    for (unsigned int i = 0; i < sz; ++i) {
-      deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
-      //deltaB0[i] = 0.0;
-      eq[i] = phantom.spinPackets[data[i]].ro*b0;
-      refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
-      signal += labMagnets[i];
-    }
-    // signal /= sz;
-    // logger.info << "Signal: " << signal << logger.end;
+    Reset();
 }
 
 inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
@@ -74,31 +64,42 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
     return m*vec;
 }
 
-Vector<3,float> CPUKernel::Step(float dt, float time) {
+Vector<3,float> CPUKernel::Step(float dt, float time, MRIState state) {
     float T_1 = 2200/1000.0;
     float T_2 = 500/1000.0;
     signal = Vector<3,float>();
     const float omega = gyro * b0;
-    for (unsigned int i = 0; i < sz; ++i) {
-        if (data[i] == 0) continue;
-        float dtt1 = dt/T_1;
-        float dtt2 = dt/T_2;
-        // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
-        // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
-	// logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
-        refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
-                                      -refMagnets[i][1]*dtt2, 
-                                      (eq[i]-refMagnets[i][2])*dtt1);
+ 
+    for (unsigned int x = 0; x < width; ++x) {
+        for (unsigned int y = 0; y < height; ++y) {
+            for (unsigned int z = 0; z < depth; ++z) {
+                unsigned int i = x + y*height + z*width*height;
+                if (data[i] == 0) continue;
+                
+                // refMagnets[i] = RotateZ(state.angleRF, refMagnets[i]);
 
-        refMagnets[i] = RotateZ(gyro * deltaB0[i] * dt, refMagnets[i]);
-	labMagnets[i] = 
-	  Vector<3,float>(refMagnets[i][0] * cos(omega * time) - refMagnets[i][1] * sin(omega*time), 
-			  refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time),  
-			  refMagnets[i][2]);
-	signal += labMagnets[i];
-    }    
-   
-
+                float dtt1 = dt/T_1;
+                float dtt2 = dt/T_2;
+                // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
+                // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+                // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
+                refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
+                                                 -refMagnets[i][1]*dtt2, 
+                                                 (eq[i]-refMagnets[i][2])*dtt1);
+                float g = state.gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX/1000.0),
+                                                     float(int(y)+phantom.offsetY)*(phantom.sizeY/1000.0),
+                                                     float(int(z)+phantom.offsetZ)*(phantom.sizeZ/1000.0));
+                // logger.info << "g: " << g << logger.end;
+                // logger.info << "angle: " << gyro * (deltaB0[i] + g) * dt << logger.end;
+                refMagnets[i] = RotateZ(gyro * (deltaB0[i] + g) * dt, refMagnets[i]);
+                labMagnets[i] = 
+                    Vector<3,float>(refMagnets[i][0] * cos(omega * time) - refMagnets[i][1] * sin(omega*time), 
+                                    refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time),  
+                                    refMagnets[i][2]);
+                signal += labMagnets[i];
+            }    
+        }
+    }
     // Convert from reference to laboratory system. This should be
     // done in the for-loop, but as long as our operations are
     // distributive over addition this optimization should work just fine.
@@ -127,6 +128,21 @@ void CPUKernel::RFPulse(float angle) {
         if (data[i] == 0) continue;
         refMagnets[i] = rot*refMagnets[i];
     }
+}
+
+void CPUKernel::Reset() {
+    // initialize refMagnets to b0 * spin density 
+    // Signal should at all times be the sum of the spins (or not?)
+    signal = Vector<3,float>();
+    for (unsigned int i = 0; i < sz; ++i) {
+        //deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
+        deltaB0[i] = 0.0;
+        eq[i] = phantom.spinPackets[data[i]].ro*b0;
+        refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
+        signal += labMagnets[i];
+    }
+    // signal /= sz;
+    // logger.info << "Signal: " << signal << logger.end;
 }
 
 ValueList CPUKernel::Inspect() {

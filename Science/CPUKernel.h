@@ -28,6 +28,7 @@ private:
     Phantom phantom;
     Vector<3,float>* refMagnets, *labMagnets;
     float *eq, *deltaB0;
+    Vector<3,float> gradient;
     unsigned char* data;
     unsigned int width, height, depth, sz;
     float b0, gyro;
@@ -40,11 +41,11 @@ public:
     virtual ~CPUKernel();
 
     void Init(Phantom phantom);
-    Vector<3,float> Step(float dt, float time);    
+    Vector<3,float> Step(float dt, float time, MRIState state = MRIState());    
     Vector<3,float>* GetMagnets();
     Phantom GetPhantom();
-
     void RFPulse(float angle);
+    void Reset();
 
     void Flip();
     void Flop();

@@ -43,6 +43,7 @@
 #include "Science/BlochTest.h"
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
+#include "Science/SpinEchoSequence.h"
 
 #include "Display/OpenGL/SpinCanvas.h"
 
@@ -231,7 +232,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     // Phantom::Save("test", p);
 
     CPUKernel* kern = new CPUKernel();
-    MRISim* sim = new MRISim(p, kern);
+    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence());
     setup->GetEngine().InitializeEvent().Attach(*sim);
     setup->GetEngine().ProcessEvent().Attach(*sim);
     setup->GetEngine().DeinitializeEvent().Attach(*sim);

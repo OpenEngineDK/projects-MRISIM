@@ -18,9 +18,10 @@ namespace Science {
 using namespace MRI::Scene;
 using namespace Utils::Inspection;
 
-MRISim::MRISim(Phantom phantom, IMRIKernel* kernel)
+MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     : phantom(phantom)
     , kernel(kernel)
+    , sequence(sequence)
     , kernelStep(1e-4)
     , stepsPerSecond(1e01)
     , theAccTime(0.0)
@@ -68,10 +69,17 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
     float invStep = 1.0 / stepsPerSecond;
     while (theAccTime - invStep > 0.0) {
         theSimTime += kernelStep;
-        Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
+        MRIState state;
+        if (sequence)
+            state = sequence->GetState(theSimTime);
+        if (state.action == MRIState::FLIP)
+            kernel->RFPulse(state.angleRF);
+        if (state.action == MRIState::RESET)
+            kernel->Reset();
+        Vector<3,float> signal = kernel->Step(kernelStep, theSimTime, state);
         // plot->AddPoint(theSimTime,signal[0]);
         acq->AddSample(signal[0]);
-	// logger.info << "sample added: " << signal[0] << logger.end;
+        // logger.info << "sample added: " << signal[0] << logger.end;
         if (spinNode) spinNode->M = signal;
         theAccTime -= invStep;
     }
