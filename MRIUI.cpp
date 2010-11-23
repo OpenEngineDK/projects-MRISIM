@@ -113,6 +113,13 @@ void MRIUI::SetupPlugins() {
     ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
 }
 
+void MRIUI::SetupWall() {
+    wc->AddTextureWithText(plot->GetTexture(), "plot");
+    wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
+    wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
+
+}
+
 void MRIUI::SetupCanvas() {
     r = new Renderer();
     tl = new TextureLoader(*r);
@@ -144,12 +151,9 @@ void MRIUI::SetupCanvas() {
 
     plot = new MathGLPlot(400,200);
     fftPlot = new MathGLPlot(400,200);
+
     tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
     tl->Load(fftPlot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
-
-    wc->AddTextureWithText(plot->GetTexture(), "plot");
-
-    wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
 
     RenderCanvas *rc = new RenderCanvas(new TextureCopy(),Vector<2,int>(400,400));
     
@@ -237,9 +241,10 @@ MRIUI::MRIUI(QtEnvironment *env) {
     sim->Start();
 
  
-    SpinCanvas* spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
+    spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
     cq->PushCanvas(spinCanvas);
-    wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
+    
+    SetupWall();
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);

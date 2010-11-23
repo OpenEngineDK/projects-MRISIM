@@ -35,13 +35,22 @@ class QtEnvironment;
 }
 
 
-namespace MRI { namespace Scene { class SpinNode; }}
+namespace MRI { 
+    namespace Scene { class SpinNode; }
+    namespace Display {
+        namespace OpenGL { class SpinCanvas; }
+    }
+}
+
 
 using namespace OpenEngine::Resources;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Devices;
 using namespace OpenEngine::Display::OpenGL;
+using namespace MRI::Display::OpenGL;
 using namespace OpenEngine::Science;
+
+
 
 class MRIUI : public QMainWindow {
     Q_OBJECT;
@@ -53,6 +62,7 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
+    SpinCanvas* spinCanvas;
     WallCanvas* wc;
     CanvasQueue* cq;
     MathGLPlot* plot;
@@ -64,6 +74,7 @@ class MRIUI : public QMainWindow {
     
     void SetupPlugins();
     void SetupCanvas();
+    void SetupWall();
     void LoadResources();
 
     void Exit();
