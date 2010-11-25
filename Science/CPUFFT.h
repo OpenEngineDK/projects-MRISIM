@@ -27,6 +27,8 @@ public:
     CPUFFT();
     vector<complex<double > > FFT1D_Real(vector<double> input);
     vector<complex<double > > FFT1D(vector<complex<double> > input) ;
+
+    vector<complex<double > > FFT2D_Real(vector<double> input, unsigned int w, unsigned int h);
 };
 
 } // NS Science

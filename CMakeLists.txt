@@ -45,6 +45,8 @@ SET( PROJECT_SOURCES
   Science/IFFT.h
   Science/CPUFFT.h
   Science/CPUFFT.cpp
+  Science/ImageFFT.h
+  Science/ImageFFT.cpp
 
   Scene/SpinNode.h
   Scene/SpinNode.cpp

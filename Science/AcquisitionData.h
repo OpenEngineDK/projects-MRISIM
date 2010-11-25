@@ -23,7 +23,7 @@ using std::string;
 
 /**
  * 
- * @class AcquisitionData AcquisitionData.h ons/MathGL/Science/AcquisitionData.h
+ * @class AcquisitionData AcquisitionData.h MRISIM/Science/AcquisitionData.h
  */
 class AcquisitionData: public IDataSet2D {
 private:
