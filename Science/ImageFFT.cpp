@@ -54,7 +54,7 @@ ImageFFT::ImageFFT(ITexture2DPtr tex, IFFT& fft)
     memset(data1, 0, sz);
     memset(data1_unscaled, 0, sz);
     step1 = FloatTexture2DPtr(new Texture2D<float>(tex->GetWidth(), tex->GetHeight(), 1, data1));
-    const double scale = 0.1;
+    double scale = 0.1;
     for (unsigned l = 0; l < h; ++l) {
         // vector<complex<double> > line(w);
         vector<double> line(w);
@@ -100,16 +100,24 @@ ImageFFT::ImageFFT(ITexture2DPtr tex, IFFT& fft)
     }
 
     // calculate 2d fourier 
-    float* data2d = new float[w*h*sizeof(float)];
-    memset(data2d, 0, sz);
-    fft2d = FloatTexture2DPtr(new Texture2D<float>(w, h, 1, data2d));
-    vector<double> img(sz);
-    for (unsigned int i = 0; i < sz; ++i) {
+    scale = 0.01;
+    int nw = w/2+1;
+    float* data2d = new float[nw*h*sizeof(float)];
+    //memset(data2d, 0, );
+    fft2d = FloatTexture2DPtr(new Texture2D<float>(nw, h, 1, data2d));
+    vector<double> img(w*h);
+    for (unsigned int i = 0; i < w*h; ++i) {
         img[i] = data[i];
     }
-    vector<complex<double> > fimg = fft.FFT2D_Real(img, w, h);
+    vector<complex<double> > fimg = fft.FFT2D_Real(img, w, h);    
+
+    logger.info << "fimgsize " << fimg.size() << logger.end;
+    logger.info << "data2d " << nw*h << logger.end;
+
     for (unsigned int i = 0; i < fimg.size(); ++i) {
-        data2d[ i % (w/2) + (i / (w/2))*w] = scale*abs(fimg[i]);
+        //data2d[ i % (w/2) + (i / (w/2))*w] = scale*abs(fimg[i]);
+        data2d[i] = scale*abs(fimg[i]);
+        
     }
 }
 
