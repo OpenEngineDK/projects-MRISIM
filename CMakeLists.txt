@@ -30,6 +30,8 @@ SET( PROJECT_SOURCES
   Display/OpenGL/PhantomCanvas.cpp
   Display/OpenGL/SpinCanvas.h
   Display/OpenGL/SpinCanvas.cpp
+  Display/OpenGL/WindowCanvas.h
+  Display/OpenGL/WindowCanvas.cpp
   Science/MRISim.h
   Science/MRISim.cpp
   Science/CPUKernel.h
@@ -38,6 +40,8 @@ SET( PROJECT_SOURCES
   Science/AcquisitionData.cpp
   Science/SpinEchoSequence.h
   Science/SpinEchoSequence.cpp
+  Science/ListSequence.h
+  Science/ListSequence.cpp
 
   Science/FFTData.h
   Science/FFTData.cpp

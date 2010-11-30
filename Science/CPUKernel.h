@@ -41,11 +41,12 @@ public:
     virtual ~CPUKernel();
 
     void Init(Phantom phantom);
-    Vector<3,float> Step(float dt, float time, MRIState state = MRIState());    
+    Vector<3,float> Step(float dt, float time);    
     Vector<3,float>* GetMagnets();
     Phantom GetPhantom();
     void RFPulse(float angle);
     void Reset();
+    void SetGradient(Vector<3,float> gradient);
 
     void Flip();
     void Flop();

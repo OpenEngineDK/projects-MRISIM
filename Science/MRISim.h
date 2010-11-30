@@ -42,27 +42,34 @@ public:
 };
 
 
-
-class MRIState {
+class MRIEvent {
 public:
-    Vector<3,float> gradient;
-    float angleRF;
+    Vector<3,float> gradient;  // gradient magnetization
+    float angleRF;             // pulse angle (only valid when
+                               // Action::FLIP is set)
+    int recX, recY, recZ;      // position of the recorded sample in
+                               // k-space (only valid when
+                               // Action::RECORD is set)
     enum Action {
-        NONE,
-        FLIP, 
-        RESET
-    } action; 
-    MRIState()
-        : gradient(Vector<3,float>(0.0)), angleRF(0.0), action(NONE) {}
-    MRIState(Vector<3,float> gradient, float angleRF, Action action = NONE)
-        : gradient(gradient), angleRF(angleRF), action(action) {}
-    virtual ~MRIState() {};
+        NONE     = 0<<0,
+        FLIP     = 1<<0, 
+        RESET    = 1<<1,
+        RECORD   = 1<<2,
+        GRADIENT = 1<<3
+    }; 
+    unsigned int action; 
+    MRIEvent()
+        : gradient(Vector<3,float>(0.0)), angleRF(0.0), recX(0), recY(0), recZ(0), action(NONE) {}
+    MRIEvent(Vector<3,float> gradient, float angleRF, unsigned int action = NONE, int recX = 0, int recY = 0, int recZ = 0)
+        : gradient(gradient), angleRF(angleRF), recX(0), recY(0), recZ(0), action(action) {}
+    virtual ~MRIEvent() {};
 };
 
 class IMRISequence {
 public:
     virtual ~IMRISequence() {}
-    virtual MRIState GetState(float time) = 0;
+    virtual MRIEvent GetEvent(float time) = 0;
+    // virtual void Reset() = 0;
 };
 
 class IMRIKernel {
@@ -70,10 +77,11 @@ protected:
 public:
     virtual ~IMRIKernel() {}
     virtual void Init(Phantom phantom) = 0;
-    virtual Vector<3,float> Step(float dt, float time, MRIState state) = 0;
+    virtual Vector<3,float> Step(float dt, float time) = 0;
     virtual Vector<3,float>* GetMagnets() = 0;
     virtual Phantom GetPhantom() = 0;
     virtual void RFPulse(float angle) = 0;
+    virtual void SetGradient(Vector<3,float> gradient) = 0;
     virtual void Reset() = 0;
 };
 
@@ -92,6 +100,8 @@ private:
     AcquisitionData* acq;
     IFFT* fft;
     FFTData* fftData;
+    vector<complex<double> > sliceData;
+    FloatTexture2DPtr sliceTex, invTex;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();
@@ -117,6 +127,9 @@ public:
     float GetStepSize();
     void SetStepsPerSecond(float);
     float GetStepsPerSecond();
+
+    FloatTexture2DPtr GetKPlane();
+    FloatTexture2DPtr GetImagePlane();
     
     Utils::Inspection::ValueList Inspect();
 };

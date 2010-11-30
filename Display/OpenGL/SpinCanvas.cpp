@@ -93,6 +93,8 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
     // setup GL
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     // GLint texenv;
     // glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texenv);
     // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -154,6 +156,7 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
     // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
             
     backend->Post();
 }

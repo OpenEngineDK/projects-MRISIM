@@ -12,6 +12,8 @@
 #include "../Scene/SpinNode.h"
 #include "CPUFFT.h"
 
+#include <string.h>
+
 namespace MRI {
 namespace Science {
 
@@ -22,8 +24,8 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     : phantom(phantom)
     , kernel(kernel)
     , sequence(sequence)
-    , kernelStep(1e-4)
-    , stepsPerSecond(1e01)
+    , kernelStep(2e-4)
+    , stepsPerSecond(1e02)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
@@ -32,13 +34,17 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     , acq(new AcquisitionData(kernelStep, 2000))
     , fft(new CPUFFT())
     , fftData(new FFTData())
+    , sliceData(vector<complex<double> >(phantom.texr->GetWidth() * phantom.texr->GetHeight()))
 {
     plotTimer->TimerEvent().Attach(*this);
-    kernel->Init(phantom);    
+    kernel->Init(phantom);
+    float* data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
+    sliceTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1, data));
+    data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
+    invTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1,data));
 }
 
 MRISim::~MRISim() {
-    
 }
 
 void MRISim::Start() {
@@ -66,25 +72,44 @@ void MRISim::Handle(Core::DeinitializeEventArg arg) {
 void MRISim::Handle(Core::ProcessEventArg arg) {
     if (!running) return;
     theAccTime += arg.approx / 1000000.0;
-    float invStep = 1.0 / stepsPerSecond;
-    while (theAccTime - invStep > 0.0) {
-        theSimTime += kernelStep;
-        MRIState state;
+    float stepTime = 1.0 / stepsPerSecond;
+    while (theAccTime - stepTime > 0.0) {
+        //@todo: think about when action is evaluated; before or after kernel step?
+        MRIEvent event;
         if (sequence)
-            state = sequence->GetState(theSimTime);
-        if (state.action == MRIState::FLIP)
-            kernel->RFPulse(state.angleRF);
-        if (state.action == MRIState::RESET)
+            event = sequence->GetEvent(theSimTime);
+        if (event.action & MRIEvent::RESET)
             kernel->Reset();
-        Vector<3,float> signal = kernel->Step(kernelStep, theSimTime, state);
+        if (event.action & MRIEvent::FLIP)
+            kernel->RFPulse(event.angleRF);
+        if (event.action & MRIEvent::GRADIENT)
+            kernel->SetGradient(event.gradient);
+        theSimTime += kernelStep;
+        Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
+        if (event.action & MRIEvent::RECORD) {
+            // record a sample in k-space
+            complex<double> sample = complex<double>(signal[0], signal[1]);
+            sliceData.at(event.recX + event.recY * phantom.texr->GetWidth()) 
+                = sample;
+            sliceTex->GetData()[event.recX + event.recY * phantom.texr->GetWidth()] = signal[0];//abs(sample);
+            sliceTex->ChangedEvent().Notify(Texture2DChangedEventArg(sliceTex));
+            
+            // logger.info << "record value: " << signal[0] << " at (" << event.recX << ", " << event.recY << "). Time: " << theSimTime << logger.end;
+            vector<double> inv = fft->FFT2D_Inverse(sliceData, sliceTex->GetWidth(), sliceTex->GetHeight());
+            for (unsigned int i = 0; i < inv.size(); ++i) {
+                invTex->GetData()[i] = inv[i];
+                // logger.info << "transformed value: " << inv[i] << logger.end;
+           }
+            invTex->ChangedEvent().Notify(Texture2DChangedEventArg(invTex));
+        } 
         // plot->AddPoint(theSimTime,signal[0]);
         acq->AddSample(signal[0]);
-        // logger.info << "sample added: " << signal[0] << logger.end;
         if (spinNode) spinNode->M = signal;
-        theAccTime -= invStep;
+        theAccTime -= stepTime;
     }
     plotTimer->Handle(arg);
 }
+
 void MRISim::Handle(TimerEventArg arg) {
     plot->Redraw();
     DoFFT();
@@ -98,6 +123,7 @@ void MRISim::SetPlot(MathGLPlot* p) {
     plot = p;
     plot->SetData(acq);
 }
+
 void MRISim::SetFFTPlot(MathGLPlot* p) {
     fftPlot = p;
     fftPlot->SetData(fftData);
@@ -123,7 +149,6 @@ float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
 }
 
-
 void MRISim::DoFFT() {    
     //vector<complex<double> > input;
     vector<double > input;
@@ -143,6 +168,15 @@ void MRISim::DoFFT() {
 
     fftPlot->Redraw();
 }
+
+FloatTexture2DPtr MRISim::GetKPlane() {
+    return sliceTex;
+}
+
+FloatTexture2DPtr MRISim::GetImagePlane() {
+    return invTex;
+}
+
 
 ValueList MRISim::Inspect() {
     ValueList values;
@@ -186,7 +220,6 @@ ValueList MRISim::Inspect() {
     }
 
     return values;
-
 }
 
 } // NS Science

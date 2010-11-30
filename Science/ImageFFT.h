@@ -27,7 +27,7 @@ using OpenEngine::Resources::FloatTexture2DPtr;
  */
 class ImageFFT {
 private:
-    FloatTexture2DPtr src, step1, step2, fft2d;
+    FloatTexture2DPtr src, step1, step2, fft2d, fft2dinv;
     IFFT& fft;
 public:   
     ImageFFT(ITexture2DPtr tex, IFFT& fft);
@@ -37,6 +37,7 @@ public:
     ITexture2DPtr GetStep1Texture();
     ITexture2DPtr GetStep2Texture();
     ITexture2DPtr GetFFT2DTexture();
+    ITexture2DPtr GetFFT2DInvTexture();
 };
     
 } // NS Science

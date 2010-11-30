@@ -49,6 +49,7 @@
 #include "Science/CPUFFT.h"
 
 #include "Display/OpenGL/SpinCanvas.h"
+#include "Display/OpenGL/WindowCanvas.h"
 
 #undef main // Evil hack :/
 
@@ -118,23 +119,27 @@ void MRIUI::SetupPlugins() {
 }
 
 void MRIUI::SetupWall() {
-    // wc->AddTextureWithText(plot->GetTexture(), "plot");
-    // wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
-    // wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
+    wc->AddTextureWithText(plot->GetTexture(), "plot");
+    wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
+    wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
 
-    ITexture2DPtr t = phantom->CreateSagitalSlice(50);
-    ImageFFT* ifft = new ImageFFT(t, *(new CPUFFT()));
+    // fourier test stuff
+
+    // ITexture2DPtr t = phantom->CreateSagitalSlice(50);
+    // ImageFFT* ifft = new ImageFFT(t, *(new CPUFFT()));
     
 
-    tl->Load(ifft->GetSrcTexture(), TextureLoader::RELOAD_IMMEDIATE);
-    tl->Load(ifft->GetStep1Texture(), TextureLoader::RELOAD_IMMEDIATE);
-    tl->Load(ifft->GetStep2Texture(), TextureLoader::RELOAD_IMMEDIATE);
-    tl->Load(ifft->GetFFT2DTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(ifft->GetSrcTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(ifft->GetStep1Texture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(ifft->GetStep2Texture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(ifft->GetFFT2DTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(ifft->GetFFT2DInvTexture(), TextureLoader::RELOAD_IMMEDIATE);
 
-    wc->AddTextureWithText(ifft->GetSrcTexture(), "ImFFT src");
-    wc->AddTextureWithText(ifft->GetStep1Texture(), "ImFFT step1");
-    wc->AddTextureWithText(ifft->GetStep2Texture(), "ImFFT step2");
-    wc->AddTextureWithText(ifft->GetFFT2DTexture(), "ImFFT2D");
+    // wc->AddTextureWithText(ifft->GetSrcTexture(), "ImFFT src");
+    // wc->AddTextureWithText(ifft->GetStep1Texture(), "ImFFT step1");
+    // wc->AddTextureWithText(ifft->GetStep2Texture(), "ImFFT step2");
+    // wc->AddTextureWithText(ifft->GetFFT2DTexture(), "ImFFT2D");
+    // wc->AddTextureWithText(ifft->GetFFT2DInvTexture(), "ImFFT2DInv");
 
 }
 
@@ -249,20 +254,29 @@ MRIUI::MRIUI(QtEnvironment *env) {
     // Phantom::Save("test", p);
 
     CPUKernel* kern = new CPUKernel();
-    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence());
-    // setup->GetEngine().InitializeEvent().Attach(*sim);
-    // setup->GetEngine().ProcessEvent().Attach(*sim);
-    // setup->GetEngine().DeinitializeEvent().Attach(*sim);
+    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence(2000.0, 200.0));
+    setup->GetEngine().InitializeEvent().Attach(*sim);
+    setup->GetEngine().ProcessEvent().Attach(*sim);
+    setup->GetEngine().DeinitializeEvent().Attach(*sim);
     sim->SetNode(spinNode);
     sim->SetPlot(plot);
     sim->SetFFTPlot(fftPlot);
     sim->Start();
 
- 
     spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
     cq->PushCanvas(spinCanvas);
-    
+    WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), sim->GetKPlane(), *r, 10.0);
+    cq->PushCanvas(windowCanvas);
+    tl->Load(sim->GetKPlane(), TextureLoader::RELOAD_IMMEDIATE);
+
+    WindowCanvas* windowCanvas2 = new WindowCanvas(new TextureCopy(), sim->GetImagePlane(), *r, 10.0);
+    cq->PushCanvas(windowCanvas2);
+    tl->Load(sim->GetImagePlane(), TextureLoader::RELOAD_IMMEDIATE);
+
     SetupWall();
+
+    wc->AddTextureWithText(windowCanvas->GetTexture(), "K-space");
+    wc->AddTextureWithText(windowCanvas2->GetTexture(), "Image Space");
 
     ui = new Ui::MRIUI();
     ui->setupUi(this);

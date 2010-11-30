@@ -23,7 +23,7 @@ CPUKernel::CPUKernel()
     , labMagnets(NULL)
     , eq(NULL)
     , deltaB0(NULL)
-    , gradient(Vector<3,float>(0.0,1e-2,0.0))
+    , gradient(Vector<3,float>(0.0))
     , data(NULL)
     , width(0)
     , height(0)
@@ -64,7 +64,7 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
     return m*vec;
 }
 
-Vector<3,float> CPUKernel::Step(float dt, float time, MRIState state) {
+Vector<3,float> CPUKernel::Step(float dt, float time) {
     float T_1 = 2200/1000.0;
     float T_2 = 500/1000.0;
     signal = Vector<3,float>();
@@ -86,7 +86,7 @@ Vector<3,float> CPUKernel::Step(float dt, float time, MRIState state) {
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 
                                                  (eq[i]-refMagnets[i][2])*dtt1);
-                float g = state.gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX/1000.0),
+                float g = gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX/1000.0),
                                                      float(int(y)+phantom.offsetY)*(phantom.sizeY/1000.0),
                                                      float(int(z)+phantom.offsetZ)*(phantom.sizeZ/1000.0));
                 // logger.info << "g: " << g << logger.end;
@@ -124,10 +124,18 @@ void CPUKernel::RFPulse(float angle) {
                           0.0,-sin(angle), cos(angle)
                           );
 
-    for (unsigned int i = 0; i < sz; ++i) {
-        if (data[i] == 0) continue;
-        refMagnets[i] = rot*refMagnets[i];
+    // hack to only excite slice 0
+    unsigned int z = 0;
+    for (unsigned int i = 0; i < width; ++i) {
+        for (unsigned int j = 0; j < height; ++j) {
+            if (data[i+j*width+z*width*height] == 0) continue;
+            refMagnets[i+j*width+z*width*height] = rot*refMagnets[i+j*width+z*width*height];
+        }
     }
+}
+
+void CPUKernel::SetGradient(Vector<3,float> gradient) {
+    this->gradient = gradient;
 }
 
 void CPUKernel::Reset() {
@@ -135,8 +143,8 @@ void CPUKernel::Reset() {
     // Signal should at all times be the sum of the spins (or not?)
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
-        //deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
-        deltaB0[i] = 0.0;
+        deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
+        // deltaB0[i] = 0.0;
         eq[i] = phantom.spinPackets[data[i]].ro*b0;
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
         signal += labMagnets[i];

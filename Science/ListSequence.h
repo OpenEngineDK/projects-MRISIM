@@ -1,4 +1,4 @@
-// MRI simple spin echo sequence
+// MRI list based sequence.
 // -------------------------------------------------------------------
 // Copyright (C) 2007 OpenEngine.dk (See AUTHORS) 
 // 
@@ -7,24 +7,29 @@
 // See the GNU General Public License for more details (see LICENSE). 
 //--------------------------------------------------------------------
 
-#ifndef _MRI_SPIN_ECHO_SEQUENCE_
-#define _MRI_SPIN_ECHO_SEQUENCE_
+#ifndef _MRI_LIST_SEQUENCE_
+#define _MRI_LIST_SEQUENCE_
 
-#include "ListSequence.h"
+#include "MRISim.h"
+
+#include <vector>
 
 namespace MRI {
 namespace Science {
 
-class SpinEchoSequence: public ListSequence {
+using std::vector;
+
+class ListSequence: public IMRISequence {
 private:
-    float tr, te;
-    vector<pair<float, MRIEvent> > seq;
+    vector<pair<float, MRIEvent> >& seq;
+    unsigned int index;
 public:
-    SpinEchoSequence(float tr, float te);
-    virtual ~SpinEchoSequence();
+    ListSequence(vector<pair<float, MRIEvent> >& seq);
+    virtual ~ListSequence();
+    MRIEvent GetEvent(float time);
 };
 
 } // NS Science
 } // NS MRI
 
-#endif // _MRI_SPIN_ECHO_SEQUENCE_
+#endif // _MRI_LIST_SEQUENCE_
