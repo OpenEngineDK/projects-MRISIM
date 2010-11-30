@@ -75,6 +75,7 @@ class MRIUI : public QMainWindow {
     void SetupPlugins();
     void SetupCanvas();
     void SetupWall();
+    void SetupOpenCL();
     void LoadResources();
 
     void Exit();

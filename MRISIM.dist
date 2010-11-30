@@ -16,6 +16,7 @@ dist /extensions/InspectionWidget/InspectionWidget.dist      http://openengine.d
 dist /extensions/Wall/Wall.dist      http://openengine.dk/code/extensions/Wall/Wall.dist
 dist /extensions/Plotting/Plotting.dist  http://openengine.dk/code/extensions/Plotting/Plotting.dist
 dist /extensions/PropertyTree/PropertyTree.dist  http://openengine.dk/code/extensions/PropertyTree/PropertyTree.dist
+dist /extensions/OpenCL/OpenCL.dist  http://openengine.dk/code/extensions/OpenCL/OpenCL.dist
 
 
 

@@ -58,6 +58,9 @@ SET( PROJECT_SOURCES
   Science/BlochTest.h
   Science/BlochTest.cpp
 
+  Science/OpenCLTest.h
+  Science/OpenCLTest.cpp
+
   ${MOC_SOURCE}
   ${UI_SOURCE}
   MRIUI.cpp
@@ -92,6 +95,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_Inspection
   Extensions_InspectionWidget
   Extensions_PropertyTree
+  Extensions_OpenCL
   minc2 # ugly hack... use a find script
   fftw3
 )

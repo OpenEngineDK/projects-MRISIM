@@ -5,7 +5,6 @@
 #include <Meta/OpenGL.h>
 #include <Meta/Config.h>
 
-
 #include <Resources/DirectoryManager.h>
 #include <Resources/ResourceManager.h>
 #include <Resources/SDLFont.h>
@@ -47,6 +46,8 @@
 
 #include "Science/ImageFFT.h"
 #include "Science/CPUFFT.h"
+
+#include "Science/OpenCLTest.h"
 
 #include "Display/OpenGL/SpinCanvas.h"
 #include "Display/OpenGL/WindowCanvas.h"
@@ -227,6 +228,15 @@ void MRIUI::Exit() {
     exit(0);
 }
 
+void MRIUI::SetupOpenCL() {
+    OpenCLTest test;
+    test.RunKernel();
+
+    
+    
+
+}
+
 MRIUI::MRIUI(QtEnvironment *env) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
     frame = &setup->GetFrame();
@@ -237,6 +247,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
 
     SetupCanvas();
+    SetupOpenCL();
     
     //QApplication *app = env->GetApplication();
     //app->setStyle("plastique");
@@ -344,6 +355,8 @@ MRIUI::MRIUI(QtEnvironment *env) {
     show();
     setup->GetEngine().Start();
 }
+
+
 
 
 
