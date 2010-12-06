@@ -33,11 +33,11 @@ public:
     ImageFFT(ITexture2DPtr tex, IFFT& fft);
     virtual ~ImageFFT();
 
-    ITexture2DPtr GetSrcTexture();
-    ITexture2DPtr GetStep1Texture();
-    ITexture2DPtr GetStep2Texture();
-    ITexture2DPtr GetFFT2DTexture();
-    ITexture2DPtr GetFFT2DInvTexture();
+    FloatTexture2DPtr GetSrcTexture();
+    FloatTexture2DPtr GetStep1Texture();
+    FloatTexture2DPtr GetStep2Texture();
+    FloatTexture2DPtr GetFFT2DTexture();
+    FloatTexture2DPtr GetFFT2DInvTexture();
 };
     
 } // NS Science
