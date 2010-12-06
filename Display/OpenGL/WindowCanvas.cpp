@@ -48,8 +48,10 @@ WindowCanvas::WindowCanvas(ICanvasBackend* backend, FloatTexture2DPtr in, IRende
     out->SetMipmapping(false);
     out->SetWrapping(CLAMP);
 
+    in->ChangedEvent().Attach(*this);
+
 }
-    
+
 WindowCanvas::~WindowCanvas() {
     
 }
@@ -73,6 +75,7 @@ void WindowCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
     update = false;
     backend->Pre();
     
+
     // auto windowing
     for (unsigned int ch = 0; ch < channels; ++ch) {
         min[ch] = INFINITY;
@@ -123,6 +126,7 @@ void WindowCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
 
     glBindTexture(GL_TEXTURE_2D, out->GetID());
     CHECK_FOR_GL_ERROR();
+
 
     glBegin(GL_QUADS);
 
