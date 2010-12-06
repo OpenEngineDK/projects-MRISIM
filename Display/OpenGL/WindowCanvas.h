@@ -12,6 +12,7 @@
 
 #include <Display/ICanvas.h>
 #include <Resources/Texture2D.h>
+#include <Core/IListener.h>
 
 namespace OpenEngine {
     namespace Renderers {
@@ -29,14 +30,21 @@ namespace MRI {
 using OpenEngine::Display::ICanvas;
 using OpenEngine::Display::ICanvasBackend;
 using OpenEngine::Renderers::IRenderer;
+using OpenEngine::Resources::UCharTexture2DPtr;
 using OpenEngine::Resources::FloatTexture2DPtr;
 using OpenEngine::Resources::ITexture2DPtr;
+using OpenEngine::Resources::TextureChangedEventArg;
+using OpenEngine::Core::IListener;
 
-class WindowCanvas : public ICanvas {
+class WindowCanvas : public ICanvas,
+                     public IListener<TextureChangedEventArg> {
 private:
-    bool init;
+    bool init, update;
     IRenderer& renderer;
     FloatTexture2DPtr in;
+    UCharTexture2DPtr out;
+    unsigned int channels;
+    float *min, *max;
 public:
     WindowCanvas(ICanvasBackend* backend, FloatTexture2DPtr in,
                  IRenderer& renderer, float scale = 1.0);
@@ -46,6 +54,7 @@ public:
     void Handle(OpenEngine::Display::ProcessEventArg arg);
     void Handle(OpenEngine::Display::ResizeEventArg arg);
     void Handle(OpenEngine::Display::DeinitializeEventArg arg);
+    void Handle(TextureChangedEventArg arg);
     unsigned int GetWidth() const;
     unsigned int GetHeight() const;
     void SetWidth(const unsigned int width);
