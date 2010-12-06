@@ -60,8 +60,8 @@ public:
     unsigned int action; 
     MRIEvent()
         : gradient(Vector<3,float>(0.0)), angleRF(0.0), recX(0), recY(0), recZ(0), action(NONE) {}
-    MRIEvent(Vector<3,float> gradient, float angleRF, unsigned int action = NONE, int recX = 0, int recY = 0, int recZ = 0)
-        : gradient(gradient), angleRF(angleRF), recX(0), recY(0), recZ(0), action(action) {}
+    // MRIEvent(Vector<3,float> gradient, float angleRF, unsigned int action = NONE, int recX = 0, int recY = 0, int recZ = 0)
+    //     : gradient(gradient), angleRF(angleRF), recX(recX), recY(recX), recZ(recX), action(action) {}
     virtual ~MRIEvent() {};
 };
 

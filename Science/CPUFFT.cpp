@@ -88,20 +88,20 @@ vector<complex<double > > CPUFFT::FFT1D(vector<complex<double> > input) {
     return output;
 }
 
-vector<double> CPUFFT::FFT2D_Inverse(vector<complex<double> > input, unsigned int w, unsigned int h) {
-    vector<double> output;
+vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, unsigned int w, unsigned int h) {
+    vector<complex<double> > output;
     if (!input.size()) return output;
 
     int rows = h;
     int cols = w;
-    int ccols = cols; ///2+1;
+    // int ccols = cols; ///2+1;
 
-    fftw_complex *in;
-    double *out;    
+    fftw_complex *in, *out;
+    // double *out;    
     fftw_plan plan;
 
-    in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)* cols * rows);
-    out = (double*)fftw_malloc(sizeof(double) * ccols * rows);
+    in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
+    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
     
     int i = 0;
     for (vector<complex<double> >::iterator itr = input.begin();
@@ -113,14 +113,15 @@ vector<double> CPUFFT::FFT2D_Inverse(vector<complex<double> > input, unsigned in
         ++i;
     }
 
-    plan = fftw_plan_dft_c2r_2d(rows, cols, in, out, FFTW_ESTIMATE);
+    // plan = fftw_plan_dft_c2r_2d(rows, cols, in, out, FFTW_ESTIMATE);
+    plan = fftw_plan_dft_2d(rows, cols,  in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 
     fftw_execute(plan);
 
     fftw_destroy_plan(plan);
 
-    for (int n=0;n<ccols*rows;n++) {
-        output.push_back(double(out[n]));
+    for (int n=0;n<cols*rows;n++) {
+        output.push_back(complex<double>(out[n][0],out[n][1]));
     }
 
     fftw_free(in);
@@ -168,6 +169,57 @@ vector<complex<double > > CPUFFT::FFT2D_Real(vector<double > input, unsigned int
     fftw_destroy_plan(plan);
 
     for (int n=0;n<ccols*rows;n++) {
+        output.push_back(complex<double>(out[n][0],out[n][1]));
+    }
+
+    fftw_free(in);
+    fftw_free(out);
+
+
+    return output;
+}
+
+
+vector<complex<double > > CPUFFT::FFT2D(vector<complex<double > >input, unsigned int w, unsigned int h) {
+    vector<complex<double > > output;
+    if (!input.size()) return output;
+
+    logger.info << "w " << w
+                << ", h " << h
+                << ", size " << input.size() 
+                << ", w*h " << w*h
+                << logger.end;
+
+    //return output;
+
+    int rows = h;
+    int cols = w;
+    // int ccols = cols/2+1;
+
+    fftw_complex *in, *out;    
+    fftw_plan plan;
+
+    in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
+    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
+    
+    int i = 0;
+    for (vector<complex<double> >::iterator itr = input.begin();
+         itr != input.end();
+         itr++) {
+        complex<double> c = *itr;
+        in[i][0] = c.real();
+        in[i][1] = c.imag();
+        ++i;
+    }
+
+    plan = fftw_plan_dft_2d(rows, cols,  in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+    // plan = fftw_plan_dft_r2c_2d(rows, cols, in, out, FFTW_ESTIMATE);
+
+    fftw_execute(plan);
+
+    fftw_destroy_plan(plan);
+
+    for (int n=0;n<cols*rows;n++) {
         output.push_back(complex<double>(out[n][0],out[n][1]));
     }
 

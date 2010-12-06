@@ -30,7 +30,10 @@ public:
     virtual vector<complex<double > > FFT1D_Real(vector<double> input) =0;
     virtual vector<complex<double > > FFT1D(vector<complex<double> > input) =0;
     virtual vector<complex<double > > FFT2D_Real(vector<double> input, unsigned int width, unsigned int height) = 0;
-    virtual vector<double> FFT2D_Inverse(vector<complex<double> > input, unsigned int width, unsigned int height) = 0;
+    virtual vector<complex<double > > FFT2D(vector<complex<double> >input, unsigned int width, unsigned int height) = 0;
+
+    virtual vector<complex<double> > FFT2D_Inverse(vector<complex<double> > input, unsigned int width, unsigned int height) = 0;
+
 };
 
 } // NS Science

@@ -39,8 +39,10 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     plotTimer->TimerEvent().Attach(*this);
     kernel->Init(phantom);
     float* data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
+    memset(data, 0, phantom.texr->GetWidth() * phantom.texr->GetHeight()*sizeof(float));
     sliceTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1, data));
     data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
+    memset(data, 0, phantom.texr->GetWidth() * phantom.texr->GetHeight()*sizeof(float));
     invTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1,data));
 }
 
@@ -78,28 +80,34 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         MRIEvent event;
         if (sequence)
             event = sequence->GetEvent(theSimTime);
-        if (event.action & MRIEvent::RESET)
+        if (event.action & MRIEvent::RESET) {
+            logger.info << "resetEvent" << logger.end;
             kernel->Reset();
-        if (event.action & MRIEvent::FLIP)
+        }
+        if (event.action & MRIEvent::FLIP) {
+            logger.info << "flipEvent" << logger.end;
             kernel->RFPulse(event.angleRF);
-        if (event.action & MRIEvent::GRADIENT)
+        }
+        if (event.action & MRIEvent::GRADIENT) {
             kernel->SetGradient(event.gradient);
+            logger.info << "gradientEvent: " << event.gradient << logger.end;
+        }
         theSimTime += kernelStep;
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
         if (event.action & MRIEvent::RECORD) {
+            logger.info << "recordEvent: (" << event.recX << "," << event.recY << ")" << logger.end;
             // record a sample in k-space
             complex<double> sample = complex<double>(signal[0], signal[1]);
             sliceData.at(event.recX + event.recY * phantom.texr->GetWidth()) 
                 = sample;
-            sliceTex->GetData()[event.recX + event.recY * phantom.texr->GetWidth()] = signal[0];//abs(sample);
+            sliceTex->GetData()[event.recX + event.recY * phantom.texr->GetWidth()] = abs(sample);
             sliceTex->ChangedEvent().Notify(Texture2DChangedEventArg(sliceTex));
-            
-            // logger.info << "record value: " << signal[0] << " at (" << event.recX << ", " << event.recY << "). Time: " << theSimTime << logger.end;
-            vector<double> inv = fft->FFT2D_Inverse(sliceData, sliceTex->GetWidth(), sliceTex->GetHeight());
+            logger.info << "record value: " << abs(sample) << " at (" << event.recX << ", " << event.recY << "). Time: " << theSimTime << logger.end;
+            vector<complex<double> > inv = fft->FFT2D_Inverse(sliceData, sliceTex->GetWidth(), sliceTex->GetHeight());
             for (unsigned int i = 0; i < inv.size(); ++i) {
-                invTex->GetData()[i] = inv[i];
+                invTex->GetData()[i] = abs(inv[i]);
                 // logger.info << "transformed value: " << inv[i] << logger.end;
-           }
+            }
             invTex->ChangedEvent().Notify(Texture2DChangedEventArg(invTex));
         } 
         // plot->AddPoint(theSimTime,signal[0]);

@@ -15,45 +15,79 @@ namespace Science {
 SpinEchoSequence::SpinEchoSequence(float tr, float te)
     : ListSequence(seq), tr(tr), te(te)
 {
+    float time;
+    MRIEvent e;
     
-    unsigned int lines = 10;
+    tr *= 1e-3;
+    te *= 1e-3;
+
+    float gyro = 42.576e06; // hz/Tesla
+    float fov = 0.01;      // field of view 10 mm
+    float samplingDT = 0.0005;  
+
+    unsigned int lines = 10; // hardcoded to 10x10 input
     unsigned int width = 10;
     
-    float gYMax = .2;
-    float gY = gYMax / float(lines);
-    float gYDuration = 0.1;
-    float gX = 0.2;
-    float gXDuration = 1.0;
+    float tau = 0.01;  // Gy duration
+    float gyMaxArea = float(width) / (2.0*gyro*fov);
+    float gyMax = gyMaxArea / tau;
+    float dGy = gyMax / float(lines);
+
+    float gxDuration = samplingDT*float(width);
+    float gx = gyMax / (gxDuration*2);
 
     for (unsigned int j = 0; j < lines; ++j) {
-        float start = float(j)*tr*1e-3;
+        float start = float(j)*tr;
+        // logger.info << "start: " << start << logger.end;
         // reset + 90 degree pulse + turn on phase encoding gradient
-        seq.push_back(make_pair(start, MRIEvent(Vector<3,float>(0.0, gY*(j-0.5*lines), 0.0), Math::PI*0.5, MRIEvent::FLIP /*| MRIEvent::RESET*/ | MRIEvent::GRADIENT)));
+        e.action = MRIEvent::FLIP /*| MRIEvent::GRADIENT*/ | MRIEvent::RESET;
+        e.angleRF = Math::PI*0.5;
+        e.gradient = Vector<3,float>(0.0, dGy*(float(j)-0.5*float(lines)), 0.0);
+        time = start;
+        seq.push_back(make_pair(time, e));
 
         // turn off phase encoding gradient
         // turn on frequency encoding to move to the end of the x-direction
-        seq.push_back(make_pair(start+gYDuration, MRIEvent(Vector<3,float>(0.0, gX, 0.0), 0.0, MRIEvent::GRADIENT)));
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(0.0, gx, 0.0);
+        // e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
+        time += tau;
+        seq.push_back(make_pair(time, e));
+
         // turn off frequency encoding
-        seq.push_back(make_pair(start+gYDuration+gXDuration*0.5, MRIEvent(Vector<3,float>(0.0, 0.0, 0.0), 0.0, MRIEvent::GRADIENT)));
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(0.0);
+        time += 0.5*gxDuration;
+        seq.push_back(make_pair(time, e));
 
-        // 180 degree pulse
-        seq.push_back(make_pair(start + te*1e-3*0.5, MRIEvent(Vector<3,float>(), Math::PI, MRIEvent::FLIP)));
-
-        // frequency encoding gradient on
-        seq.push_back(make_pair(start + te*1e-3 - gXDuration*0.5, MRIEvent(Vector<3,float>(gX, 0.0, 0.0), 0.0, MRIEvent::GRADIENT)));
+        //180 degree pulse
+        e.action = MRIEvent::FLIP;
+        e.angleRF = Math::PI;
+        time = start + te*0.5;
+        seq.push_back(make_pair(time, e));
         
+        // frequency encoding gradient on
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(gx, 0.0, 0.0);
+        time  = start + te - gxDuration*0.5;
+        seq.push_back(make_pair(time, e));
+                
         // record width sample points
-        float gXInterval = gXDuration / float(width);
         for (unsigned int i = 0; i < width; ++i) {
-            MRIEvent e(Vector<3,float>(), 0.0, MRIEvent::RECORD, 2, 2, 0);
+            e.action = MRIEvent::RECORD;
             e.recX = i;
             e.recY = j;
-            seq.push_back(make_pair(start + te*1e-3 - gXDuration * 0.5 + gXInterval + i*gXInterval, e));
+            seq.push_back(make_pair(time, e));
+            time += samplingDT;
         }
-
         // frequency encoding gradient off
-        seq.push_back(make_pair(start + te*1e-3 + gXDuration*0.5, MRIEvent(Vector<3,float>(), 0.0, MRIEvent::GRADIENT)));
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(0.0);
+        seq.push_back(make_pair(time, e));
     }
+    // for (unsigned int i = 0; i < seq.size(); ++i) {
+    //     logger.info << "time: " << seq[i].first << " action: " << seq[i].second.action << logger.end;
+    // }
 }
 
     

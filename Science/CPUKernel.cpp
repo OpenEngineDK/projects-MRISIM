@@ -29,7 +29,7 @@ CPUKernel::CPUKernel()
     , height(0)
     , depth(0)
     , sz(0)
-    , b0(0.5)
+    , b0(1.0)
     , gyro(42.576e06) // hz/Tesla
 {
     randomgen.SeedWithTime();
@@ -53,7 +53,11 @@ void CPUKernel::Init(Phantom phantom) {
     eq = new float[sz];
     deltaB0 = new float[sz];
     data = phantom.texr->GetData();
-    
+
+    for (unsigned int i = 0; i < sz; ++i) {
+        deltaB0[i] = RandomAttribute(0.0, 0.5e-4);
+        // deltaB0[i] = 0.0;
+    }
     Reset();
 }
 
@@ -78,17 +82,17 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
                 
                 // refMagnets[i] = RotateZ(state.angleRF, refMagnets[i]);
 
-                float dtt1 = dt/T_1;
-                float dtt2 = dt/T_2;
-                // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
-                // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+                // float dtt1 = dt/T_1;
+                // float dtt2 = dt/T_2;
+                float dtt1 = dt/phantom.spinPackets[data[i]].t1;
+                float dtt2 = dt/phantom.spinPackets[data[i]].t2;
                 // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 
                                                  (eq[i]-refMagnets[i][2])*dtt1);
-                float g = gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX/1000.0),
-                                                     float(int(y)+phantom.offsetY)*(phantom.sizeY/1000.0),
-                                                     float(int(z)+phantom.offsetZ)*(phantom.sizeZ/1000.0));
+                float g = gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX*1e-3),
+                                                     float(int(y)+phantom.offsetY)*(phantom.sizeY*1e-3),
+                                                     float(int(z)+phantom.offsetZ)*(phantom.sizeZ*1e-3));
                 // logger.info << "g: " << g << logger.end;
                 // logger.info << "angle: " << gyro * (deltaB0[i] + g) * dt << logger.end;
                 refMagnets[i] = RotateZ(gyro * (deltaB0[i] + g) * dt, refMagnets[i]);
@@ -143,8 +147,6 @@ void CPUKernel::Reset() {
     // Signal should at all times be the sum of the spins (or not?)
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
-        deltaB0[i] = RandomAttribute(0.0, 0.5e-5);
-        // deltaB0[i] = 0.0;
         eq[i] = phantom.spinPackets[data[i]].ro*b0;
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
         signal += labMagnets[i];
