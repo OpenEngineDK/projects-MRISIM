@@ -40,25 +40,25 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te)
         float start = float(j)*tr;
         // logger.info << "start: " << start << logger.end;
         // reset + 90 degree pulse + turn on phase encoding gradient
+        // turn on frequency encoding to move to the end of the x-direction
         e.action = MRIEvent::FLIP /*| MRIEvent::GRADIENT*/ | MRIEvent::RESET;
         e.angleRF = Math::PI*0.5;
-        e.gradient = Vector<3,float>(0.0, dGy*(float(j)-0.5*float(lines)), 0.0);
+        e.gradient = Vector<3,float>(gyMax/tau, dGy*(float(j)-0.5*float(lines)), 0.0);
         time = start;
         seq.push_back(make_pair(time, e));
 
-        // turn off phase encoding gradient
-        // turn on frequency encoding to move to the end of the x-direction
+        // turn off phase encoding gradient        
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(0.0, gx, 0.0);
-        // e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
+        //e.gradient = Vector<3,float>(0.0, gx, 0.0);
+        e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
         time += tau;
         seq.push_back(make_pair(time, e));
 
-        // turn off frequency encoding
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(0.0);
-        time += 0.5*gxDuration;
-        seq.push_back(make_pair(time, e));
+        // // turn off frequency encoding
+        // e.action = MRIEvent::GRADIENT;
+        // e.gradient = Vector<3,float>(0.0);
+        // time += 0.5*gxDuration;
+        // seq.push_back(make_pair(time, e));
 
         //180 degree pulse
         e.action = MRIEvent::FLIP;
