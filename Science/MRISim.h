@@ -51,11 +51,14 @@ public:
                                // k-space (only valid when
                                // Action::RECORD is set)
     enum Action {
-        NONE     = 0<<0,
+        NONE     =    0,
         FLIP     = 1<<0, 
         RESET    = 1<<1,
         RECORD   = 1<<2,
-        GRADIENT = 1<<3
+        GRADIENT = 1<<3,
+        EXCITE   = 1<<4,
+        REPHASE  = 1<<5,
+        LINE     = 1<<6
     }; 
     unsigned int action; 
     MRIEvent()
@@ -91,7 +94,7 @@ private:
     Phantom phantom;
     IMRIKernel* kernel;
     IMRISequence* sequence;
-    float kernelStep, stepsPerSecond, theAccTime, theSimTime;
+    float kernelStep, stepsPerSecond, theAccTime, theSimTime, exciteStart, theta;
     bool running;
     SpinNode* spinNode;
     MathGLPlot* plot;

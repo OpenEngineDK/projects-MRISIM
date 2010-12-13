@@ -12,15 +12,18 @@
 
 #include "ListSequence.h"
 
+#include "../Resources/Phantom.h"
+
 namespace MRI {
 namespace Science {
 
 class SpinEchoSequence: public ListSequence {
 private:
     float tr, te;
+    Phantom phantom;
     vector<pair<float, MRIEvent> > seq;
 public:
-    SpinEchoSequence(float tr, float te);
+    SpinEchoSequence(float tr, float te, Phantom phantom);
     virtual ~SpinEchoSequence();
 };
 

@@ -47,7 +47,7 @@
 #include "Science/ImageFFT.h"
 #include "Science/CPUFFT.h"
 
-#include "Science/OpenCLTest.h"
+// #include "Science/OpenCLTest.h"
 
 #include "Display/OpenGL/SpinCanvas.h"
 #include "Display/OpenGL/WindowCanvas.h"
@@ -131,16 +131,26 @@ void MRIUI::SetupWall() {
     
 
     // tl->Load(ifft->GetSrcTexture(), TextureLoader::RELOAD_IMMEDIATE);
-    // tl->Load(ifft->GetStep1Texture(), TextureLoader::RELOAD_IMMEDIATE);
-    // tl->Load(ifft->GetStep2Texture(), TextureLoader::RELOAD_IMMEDIATE);
-    // tl->Load(ifft->GetFFT2DTexture(), TextureLoader::RELOAD_IMMEDIATE);
-    // tl->Load(ifft->GetFFT2DInvTexture(), TextureLoader::RELOAD_IMMEDIATE);
 
     // wc->AddTextureWithText(ifft->GetSrcTexture(), "ImFFT src");
-    // wc->AddTextureWithText(ifft->GetStep1Texture(), "ImFFT step1");
-    // wc->AddTextureWithText(ifft->GetStep2Texture(), "ImFFT step2");
-    // wc->AddTextureWithText(ifft->GetFFT2DTexture(), "ImFFT2D");
-    // wc->AddTextureWithText(ifft->GetFFT2DInvTexture(), "ImFFT2DInv");
+
+    // WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), ifft->GetStep1Texture(), *r, 1.0f);
+    // cq->PushCanvas(windowCanvas);
+    // wc->AddTextureWithText(windowCanvas->GetTexture(), "ImFFT step1");
+
+    // windowCanvas = new WindowCanvas(new TextureCopy(), ifft->GetStep2Texture(), *r, 1.0f);
+    // cq->PushCanvas(windowCanvas);
+    // wc->AddTextureWithText(windowCanvas->GetTexture(), "ImFFT step2");
+
+    // windowCanvas = new WindowCanvas(new TextureCopy(), ifft->GetFFT2DTexture(), *r, 1.0f);
+    // cq->PushCanvas(windowCanvas);
+    // wc->AddTextureWithText(windowCanvas->GetTexture(), "ImFFT2D");
+    // // wc->AddTextureWithText(ifft->GetFFT2DTexture(), "ImFFT2D");
+
+    // windowCanvas = new WindowCanvas(new TextureCopy(), ifft->GetFFT2DInvTexture(), *r, 1.0f);
+    // cq->PushCanvas(windowCanvas);
+    // wc->AddTextureWithText(windowCanvas->GetTexture(), "ImFFT2DInv");
+    // // wc->AddTextureWithText(ifft->GetFFT2DInvTexture(), "ImFFT2DInv");
 
 }
 
@@ -150,7 +160,6 @@ void MRIUI::SetupCanvas() {
     r->PreProcessEvent().Attach(*tl);
 
     wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
-
 
     mouse->MouseMovedEvent().Attach(*wc);
     mouse->MouseButtonEvent().Attach(*wc);
@@ -229,8 +238,8 @@ void MRIUI::Exit() {
 }
 
 void MRIUI::SetupOpenCL() {
-    OpenCLTest test;
-    test.RunKernel();
+    // OpenCLTest test;
+    // test.RunKernel();
 
     
     
@@ -265,7 +274,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     // Phantom::Save("test", p);
 
     CPUKernel* kern = new CPUKernel();
-    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence(2000.0, 200.0));
+    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence(500.0, 100.0, p));
     setup->GetEngine().InitializeEvent().Attach(*sim);
     setup->GetEngine().ProcessEvent().Attach(*sim);
     setup->GetEngine().DeinitializeEvent().Attach(*sim);

@@ -29,8 +29,8 @@ CPUKernel::CPUKernel()
     , height(0)
     , depth(0)
     , sz(0)
-    , b0(1.0)
-    , gyro(42.576e06) // hz/Tesla
+    , b0(0.5)
+    , gyro(42.576) // hz/Tesla
 {
     randomgen.SeedWithTime();
 }
@@ -44,9 +44,9 @@ float CPUKernel::RandomAttribute(float base, float variance) {
 
 void CPUKernel::Init(Phantom phantom) {
     this->phantom = phantom;
-    width   = phantom.texr->GetWidth();
-    height  = phantom.texr->GetHeight();
-    depth   = phantom.texr->GetDepth();
+    width  = phantom.texr->GetWidth();
+    height = phantom.texr->GetHeight();
+    depth  = phantom.texr->GetDepth();
     sz = width*height*depth;
     refMagnets = new Vector<3,float>[sz]; 
     labMagnets = new Vector<3,float>[sz]; 
@@ -55,8 +55,9 @@ void CPUKernel::Init(Phantom phantom) {
     data = phantom.texr->GetData();
 
     for (unsigned int i = 0; i < sz; ++i) {
-        deltaB0[i] = RandomAttribute(0.0, 0.5e-4);
-        // deltaB0[i] = 0.0;
+        //deltaB0[i] = RandomAttribute(0.0, 0.5e-3);
+        deltaB0[i] = 0.0;
+        eq[i] = phantom.spinPackets[data[i]].ro*b0;
     }
     Reset();
 }
@@ -69,41 +70,42 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
 }
 
 Vector<3,float> CPUKernel::Step(float dt, float time) {
-    float T_1 = 2200/1000.0;
-    float T_2 = 500/1000.0;
+    float T_1 = 2200.0*1e-3;
+    float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
     const float omega = gyro * b0;
- 
     for (unsigned int x = 0; x < width; ++x) {
         for (unsigned int y = 0; y < height; ++y) {
             for (unsigned int z = 0; z < depth; ++z) {
-                unsigned int i = x + y*height + z*width*height;
+                unsigned int i = x + y*width + z*width*height;
                 if (data[i] == 0) continue;
                 
                 // refMagnets[i] = RotateZ(state.angleRF, refMagnets[i]);
 
-                // float dtt1 = dt/T_1;
-                // float dtt2 = dt/T_2;
-                float dtt1 = dt/phantom.spinPackets[data[i]].t1;
-                float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+                float dtt1 = dt/T_1;
+                float dtt2 = dt/T_2;
+                // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
+                // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
                 // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 
                                                  (eq[i]-refMagnets[i][2])*dtt1);
-                float g = gradient * Vector<3,float>(float(int(x)+phantom.offsetX)*(phantom.sizeX*1e-3),
-                                                     float(int(y)+phantom.offsetY)*(phantom.sizeY*1e-3),
-                                                     float(int(z)+phantom.offsetZ)*(phantom.sizeZ*1e-3));
-                // logger.info << "g: " << g << logger.end;
-                // logger.info << "angle: " << gyro * (deltaB0[i] + g) * dt << logger.end;
-                refMagnets[i] = RotateZ(gyro * (deltaB0[i] + g) * dt, refMagnets[i]);
+                float dG = gradient * Vector<3,float>(float(int(x) + phantom.offsetX) * (phantom.sizeX*1e-3),
+                                                      float(int(y) + phantom.offsetY) * (phantom.sizeY*1e-3),
+                                                      float(int(z) + phantom.offsetZ) * (phantom.sizeZ*1e-3));
+                // logger.info << "dG: " << dG << logger.end;
+                // logger.info << "angle: " << gyro * (deltaB0[i] + dG) * dt << logger.end;
+                refMagnets[i] = RotateZ(gyro * (deltaB0[i] + dG) * dt, refMagnets[i]);
                 labMagnets[i] = 
                     Vector<3,float>(refMagnets[i][0] * cos(omega * time) - refMagnets[i][1] * sin(omega*time), 
-                                    refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time),  
+                                    refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time), 
                                     refMagnets[i][2]);
-                signal += labMagnets[i];
+                //signal += labMagnets[i];
+                signal += refMagnets[i];
             }    
         }
     }
+
     // Convert from reference to laboratory system. This should be
     // done in the for-loop, but as long as our operations are
     // distributive over addition this optimization should work just fine.
@@ -123,17 +125,17 @@ void CPUKernel::Flop() {
 }
 
 void CPUKernel::RFPulse(float angle) {
-    Matrix<3,3,float> rot(1.0, 0.0, 0.0,
+    Matrix<3,3,float> rot(
+                          1.0, 0.0, 0.0,
                           0.0, cos(angle), sin(angle),
                           0.0,-sin(angle), cos(angle)
                           );
-
     // hack to only excite slice 0
     unsigned int z = 0;
     for (unsigned int i = 0; i < width; ++i) {
         for (unsigned int j = 0; j < height; ++j) {
-            if (data[i+j*width+z*width*height] == 0) continue;
-            refMagnets[i+j*width+z*width*height] = rot*refMagnets[i+j*width+z*width*height];
+            if (data[i + j*width  + z*width*height] == 0) continue;
+            refMagnets[i + j*width + z*width*height] = rot*refMagnets[i + j*width + z*width*height];
         }
     }
 }
@@ -147,11 +149,9 @@ void CPUKernel::Reset() {
     // Signal should at all times be the sum of the spins (or not?)
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
-        eq[i] = phantom.spinPackets[data[i]].ro*b0;
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
         signal += labMagnets[i];
     }
-    // signal /= sz;
     // logger.info << "Signal: " << signal << logger.end;
 }
 
@@ -176,7 +176,8 @@ ValueList CPUKernel::Inspect() {
 }
 
 Vector<3,float>* CPUKernel::GetMagnets() {
-  return labMagnets;
+    //return refMagnets;
+    return labMagnets;
 }
 
 Phantom CPUKernel::GetPhantom() {
@@ -185,4 +186,3 @@ Phantom CPUKernel::GetPhantom() {
 
 } // NS Science
 } // NS OpenEngine
-

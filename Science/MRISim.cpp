@@ -24,8 +24,8 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     : phantom(phantom)
     , kernel(kernel)
     , sequence(sequence)
-    , kernelStep(2e-4)
-    , stepsPerSecond(1e02)
+    , kernelStep(1e-3)
+    , stepsPerSecond(100)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
@@ -84,8 +84,13 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             logger.info << "resetEvent" << logger.end;
             kernel->Reset();
         }
-        if (event.action & MRIEvent::FLIP) {
-            logger.info << "flipEvent" << logger.end;
+        if (event.action & MRIEvent::EXCITE) {
+            exciteStart = theSimTime;
+            logger.info << "excitation 90 deg" << logger.end;
+            kernel->RFPulse(event.angleRF);
+        }
+        if (event.action & MRIEvent::REPHASE) {
+            logger.info << "excitation 180 deg" << logger.end;
             kernel->RFPulse(event.angleRF);
         }
         if (event.action & MRIEvent::GRADIENT) {
@@ -94,10 +99,12 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         }
         theSimTime += kernelStep;
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
+        complex<double> sample = complex<double>(signal[0], signal[1]);
+        if (event.action & MRIEvent::LINE) {
+        }
         if (event.action & MRIEvent::RECORD) {
             logger.info << "recordEvent: (" << event.recX << "," << event.recY << ")" << logger.end;
             // record a sample in k-space
-            complex<double> sample = complex<double>(signal[0], signal[1]);
             sliceData.at(event.recX + event.recY * phantom.texr->GetWidth()) 
                 = sample;
             sliceTex->GetData()[event.recX + event.recY * phantom.texr->GetWidth()] = abs(sample);
@@ -109,6 +116,10 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
                 // logger.info << "transformed value: " << inv[i] << logger.end;
             }
             invTex->ChangedEvent().Notify(Texture2DChangedEventArg(invTex));
+
+            //pause
+            // SetStepsPerSecond(0);
+            // break;
         } 
         // plot->AddPoint(theSimTime,signal[0]);
         acq->AddSample(signal[0]);

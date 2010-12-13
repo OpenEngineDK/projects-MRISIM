@@ -47,7 +47,6 @@ public:
     void RFPulse(float angle);
     void Reset();
     void SetGradient(Vector<3,float> gradient);
-
     void Flip();
     void Flop();
 

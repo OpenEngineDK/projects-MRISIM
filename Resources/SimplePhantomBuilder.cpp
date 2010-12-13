@@ -42,6 +42,7 @@ Phantom SimplePhantomBuilder::GetPhantom() {
 
     unsigned char* data = new unsigned char[dims*dims*dims];
     memset((void*)data, 0, dims*dims*dims);
+    // data[0] = 1;
     for (unsigned int i = 0; i < half; ++i) {
         for (unsigned int j = 0; j < half; ++j) {
             for (unsigned int k = 0; k < half; ++k) {
@@ -52,19 +53,26 @@ Phantom SimplePhantomBuilder::GetPhantom() {
 
     for (unsigned int i = half; i < dims; ++i) {
         for (unsigned int j = half; j < dims; ++j) {
-            for (unsigned int k = half; k < dims; ++k) {
-                data[i + j*dims + k*dims*dims] = 2;
-            }
+                data[i + j*dims] = 1;
+            
         }
     }
 
-    for (unsigned int i = 0; i < half; ++i) {
-        for (unsigned int j = half; j < dims; ++j) {
-            for (unsigned int k = half; k < dims; ++k) {
-                data[i + j*dims + k*dims*dims] = 3;
-            }
-        }
-    }
+    // for (unsigned int i = half; i < dims; ++i) {
+    //     for (unsigned int j = half; j < dims; ++j) {
+    //         for (unsigned int k = half; k < dims; ++k) {
+    //             data[i + j*dims + k*dims*dims] = 2;
+    //         }
+    //     }
+    // }
+
+    // for (unsigned int i = 0; i < half; ++i) {
+    //     for (unsigned int j = half; j < dims; ++j) {
+    //         for (unsigned int k = half; k < dims; ++k) {
+    //             data[i + j*dims + k*dims*dims] = 3;
+    //         }
+    //     }
+    // }
 
     phantom.texr = UCharTexture3DPtr(new UCharTexture3D(dims, dims, dims, 1, data));
     return phantom;

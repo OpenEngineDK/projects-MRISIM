@@ -103,13 +103,31 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
     in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
     out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
     
+
     int i = 0;
     for (vector<complex<double> >::iterator itr = input.begin();
          itr != input.end();
          itr++) {
+	
+        //Lets get the coordinates for this pixel
+        // src_co = idx_to_co(idx, dim);
+
+        // uint2 co;
+        unsigned int temp = i;
+        unsigned int sX = temp%w;
+        temp -= sX;
+        unsigned int sY = temp/w;
+        
+
+		//Where should this data go?
+		// T dst_co = (src_co+(dim>>1))%dim;
+        unsigned int dX = (sX+(w>>1))%w;
+        unsigned int dY = (sY+(h>>1))%h;
+        unsigned int dI = dX + dY*w;
+
         complex<double> c = *itr;
-        in[i][0] = real(c);
-        in[i][1] = imag(c);
+        in[dI][0] = real(c);
+        in[dI][1] = imag(c);
         ++i;
     }
 
@@ -181,7 +199,7 @@ vector<complex<double > > CPUFFT::FFT2D_Real(vector<double > input, unsigned int
 
 
 vector<complex<double > > CPUFFT::FFT2D(vector<complex<double > >input, unsigned int w, unsigned int h) {
-    vector<complex<double > > output;
+    vector<complex<double > > output(w*h);
     if (!input.size()) return output;
 
     logger.info << "w " << w
@@ -220,7 +238,23 @@ vector<complex<double > > CPUFFT::FFT2D(vector<complex<double > >input, unsigned
     fftw_destroy_plan(plan);
 
     for (int n=0;n<cols*rows;n++) {
-        output.push_back(complex<double>(out[n][0],out[n][1]));
+        //Lets get the coordinates for this pixel
+        // src_co = idx_to_co(idx, dim);
+
+        // uint2 co;
+        unsigned int temp = n;
+        unsigned int sX = temp%w;
+        temp -= sX;
+        unsigned int sY = temp/w;
+        
+		//Where should this data go?
+		// T dst_co = (src_co+(dim>>1))%dim;
+        unsigned int dX = (sX+(w>>1))%w;
+        unsigned int dY = (sY+(h>>1))%h;
+        unsigned int dI = dX + dY*w;
+
+
+        output[dI] = complex<double>(out[n][0],out[n][1]);
     }
 
     fftw_free(in);
