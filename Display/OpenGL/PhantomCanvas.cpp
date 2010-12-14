@@ -10,6 +10,8 @@
 #include "PhantomCanvas.h"
 
 #include <Logging/Logger.h>
+#include <Math/HSLColor.h>
+#include <Math/RGBColor.h>
 
 namespace OpenEngine {
 namespace Display {
@@ -26,23 +28,36 @@ namespace OpenGL {
 
         unsigned char* data = new unsigned char[texr->GetWidth()*texr->GetHeight()*texr->GetDepth()*3];
 
-        vector<Vector<3,unsigned char> > colors(16);
+        vector<Vector<3,unsigned char> > colors(phantom.spinPackets.size());
+        // vector<Vector<3,unsigned char> > colors(16);
+       
+        // colors[0] = Vector<3,unsigned char>();
+        // colors[1] = Vector<3,unsigned char>(255,51,51);
+        // colors[2] = Vector<3,unsigned char>(255,153,51);
+        // colors[3] = Vector<3,unsigned char>(255,255,51);
+        // colors[4] = Vector<3,unsigned char>(153,255,51);
+        // colors[5] = Vector<3,unsigned char>(255,51,153);
+        // colors[6] = Vector<3,unsigned char>(245,0,0);
+        // colors[7] = Vector<3,unsigned char>(51,255,51);
+        // colors[8] = Vector<3,unsigned char>(255,51,255);
+        // colors[9] = Vector<3,unsigned char>(0,184,184);
+        // colors[10] = Vector<3,unsigned char>(0,245,245);
+        // colors[11] = Vector<3,unsigned char>(51,255,153);
+        // colors[12] = Vector<3,unsigned char>(153,51,255);
+        // colors[13] = Vector<3,unsigned char>(51,51,255);
+        // colors[14] = Vector<3,unsigned char>(51,153,255);
+        // colors[15] = Vector<3,unsigned char>(51,255,255);
+
+        HSLColor hsl;
+        float phase = 0.0; // hue phase offset in degrees
+        float freq  = 90.0 / float(phantom.spinPackets.size()-1); // uniform distribution of hue
         colors[0] = Vector<3,unsigned char>();
-        colors[1] = Vector<3,unsigned char>(255,51,51);
-        colors[2] = Vector<3,unsigned char>(255,153,51);
-        colors[3] = Vector<3,unsigned char>(255,255,51);
-        colors[4] = Vector<3,unsigned char>(153,255,51);
-        colors[5] = Vector<3,unsigned char>(255,51,153);
-        colors[6] = Vector<3,unsigned char>(245,0,0);
-        colors[7] = Vector<3,unsigned char>(51,255,51);
-        colors[8] = Vector<3,unsigned char>(255,51,255);
-        colors[9] = Vector<3,unsigned char>(0,184,184);
-        colors[10] = Vector<3,unsigned char>(0,245,245);
-        colors[11] = Vector<3,unsigned char>(51,255,153);
-        colors[12] = Vector<3,unsigned char>(153,51,255);
-        colors[13] = Vector<3,unsigned char>(51,51,255);
-        colors[14] = Vector<3,unsigned char>(51,153,255);
-        colors[15] = Vector<3,unsigned char>(51,255,255);
+        for (unsigned int i = 1; i < phantom.spinPackets.size(); ++i) {
+            hsl = HSLColor(phase + i * freq, 0.8, 0.5);
+            colors[i] = hsl.GetRGB().GetUChar();
+            logger.info << "hsl: " << hsl << logger.end;
+            logger.info << "fcolor: " << hsl.GetRGB() << logger.end;
+        }
 
         for (unsigned int i = 0; i < texr->GetWidth()*texr->GetHeight()*texr->GetDepth(); ++i) {
             Vector<3,unsigned char> col = colors[phanData[i]];
@@ -56,7 +71,7 @@ namespace OpenGL {
                                                  texr->GetDepth(),
                                                  3,
                                                  data));
-        sliceCanvas = new SliceCanvas(backend->Clone(), tex);
+        sliceCanvas = new SliceCanvas(backend, tex);
 
         width = sliceCanvas->GetWidth(); 
         height = sliceCanvas->GetHeight();
@@ -72,89 +87,89 @@ namespace OpenGL {
     void PhantomCanvas::Handle(Display::InitializeEventArg arg) {
         if (init) return;
         sliceCanvas->Handle(arg);
-        backend->Init(width, height);
+        // backend->Init(width, height);
         init = true;
     }
 
     void PhantomCanvas::Handle(Display::ProcessEventArg arg) {
         sliceCanvas->Handle(arg);
 
-        backend->Pre();
+        // backend->Pre();
         
-        ITexture2DPtr tex = sliceCanvas->GetTexture();
+        // ITexture2DPtr tex = sliceCanvas->GetTexture();
 
-        Vector<4,int> d(0, 0, width, height);
-        glViewport((GLsizei)d[0], (GLsizei)d[1], (GLsizei)d[2], (GLsizei)d[3]);
-        OrthogonalViewingVolume volume(-1, 1, 0, width, 0, height);
+        // Vector<4,int> d(0, 0, width, height);
+        // glViewport((GLsizei)d[0], (GLsizei)d[1], (GLsizei)d[2], (GLsizei)d[3]);
+        // OrthogonalViewingVolume volume(-1, 1, 0, width, 0, height);
 
-        // Select The Projection Matrix
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        CHECK_FOR_GL_ERROR();
+        // // Select The Projection Matrix
+        // glMatrixMode(GL_PROJECTION);
+        // glPushMatrix();
+        // CHECK_FOR_GL_ERROR();
     
-        // Reset The Projection Matrix
-        glLoadIdentity();
-        CHECK_FOR_GL_ERROR();
+        // // Reset The Projection Matrix
+        // glLoadIdentity();
+        // CHECK_FOR_GL_ERROR();
     
-        // Setup OpenGL with the volumes projection matrix
-        Matrix<4,4,float> projMatrix = volume.GetProjectionMatrix();
-        float arr[16] = {0};
-        projMatrix.ToArray(arr);
-        glMultMatrixf(arr);
-        CHECK_FOR_GL_ERROR();
+        // // Setup OpenGL with the volumes projection matrix
+        // Matrix<4,4,float> projMatrix = volume.GetProjectionMatrix();
+        // float arr[16] = {0};
+        // projMatrix.ToArray(arr);
+        // glMultMatrixf(arr);
+        // CHECK_FOR_GL_ERROR();
     
-        // Select the modelview matrix
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        CHECK_FOR_GL_ERROR();
+        // // Select the modelview matrix
+        // glMatrixMode(GL_MODELVIEW);
+        // glPushMatrix();
+        // CHECK_FOR_GL_ERROR();
     
-        // Reset the modelview matrix
-        glLoadIdentity();
-        CHECK_FOR_GL_ERROR();
+        // // Reset the modelview matrix
+        // glLoadIdentity();
+        // CHECK_FOR_GL_ERROR();
         
-        // Get the view matrix and apply it
-        Matrix<4,4,float> matrix = volume.GetViewMatrix();
-        float f[16] = {0};
-        matrix.ToArray(f);
-        glMultMatrixf(f);
-        CHECK_FOR_GL_ERROR();
+        // // Get the view matrix and apply it
+        // Matrix<4,4,float> matrix = volume.GetViewMatrix();
+        // float f[16] = {0};
+        // matrix.ToArray(f);
+        // glMultMatrixf(f);
+        // CHECK_FOR_GL_ERROR();
         
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_TEXTURE_2D);
-        GLint texenv;
-        glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texenv);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        // glDisable(GL_DEPTH_TEST);
+        // glEnable(GL_TEXTURE_2D);
+        // GLint texenv;
+        // glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texenv);
+        // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-        const float z = 0.0;
+        // const float z = 0.0;
         
-        glBindTexture(GL_TEXTURE_2D, tex->GetID());
+        // glBindTexture(GL_TEXTURE_2D, tex->GetID());
 
-        CHECK_FOR_GL_ERROR();
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0, 0.0);
-        glVertex3i(0, height, z);
-        glTexCoord2f(0.0, 1.0);
-        glVertex3i(0, 0, z);
-        glTexCoord2f(1.0, 1.0);
-        glVertex3i(width, 0, z);
-        glTexCoord2f(1.0, 0.0);
-        glVertex3i(width, height, z);
-        glEnd();
+        // CHECK_FOR_GL_ERROR();
+        // glBegin(GL_QUADS);
+        // glTexCoord2f(0.0, 0.0);
+        // glVertex3i(0, height, z);
+        // glTexCoord2f(0.0, 1.0);
+        // glVertex3i(0, 0, z);
+        // glTexCoord2f(1.0, 1.0);
+        // glVertex3i(width, 0, z);
+        // glTexCoord2f(1.0, 0.0);
+        // glVertex3i(width, height, z);
+        // glEnd();
  
-        glBindTexture(GL_TEXTURE_2D, 0);
+        // glBindTexture(GL_TEXTURE_2D, 0);
 
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-        CHECK_FOR_GL_ERROR();
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-        CHECK_FOR_GL_ERROR();
+        // glMatrixMode(GL_PROJECTION);
+        // glPopMatrix();
+        // CHECK_FOR_GL_ERROR();
+        // glMatrixMode(GL_MODELVIEW);
+        // glPopMatrix();
+        // CHECK_FOR_GL_ERROR();
         
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_TEXTURE_2D);
+        // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
+        // glEnable(GL_DEPTH_TEST);
+        // glDisable(GL_TEXTURE_2D);
             
-        backend->Post();
+        // backend->Post();
     }
     
     void PhantomCanvas::Handle(Display::ResizeEventArg arg) {
@@ -164,7 +179,7 @@ namespace OpenGL {
     void PhantomCanvas::Handle(Display::DeinitializeEventArg arg) {
         if (!init) return;
         sliceCanvas->Handle(arg);
-        backend->Deinit();
+        // backend->Deinit();
         init = false;
     }
 
@@ -185,7 +200,7 @@ namespace OpenGL {
     }
 
     ITexture2DPtr PhantomCanvas::GetTexture() {
-        return backend->GetTexture();
+        return sliceCanvas->GetTexture();//backend->GetTexture();
     }    
     
     SliceCanvas* PhantomCanvas::GetSliceCanvas() {

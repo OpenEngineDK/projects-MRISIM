@@ -120,6 +120,7 @@ void MRIUI::SetupPlugins() {
 }
 
 void MRIUI::SetupWall() {
+    wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
     wc->AddTextureWithText(plot->GetTexture(), "plot");
     wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
     wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
@@ -179,8 +180,8 @@ void MRIUI::SetupCanvas() {
     // Phantom p = pb->GetPhantom();
     // Phantom::Save("test", p);
 
-    // Phantom p("brain.yaml");
-    // phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
+    Phantom p("brain.yaml");
+    phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
     plot = new MathGLPlot(400,200);
     fftPlot = new MathGLPlot(400,200);
@@ -214,7 +215,7 @@ void MRIUI::SetupCanvas() {
     cq = new CanvasQueue();
     cq->PushCanvas(wc);
     cq->PushCanvas(sliceCanvas);
-    // cq->PushCanvas(phantomCanvas);
+    cq->PushCanvas(phantomCanvas);
     cq->PushCanvas(rc);
 
     
@@ -308,7 +309,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     SceneNodeGUI *nodeGui = new SceneNodeGUI();
 
     // inspector
-    ValueList vl = Inspection::Inspect(sliceCanvas);
+    ValueList vl = Inspection::Inspect(phantomCanvas->GetSliceCanvas());
     ValueList vl2 = Inspection::Inspect(spinCanvas);
     vl.merge(vl2);
     
