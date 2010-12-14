@@ -20,24 +20,24 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     
     // tr *= 1e-3;
     // te *= 1e-3;
-    tr = 600.0 * 1e-3;
+    tr = 2000.0 * 1e-3;
     te = 200.0 * 1e-3;
 
     float gyro = 42.576; // hz/Tesla
     
     unsigned int lines = phantom.texr->GetHeight(); 
     unsigned int width = phantom.texr->GetWidth();
-    float fov = 0.18*phantom.sizeX*1e-3*width;      // field of view 
+    float fov = phantom.sizeX*1e-3*width;      // field of view 
     
-    float tau = 0.005;  // Gy duration
+    float tau = 0.05;  // Gy duration
     float gyMaxArea = float(lines) / (2*gyro*fov);
-    float gyMax = gyMaxArea / tau; 
+    float gyMax = -gyMaxArea / tau; 
     float dGy =  (2*gyMax) / float(lines); //1.0 / (gyro*tau*fov);
     logger.info << "dGY: " << dGy << logger.end;
 
     // float gx = 0.0025;
     // float samplingDT = 1.0 / (fov * gyro * gx);              
-    float samplingDT = 1.0 / (2*gyro);
+    float samplingDT = 0.05 / (gyro);
     float gxDuration = samplingDT * float(width);
     float gx   = (gyMaxArea*2) / gxDuration;
     //float gx   = 1.0 / fov ;
@@ -51,12 +51,13 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
 
     float start = 0;//float(j)*tr;
     for (unsigned int j = 0; j < lines; ++j) {
+        start = float(j)*tr + .1;
         // logger.info << "start: " << start << logger.end;
         // reset + 90 degree pulse + turn on phase encoding gradient
         // turn on frequency encoding to move to the end of the x-direction
         e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT | MRIEvent::RESET;
         e.angleRF = Math::PI*0.5;
-        e.gradient = Vector<3,float>(gxFirst, gyMax - float(j)*dGy, 0.0);
+        e.gradient = Vector<3,float>(gxFirst, gyMax + float(j)*dGy, 0.0);
         time = start;
         seq.push_back(make_pair(time, e));
 
@@ -94,7 +95,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
 
-        start = time + 10.0 * samplingDT;
+        // start = time + 10.0 * samplingDT;
     }
     // for (unsigned int i = 0; i < seq.size(); ++i) {
     //     logger.info << "time: " << seq[i].first << " action: " << seq[i].second.action << logger.end;

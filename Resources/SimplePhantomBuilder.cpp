@@ -22,7 +22,7 @@ SimplePhantomBuilder::~SimplePhantomBuilder() {
     
 Phantom SimplePhantomBuilder::GetPhantom() {
     Phantom phantom;
-    const unsigned int dims = 10; // 10 x 10 x 10 sample
+    const unsigned int dims = 11; // 10 x 10 x 10 sample
     const unsigned int half = dims/2;
     phantom.sizeX = phantom.sizeY = phantom.sizeZ = 3.0; // 3 mm^3 voxels
     phantom.offsetX = phantom.offsetY = phantom.offsetZ = -half; // origo is in the center of the sample
@@ -51,8 +51,8 @@ Phantom SimplePhantomBuilder::GetPhantom() {
         }
     }
 
-    for (unsigned int i = half; i < dims; ++i) {
-        for (unsigned int j = half; j < dims; ++j) {
+    for (unsigned int i = half+1; i < dims; ++i) {
+        for (unsigned int j = half+1; j < dims; ++j) {
                 data[i + j*dims] = 1;
             
         }

@@ -30,7 +30,7 @@ CPUKernel::CPUKernel()
     , depth(0)
     , sz(0)
     , b0(0.5)
-    , gyro(42.576) // hz/Tesla
+    , gyro(42.576*2*Math::PI) // hz/Tesla
 {
     randomgen.SeedWithTime();
 }
@@ -55,7 +55,7 @@ void CPUKernel::Init(Phantom phantom) {
     data = phantom.texr->GetData();
 
     for (unsigned int i = 0; i < sz; ++i) {
-        //deltaB0[i] = RandomAttribute(0.0, 0.5e-3);
+        //deltaB0[i] = RandomAttribute(0.0, 1e-3);
         deltaB0[i] = 0.0;
         eq[i] = phantom.spinPackets[data[i]].ro*b0;
     }
@@ -150,7 +150,8 @@ void CPUKernel::Reset() {
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
-        signal += labMagnets[i];
+        //signal += labMagnets[i];
+        signal += refMagnets[i];
     }
     // logger.info << "Signal: " << signal << logger.end;
 }
@@ -176,8 +177,8 @@ ValueList CPUKernel::Inspect() {
 }
 
 Vector<3,float>* CPUKernel::GetMagnets() {
-    //return refMagnets;
-    return labMagnets;
+    return refMagnets;
+    //return labMagnets;
 }
 
 Phantom CPUKernel::GetPhantom() {
