@@ -11,6 +11,7 @@
 
 #include <Resources/DirectoryManager.h>
 #include <Resources/File.h>
+#include <Utils/PropertyTreeNode.h>
 
 #include <fstream>
 
@@ -27,24 +28,25 @@ Phantom::Phantom() {
 Phantom::Phantom(string filename) {
     filename = DirectoryManager::FindFileInPath(filename);
     string filedir = File::Parent(filename);
-    PropertyTree ptree(filename);
-    ptree.Reload();
+    PropertyTree tree(filename);
+    tree.Reload();
+    PropertyTreeNode& ptree = *tree.GetRootNode();
     if (ptree.HaveNode("voxels")) {
-        PropertyTreeNode voxels = ptree.GetNode("voxels");
-        sizeX = voxels.Get("sizeX", 1);
-        sizeY = voxels.Get("sizeY", 1);
-        sizeZ = voxels.Get("sizeZ", 1);
-        offsetX = voxels.Get("offsetX", 0);
-        offsetY = voxels.Get("offsetY", 0);
-        offsetZ = voxels.Get("offsetZ", 0);
+        PropertyTreeNode& voxels = *ptree.GetNode("voxels");
+        sizeX = voxels.GetPath("sizeX", 1);
+        sizeY = voxels.GetPath("sizeY", 1);
+        sizeZ = voxels.GetPath("sizeZ", 1);
+        offsetX = voxels.GetPath("offsetX", 0);
+        offsetY = voxels.GetPath("offsetY", 0);
+        offsetZ = voxels.GetPath("offsetZ", 0);
         
-        unsigned int width = voxels.Get("width", 1);
-        unsigned int height = voxels.Get("height", 1);
-        unsigned int depth = voxels.Get("depth", 1);
+        unsigned int width = voxels.GetPath("width", 1);
+        unsigned int height = voxels.GetPath("height", 1);
+        unsigned int depth = voxels.GetPath("depth", 1);
         
-        unsigned int bytesPerVoxel = voxels.Get("bytesPerVoxel", 1);
+        unsigned int bytesPerVoxel = voxels.GetPath("bytesPerVoxel", 1);
         unsigned int sz = width*height*depth;
-        string rawfile = voxels.Get("rawfile", string(""));
+        string rawfile = voxels.GetPath("rawfile", string(""));
         unsigned char* data = new unsigned char[sz];
         ifstream in(rawfile.c_str());
 
@@ -75,15 +77,15 @@ Phantom::Phantom(string filename) {
     }
 
     if (ptree.HaveNode("spinPackets")) {
-        PropertyTreeNode sp = ptree.GetNode("spinPackets");
+        PropertyTreeNode& sp = *ptree.GetNode("spinPackets");
         unsigned int count = sp.GetSize();
         spinPackets = vector<SpinPacket>(count);
         for (unsigned int i = 0; i < count; ++i) {
-            PropertyTreeNode entry = sp.GetNode(i);
-            spinPackets[i] = SpinPacket(entry.Get("name", string("")),
-                                        entry.Get("t1", 0.0),
-                                        entry.Get("t2", 0.0),
-                                        entry.Get("ro", 0.0));
+            PropertyTreeNode& entry = *sp.GetNodeIdx(i);
+            spinPackets[i] = SpinPacket(entry.GetPath("name", string("")),
+                                        entry.GetPath("t1", 0.0),
+                                        entry.GetPath("t2", 0.0),
+                                        entry.GetPath("ro", 0.0));
         }
     }
 }
