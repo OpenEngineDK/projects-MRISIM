@@ -24,12 +24,13 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     : phantom(phantom)
     , kernel(kernel)
     , sequence(sequence)
-    , kernelStep(0.2e-3)
+    , kernelStep(2e-4)
     , stepsPerSecond(2000)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
     , spinNode(NULL)
+    , fftPlot(NULL)
     , plotTimer(new EventTimer(.1))
     , acq(new AcquisitionData(kernelStep, 2000))
     , fft(new CPUFFT())
@@ -51,6 +52,7 @@ MRISim::~MRISim() {
 
 void MRISim::Start() {
     if (running) return;
+    prevEvent = sequence->GetNextPoint();
     running = true;
 }
     
@@ -60,7 +62,9 @@ void MRISim::Stop() {
 }
     
 void MRISim::Reset() {
-    
+    kernel->Reset();
+    sequence->Reset();
+    theSimTime = theAccTime = 0.0;
 }
 
 void MRISim::Handle(Core::InitializeEventArg arg) {
@@ -76,27 +80,41 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
     theAccTime += arg.approx / 1000000.0;
     float stepTime = 1.0 / stepsPerSecond;
     while (theAccTime - stepTime > 0.0) {
-        //@todo: think about when action is evaluated; before or after kernel step?
+        //@todo: think about when action is evaluated; before or after kernel step? 
+        float prevTime, nextTime;
         MRIEvent event;
-        if (sequence)
-            event = sequence->GetEvent(theSimTime);
+        pair<float,MRIEvent> nextEvent;
+        if (sequence) {
+            // event = sequence->GetEvent(theSimTime);
+            nextEvent = sequence->GetNextPoint();
+            nextTime = nextEvent.first;
+            prevTime = prevEvent.first;
+            event = prevEvent.second;
+            prevEvent = nextEvent;
+            kernelStep = nextTime - prevTime;
+        }
+
         if (event.action & MRIEvent::RESET) {
             logger.info << "resetEvent" << logger.end;
             kernel->Reset();
         }
+
         if (event.action & MRIEvent::EXCITE) {
             exciteStart = theSimTime;
             logger.info << "excitation 90 deg" << logger.end;
             kernel->RFPulse(event.angleRF);
         }
+
         if (event.action & MRIEvent::REPHASE) {
             logger.info << "excitation 180 deg" << logger.end;
             kernel->RFPulse(event.angleRF);
         }
+
         if (event.action & MRIEvent::GRADIENT) {
             kernel->SetGradient(event.gradient);
             logger.info << "gradientEvent: " << event.gradient << logger.end;
         }
+
         theSimTime += kernelStep;
         Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
         complex<double> sample = complex<double>(signal[0], signal[1]);
@@ -125,6 +143,11 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         acq->AddSample(signal[0]);
         if (spinNode) spinNode->M = signal;
         theAccTime -= stepTime;
+        
+        if (nextEvent.second.action & MRIEvent::STOP) {
+            Stop();
+            break;
+        }
     }
     plotTimer->Handle(arg);
 }
@@ -182,10 +205,11 @@ void MRISim::DoFFT() {
     //output = fft->FFT1D(input);
     output = fft->FFT1D_Real(input);
     
-    fftData->SetFFTOutput(output);
-    fftData->SetSampleRate(kernelStep);
-
-    fftPlot->Redraw();
+    if (fftPlot) {
+        fftData->SetFFTOutput(output);
+        fftData->SetSampleRate(kernelStep);
+        fftPlot->Redraw();
+    }
 }
 
 FloatTexture2DPtr MRISim::GetKPlane() {

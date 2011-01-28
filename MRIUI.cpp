@@ -123,7 +123,7 @@ void MRIUI::SetupWall() {
     wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
     wc->AddTextureWithText(plot->GetTexture(), "plot");
     wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
-    wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
+    // wc->AddTextureWithText(fftPlot->GetTexture(), "fft");
 
     // fourier test stuff
 
@@ -184,10 +184,10 @@ void MRIUI::SetupCanvas() {
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p);
 
     plot = new MathGLPlot(400,200);
-    fftPlot = new MathGLPlot(400,200);
+    // fftPlot = new MathGLPlot(400,200);
 
     tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
-    tl->Load(fftPlot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    // tl->Load(fftPlot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
 
     RenderCanvas *rc = new RenderCanvas(new TextureCopy(),Vector<2,int>(400,400));
     
@@ -275,13 +275,13 @@ MRIUI::MRIUI(QtEnvironment *env) {
     // Phantom::Save("test", p);
 
     CPUKernel* kern = new CPUKernel();
-    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence(500.0, 100.0, p));
+    MRISim* sim = new MRISim(p, kern, new SpinEchoSequence(2000.0, 200.0, p));
     setup->GetEngine().InitializeEvent().Attach(*sim);
     setup->GetEngine().ProcessEvent().Attach(*sim);
     setup->GetEngine().DeinitializeEvent().Attach(*sim);
     sim->SetNode(spinNode);
     sim->SetPlot(plot);
-    sim->SetFFTPlot(fftPlot);
+    // sim->SetFFTPlot(fftPlot);
     sim->Start();
 
     spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);

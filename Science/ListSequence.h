@@ -27,6 +27,9 @@ public:
     ListSequence(vector<pair<float, MRIEvent> >& seq);
     virtual ~ListSequence();
     MRIEvent GetEvent(float time);
+    pair<float, MRIEvent> GetNextPoint();
+    void Reset();
+    void Sort();
 };
 
 } // NS Science

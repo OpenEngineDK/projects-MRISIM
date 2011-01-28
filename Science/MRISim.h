@@ -44,7 +44,7 @@ public:
 
 class MRIEvent {
 public:
-    Vector<3,float> gradient;  // gradient magnetization
+    Vector<3,float> gradient, rfSignal;  // gradient magnetization
     float angleRF;             // pulse angle (only valid when
                                // Action::FLIP is set)
     int recX, recY, recZ;      // position of the recorded sample in
@@ -58,7 +58,9 @@ public:
         GRADIENT = 1<<3,
         EXCITE   = 1<<4,
         REPHASE  = 1<<5,
-        LINE     = 1<<6
+        LINE     = 1<<6,
+        STOP     = 1<<7,
+        RFPULSE  = 1<<8
     }; 
     unsigned int action; 
     MRIEvent()
@@ -72,7 +74,8 @@ class IMRISequence {
 public:
     virtual ~IMRISequence() {}
     virtual MRIEvent GetEvent(float time) = 0;
-    // virtual void Reset() = 0;
+    virtual pair<float, MRIEvent> GetNextPoint() = 0;
+    virtual void Reset() = 0;
 };
 
 class IMRIKernel {
@@ -85,6 +88,7 @@ public:
     virtual Phantom GetPhantom() = 0;
     virtual void RFPulse(float angle) = 0;
     virtual void SetGradient(Vector<3,float> gradient) = 0;
+    virtual void SetRFSignal(Vector<3,float> signal) = 0;
     virtual void Reset() = 0;
 };
 
@@ -105,6 +109,8 @@ private:
     FFTData* fftData;
     vector<complex<double> > sliceData;
     FloatTexture2DPtr sliceTex, invTex;
+
+    pair<float,MRIEvent> prevEvent;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();

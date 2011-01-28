@@ -28,7 +28,7 @@ private:
     Phantom phantom;
     Vector<3,float>* refMagnets, *labMagnets;
     float *eq, *deltaB0;
-    Vector<3,float> gradient;
+    Vector<3,float> gradient, rfSignal;
     unsigned char* data;
     unsigned int width, height, depth, sz;
     float b0, gyro;
@@ -47,6 +47,7 @@ public:
     void RFPulse(float angle);
     void Reset();
     void SetGradient(Vector<3,float> gradient);
+    void SetRFSignal(Vector<3,float> signal);
     void Flip();
     void Flop();
 

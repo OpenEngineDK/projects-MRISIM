@@ -42,6 +42,9 @@ SET( PROJECT_SOURCES
   Science/SpinEchoSequence.cpp
   Science/ListSequence.h
   Science/ListSequence.cpp
+  Science/IRFCoil.h
+  Science/TestRFCoil.h
+  Science/TestRFCoil.cpp
 
   Science/FFTData.h
   Science/FFTData.cpp

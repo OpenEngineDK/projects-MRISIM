@@ -18,16 +18,16 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     float time;
     MRIEvent e;
     
-    // tr *= 1e-3;
-    // te *= 1e-3;
-    tr = 2000.0 * 1e-3;
-    te = 200.0 * 1e-3;
+    tr *= 1e-3;
+    te *= 1e-3;
+    // tr = 2000.0 * 1e-3;
+    // te = 200.0 * 1e-3;
 
     float gyro = 42.576; // hz/Tesla
     
     unsigned int lines = phantom.texr->GetHeight(); 
     unsigned int width = phantom.texr->GetWidth();
-    float fov = phantom.sizeX*1e-3*width;      // field of view 
+    float fov = 1.2 * phantom.sizeX*1e-3*width;      // field of view 
     
     float tau = 0.05;  // Gy duration
     float gyMaxArea = float(lines) / (2*gyro*fov);
@@ -97,9 +97,16 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
 
         // start = time + 10.0 * samplingDT;
     }
+    e.action = MRIEvent::STOP;
+    time += 0.1;
+    seq.push_back(make_pair(time, e));
+
+
     // for (unsigned int i = 0; i < seq.size(); ++i) {
     //     logger.info << "time: " << seq[i].first << " action: " << seq[i].second.action << logger.end;
     // }
+    
+    Sort();
 }
 
     

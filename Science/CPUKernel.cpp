@@ -24,6 +24,7 @@ CPUKernel::CPUKernel()
     , eq(NULL)
     , deltaB0(NULL)
     , gradient(Vector<3,float>(0.0))
+    , rfSignal(Vector<3,float>(0.0))
     , data(NULL)
     , width(0)
     , height(0)
@@ -63,8 +64,8 @@ void CPUKernel::Init(Phantom phantom) {
 }
 
 inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
-    Matrix<3,3,float> m(cos(angle), sin(angle), 0.0,
-                        -sin(angle), cos(angle), 0.0,
+    Matrix<3,3,float> m(cos(angle), -sin(angle), 0.0,
+                        sin(angle), cos(angle), 0.0,
                         0.0, 0.0, 1.0);
     return m*vec;
 }
@@ -73,7 +74,11 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
     float T_1 = 2200.0*1e-3;
     float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
-    const float omega = gyro * b0;
+    const float omega0 = gyro * b0;
+    const float omega0angle = omega0*time;
+    // move rf signal into reference space
+    const Vector<3,float> rf = RotateZ(-omega0angle, rfSignal);
+
     for (unsigned int x = 0; x < width; ++x) {
         for (unsigned int y = 0; y < height; ++y) {
             for (unsigned int z = 0; z < depth; ++z) {
@@ -96,12 +101,20 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
                 // logger.info << "dG: " << dG << logger.end;
                 // logger.info << "angle: " << gyro * (deltaB0[i] + dG) * dt << logger.end;
                 refMagnets[i] = RotateZ(gyro * (deltaB0[i] + dG) * dt, refMagnets[i]);
+                
+                // add rf pulse and restore magnetization strength.
+                float len = refMagnets[i].GetLength();
+                refMagnets[i] = (refMagnets[i] + rf);
+                refMagnets[i].Normalize();
+                refMagnets[i] *= len;
+
                 labMagnets[i] = 
-                    Vector<3,float>(refMagnets[i][0] * cos(omega * time) - refMagnets[i][1] * sin(omega*time), 
-                                    refMagnets[i][0] * sin(omega * time) + refMagnets[i][1] * cos(omega*time), 
-                                    refMagnets[i][2]);
-                //signal += labMagnets[i];
-                signal += refMagnets[i];
+                    RotateZ(omega0angle, refMagnets[i]);
+                    // Vector<3,float>(refMagnets[i][0] * cos(omega0angle) - refMagnets[i][1] * sin(omega0angle), 
+                    //                 refMagnets[i][0] * sin(omega0angle) + refMagnets[i][1] * cos(omega0angle), 
+                    //                 refMagnets[i][2]);
+                signal += labMagnets[i];
+                //signal += refMagnets[i];
             }    
         }
     }
@@ -142,6 +155,10 @@ void CPUKernel::RFPulse(float angle) {
 
 void CPUKernel::SetGradient(Vector<3,float> gradient) {
     this->gradient = gradient;
+}
+
+void CPUKernel::SetRFSignal(Vector<3,float> signal) {
+    rfSignal = signal;
 }
 
 void CPUKernel::Reset() {
