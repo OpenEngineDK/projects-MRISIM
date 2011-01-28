@@ -35,7 +35,6 @@ MRIEvent ListSequence::GetEvent(float time) {
 
 // warning: for now do not mix calls to GetEvent with calls to GetNextPoint;
 pair<float, MRIEvent> ListSequence::GetNextPoint() {
-    logger.info << "index: " << index << logger.end;
     if (index == seq.size()) throw Exception("no more time points");
     return seq[index++];
 }
