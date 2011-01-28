@@ -29,34 +29,13 @@ namespace OpenGL {
         unsigned char* data = new unsigned char[texr->GetWidth()*texr->GetHeight()*texr->GetDepth()*3];
 
         vector<Vector<3,unsigned char> > colors(phantom.spinPackets.size());
-        // vector<Vector<3,unsigned char> > colors(16);
-       
-        // colors[0] = Vector<3,unsigned char>();
-        // colors[1] = Vector<3,unsigned char>(255,51,51);
-        // colors[2] = Vector<3,unsigned char>(255,153,51);
-        // colors[3] = Vector<3,unsigned char>(255,255,51);
-        // colors[4] = Vector<3,unsigned char>(153,255,51);
-        // colors[5] = Vector<3,unsigned char>(255,51,153);
-        // colors[6] = Vector<3,unsigned char>(245,0,0);
-        // colors[7] = Vector<3,unsigned char>(51,255,51);
-        // colors[8] = Vector<3,unsigned char>(255,51,255);
-        // colors[9] = Vector<3,unsigned char>(0,184,184);
-        // colors[10] = Vector<3,unsigned char>(0,245,245);
-        // colors[11] = Vector<3,unsigned char>(51,255,153);
-        // colors[12] = Vector<3,unsigned char>(153,51,255);
-        // colors[13] = Vector<3,unsigned char>(51,51,255);
-        // colors[14] = Vector<3,unsigned char>(51,153,255);
-        // colors[15] = Vector<3,unsigned char>(51,255,255);
-
         HSLColor hsl;
         float phase = 0.0; // hue phase offset in degrees
-        float freq  = 90.0 / float(phantom.spinPackets.size()-1); // uniform distribution of hue
-        colors[0] = Vector<3,unsigned char>();
+        float freq  = 45.0 / float(phantom.spinPackets.size()-1); // uniform distribution of hue
+        colors[0] = Vector<3,unsigned char>(255);
         for (unsigned int i = 1; i < phantom.spinPackets.size(); ++i) {
-            hsl = HSLColor(phase + i * freq, 0.8, 0.5);
+            hsl = HSLColor(phase + i * freq, 0.95, 0.6);
             colors[i] = hsl.GetRGB().GetUChar();
-            logger.info << "hsl: " << hsl << logger.end;
-            logger.info << "fcolor: " << hsl.GetRGB() << logger.end;
         }
 
         for (unsigned int i = 0; i < texr->GetWidth()*texr->GetHeight()*texr->GetDepth(); ++i) {
@@ -73,10 +52,11 @@ namespace OpenGL {
                                                  data));
         sliceCanvas = new SliceCanvas(backend, tex);
 
+        sliceCanvas->SetWidth(sliceCanvas->GetWidth());
+        sliceCanvas->SetHeight(sliceCanvas->GetHeight());
         width = sliceCanvas->GetWidth(); 
         height = sliceCanvas->GetHeight();
-        logger.info << "width: " << width << logger.end;
-        sliceCanvas->SetSlice(50);
+        sliceCanvas->SetSlice(texr->GetDepth()/2);
         backend->Create(width, height);
     }
     

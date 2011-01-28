@@ -29,7 +29,7 @@ namespace OpenGL {
 
 class SliceCanvas : public ICanvas {
 private:
-    bool init;
+    bool init, updateSlice;
     ITexture3DPtr tex;
     SlicePlane plane;
     unsigned int slice, sliceMax;
@@ -38,6 +38,7 @@ public:
     SliceCanvas(ICanvasBackend* backend, ITexture3DPtr tex, SlicePlane plane = XY) 
         : ICanvas(backend)
         , init(false)
+        , updateSlice(true)
         , tex(tex)
         , plane(plane)
         , slice(0)
@@ -67,6 +68,8 @@ public:
     }
 
     void Handle(Display::ProcessEventArg arg) {
+        if (!updateSlice) return;
+        updateSlice = false;
         backend->Pre();
         
         unsigned int width = GetWidth();
@@ -170,11 +173,13 @@ public:
     }
 
     void SetWidth(const unsigned int width) {
-        // backend.SetDimensions(width, backend.GetHeight());
+        this->width = width;
+        backend->SetDimensions(width, GetHeight());
     }
 
     void SetHeight(const unsigned int height) {
-        // backend.SetDimensions(backend.GetWidth(), height);
+        this->height = height;
+        backend->SetDimensions(GetWidth(), height);
     }
 
     ITexture2DPtr GetTexture() {
@@ -185,6 +190,7 @@ public:
         if (index >= sliceMax)
             slice = sliceMax-1;
         else slice = index;
+        updateSlice = true;
     }
 
     unsigned int GetSlice() {
