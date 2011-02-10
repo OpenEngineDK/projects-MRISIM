@@ -88,7 +88,7 @@ public:
         }
         unsigned int twidth = tex->GetWidth();
         unsigned int theight = tex->GetHeight();
-        void* data = tex->GetVoidDataPtr() + slice * twidth * theight * tex->GetChannels() * tex->GetChannelSize();
+        void* data = ((char*)tex->GetVoidDataPtr()) + (slice * twidth * theight * tex->GetChannels() * tex->GetChannelSize());
 
         
         GLint internalFormat = Renderer::GLInternalColorFormat(tex->GetColorFormat());
