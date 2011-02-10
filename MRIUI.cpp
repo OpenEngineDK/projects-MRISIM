@@ -64,45 +64,6 @@ using namespace MRI::Science;
 using namespace MRI::Display::OpenGL;
 
 
-namespace OpenEngine {
-    namespace Utils {
-        namespace Inspection {
-
-ValueList Inspect(SliceCanvas* sc, string name) {
-    ValueList values;
-    {
-        RWValueCall<SliceCanvas, unsigned int > *v
-            = new RWValueCall<SliceCanvas, unsigned int >(*sc,
-                                                          &SliceCanvas::GetSlice,
-                                                          &SliceCanvas::SetSlice);
-        v->name = name;
-        v->properties[MIN] = 0;
-        v->properties[MAX] = sc->GetMaxSlice();
-        values.push_back(v);
-    }
-    return values;
-    
-}
-
-ValueList Inspect(SpinCanvas* sc) {
-    ValueList values;
-    {
-        RWValueCall<SpinCanvas, unsigned int > *v
-            = new RWValueCall<SpinCanvas, unsigned int >(*sc,
-                                                          &SpinCanvas::GetSlice,
-                                                          &SpinCanvas::SetSlice);
-        v->name = "Spin Slice";
-        v->properties[MIN] = 0;
-        v->properties[MAX] = sc->GetMaxSlice();
-        values.push_back(v);
-    }
-    return values;
-}
-
-
-}}}
-
-
 void MRIUI::SetupPlugins() {
     DirectoryManager::AppendPath("projects/MRISIM/data/");
 
@@ -166,19 +127,19 @@ void MRIUI::SetupCanvas() {
 
 void MRIUI::SetupSim() {
     // --- box phantom ---
-    // IPhantomBuilder* pb = new SimplePhantomBuilder(41);
-    // Phantom p = pb->GetPhantom();
+    IPhantomBuilder* pb = new SimplePhantomBuilder(41);
+    Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
-    IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
-    Phantom p = pb->GetPhantom();
-    Phantom::Save("test", p);
+    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
+    // Phantom p = pb->GetPhantom();
+    // Phantom::Save("test", p);
 
     // -- phantom loaded from yaml file ---
     // Phantom p = Phantom("test.yaml");
 
     // init a canvas that scrolls through the slices of the phantom
-    phantomCanvas = new PhantomCanvas(new TextureCopy(), p, 400, 400);
+    phantomCanvas = new PhantomCanvas(new TextureCopy(), p, 300, 300);
     // tl->Load(phantomCanvas->GetSliceCanvas()->GetSourceTexture());
     cq->PushCanvas(phantomCanvas);
     wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
@@ -191,7 +152,7 @@ void MRIUI::SetupSim() {
     engine->DeinitializeEvent().Attach(*sim);
     
     // -- visualise transverse spins, slice by slice --
-    spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 400, 400);
+    spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
     cq->PushCanvas(spinCanvas);
     wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
 
@@ -371,12 +332,8 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().Start();
 }
 
-
-
-
-
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 800, 600, 32, 
+    QtEnvironment* env = new QtEnvironment(false, 800, 700, 32, 
                                            FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }

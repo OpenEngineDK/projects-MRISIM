@@ -50,11 +50,11 @@ Phantom SimplePhantomBuilder::GetPhantom() {
 
     const unsigned int sphereCount = 4;
     pair<Vector<3,float>, float> spheres[sphereCount] = 
-        { make_pair(Vector<3,float>(quarter), half),
-          make_pair(Vector<3,float>(quarter*3), quarter),
+        { make_pair(Vector<3,float>(quarter), float(half)*1.25),
+          make_pair(Vector<3,float>(quarter*3), float(half)*1.25),
 
           make_pair(Vector<3,float>(quarter*3, quarter, quarter), quarter),
-          make_pair(Vector<3,float>(quarter, quarter*3, quarter), quarter)
+          make_pair(Vector<3,float>(quarter, quarter*3, quarter), float(quarter)*0.75)
         };
 
     
@@ -78,7 +78,6 @@ Phantom SimplePhantomBuilder::GetPhantom() {
                     }
                     if (count > 1) // intersections 
                         data[i + j*dims + k*dims*dims] = 4;
-                        
                 }
             }
         }

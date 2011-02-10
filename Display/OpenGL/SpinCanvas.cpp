@@ -81,7 +81,7 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
     const unsigned int w = phantom.texr->GetWidth();
     const unsigned int h = phantom.texr->GetHeight();
     const unsigned int d = phantom.texr->GetDepth();
-    const float rad = fmin(width/(w*2), height/(h*2));
+    const float rad = fmin(float(width)/float(w*2), float(height)/float(h*2));
 
     // the initial quad to be rotated and translated
     const Vector<2,float> _p1(-rad, -rad);
@@ -130,10 +130,11 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
             Vector<2,float> p4 = rot*_p4;
 
             // translate
-            p1 += Vector<2,float>(rad + 2*i*rad, rad + 2*j*rad);
-            p2 += Vector<2,float>(rad + 2*i*rad, rad + 2*j*rad);
-            p3 += Vector<2,float>(rad + 2*i*rad, rad + 2*j*rad);
-            p4 += Vector<2,float>(rad + 2*i*rad, rad + 2*j*rad);
+            p1 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
+            p2 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
+            p3 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
+            p4 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
+
 
             // draw
             glBegin(GL_QUADS);
