@@ -29,8 +29,8 @@ SimplePhantomBuilder::~SimplePhantomBuilder() {
     
 Phantom SimplePhantomBuilder::GetPhantom() {
     Phantom phantom;
-    const unsigned int half = dims/2;
-    const unsigned int quarter = half/2;
+    const float half = float(dims)*0.5;
+    const float quarter = half*0.5;
     phantom.sizeX = phantom.sizeY = phantom.sizeZ = voxelSize; // mm^3 voxels
     phantom.offsetX = phantom.offsetY = phantom.offsetZ = -half; // origo is in the center of the sample
     vector<SpinPacket> spinPackets(5); // four different spin packet types.
@@ -50,11 +50,11 @@ Phantom SimplePhantomBuilder::GetPhantom() {
 
     const unsigned int sphereCount = 4;
     pair<Vector<3,float>, float> spheres[sphereCount] = 
-        { make_pair(Vector<3,float>(quarter), float(half)*1.25),
-          make_pair(Vector<3,float>(quarter*3), float(half)*1.25),
+        { make_pair(Vector<3,float>(quarter), half*1.25),
+          make_pair(Vector<3,float>(quarter*3), half*1.25),
 
           make_pair(Vector<3,float>(quarter*3, quarter, quarter), quarter),
-          make_pair(Vector<3,float>(quarter, quarter*3, quarter), float(quarter)*0.75)
+          make_pair(Vector<3,float>(quarter, quarter*3, quarter), quarter*0.75)
         };
 
     

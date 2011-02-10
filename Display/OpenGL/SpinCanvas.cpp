@@ -130,10 +130,10 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
             Vector<2,float> p4 = rot*_p4;
 
             // translate
-            p1 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
-            p2 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
-            p3 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
-            p4 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j)*rad);
+            p1 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j-1)*rad);
+            p2 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j-1)*rad);
+            p3 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j-1)*rad);
+            p4 += Vector<2,float>(rad + 2*i*rad, rad + 2*(h-j-1)*rad);
 
 
             // draw
