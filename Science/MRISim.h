@@ -15,10 +15,14 @@
 #include "AcquisitionData.h"
 
 #include <Core/IModule.h>
+#include <Core/Event.h>
 #include <Utils/IInspector.h>
 #include <Science/MathGLPlot.h>
 #include "IFFT.h"
 #include "FFTData.h"
+
+#define GYRO_HERZ 42.576*1e6 // herz/tesla
+#define GYRO_RAD GYRO_HERZ * 2.0 * Math::PI // radians/tesla
 
 namespace MRI {
     namespace Scene {
@@ -44,73 +48,76 @@ public:
 
 class MRIEvent {
 public:
-    Vector<3,float> gradient, rfSignal;  // gradient magnetization
+    Vector<3,float> gradient, rfSignal;  // gradient and rf magnetization
     float angleRF;             // pulse angle (only valid when
-                               // Action::FLIP is set)
-    int recX, recY, recZ;      // position of the recorded sample in
-                               // k-space (only valid when
-                               // Action::RECORD is set)
+                               // Action::EXCITE is set)
+    unsigned int slice;        // slice to be excited. (only valid when
+                               // Action::EXCITE is set) 
+    Vector<3,unsigned int> point; // position of the recorded sample in
+                                  // k-space (only valid when
+                                  // Action::RECORD is set)
     enum Action {
-        NONE     =    0,
-        FLIP     = 1<<0, 
-        RESET    = 1<<1,
-        RECORD   = 1<<2,
-        GRADIENT = 1<<3,
-        EXCITE   = 1<<4,
-        REPHASE  = 1<<5,
-        LINE     = 1<<6,
-        STOP     = 1<<7,
-        RFPULSE  = 1<<8
+        NONE     =    0, // no action
+        RESET    = 1<<0, // reset magnets to equilibrium
+        EXCITE   = 1<<1, // simulate rf pulse by flipping magnets instantly
+        RECORD   = 1<<2, // record a sample
+        GRADIENT = 1<<3, // set the gradient vector
+        RFPULSE  = 1<<4, // set the rf pulse magnetization vector
+        DONE     = 1<<5  // signal to stop the simulator
     }; 
     unsigned int action; 
     MRIEvent()
-        : gradient(Vector<3,float>(0.0)), angleRF(0.0), recX(0), recY(0), recZ(0), action(NONE) {}
-    // MRIEvent(Vector<3,float> gradient, float angleRF, unsigned int action = NONE, int recX = 0, int recY = 0, int recZ = 0)
-    //     : gradient(gradient), angleRF(angleRF), recX(recX), recY(recX), recZ(recX), action(action) {}
+        : angleRF(0.0), slice(0), action(NONE) {}
     virtual ~MRIEvent() {};
 };
 
 class IMRISequence {
 public:
     virtual ~IMRISequence() {}
-    virtual MRIEvent GetEvent(float time) = 0;
+    // virtual MRIEvent GetEvent(float time) = 0;
     virtual pair<float, MRIEvent> GetNextPoint() = 0;
     virtual void Reset() = 0;
+    // tells the simulator to allocate an output array of the specified dimensions
+    virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
+
 };
 
 class IMRIKernel {
 protected:
 public:
     virtual ~IMRIKernel() {}
-    virtual void Init(Phantom phantom) = 0;
-    virtual Vector<3,float> Step(float dt, float time) = 0;
-    virtual Vector<3,float>* GetMagnets() = 0;
-    virtual Phantom GetPhantom() = 0;
-    virtual void RFPulse(float angle) = 0;
-    virtual void SetGradient(Vector<3,float> gradient) = 0;
-    virtual void SetRFSignal(Vector<3,float> signal) = 0;
-    virtual void Reset() = 0;
+    virtual void Init(Phantom phantom) = 0;      // initialize kernel state to reflect the given phantom
+    virtual void Step(float dt, float time) = 0; // take a simulation step
+
+    virtual Phantom GetPhantom() = 0;            // get the current phantom
+    virtual Vector<3,float> GetSignal() = 0;     // get the current total magnetization (sum of all spins)
+    virtual Vector<3,float>* GetMagnets() = 0;   // get all the spin states (for debugging only).
+
+    virtual void RFPulse(float angle, unsigned int slice) = 0;       // instantly rotate the vectors in a slice around the y' axis. (cheap way of simulating rf pulse).
+    virtual void SetGradient(Vector<3,float> gradient) = 0; // apply a gradient vector
+    virtual void SetRFSignal(Vector<3,float> signal) = 0;   // apply an rf vector. (Slower than RFPulse, but much more precise).
+    virtual void Reset() = 0;                    // reset spin states to equilibrium. (Quick an dirty way to force spin relaxation).
+};
+
+class MRISim;
+
+struct StepEventArg {
+    StepEventArg(MRISim& sim): sim(sim) {}
+    MRISim& sim;
 };
 
 class MRISim : public OpenEngine::Core::IModule
-             , public IListener<TimerEventArg> {
+//, public IListener<TimerEventArg> 
+{
 private:
     Phantom phantom;
     IMRIKernel* kernel;
     IMRISequence* sequence;
-    float kernelStep, stepsPerSecond, theAccTime, theSimTime, exciteStart, theta;
+    float kernelStep, stepsPerSecond, theAccTime, theSimTime;
     bool running;
-    SpinNode* spinNode;
-    MathGLPlot* plot;
-    MathGLPlot* fftPlot;
-    EventTimer *plotTimer;
-    AcquisitionData* acq;
-    IFFT* fft;
-    FFTData* fftData;
-    vector<complex<double> > sliceData;
-    FloatTexture2DPtr sliceTex, invTex;
-
+    vector<complex<float> > samples;
     pair<float,MRIEvent> prevEvent;
+    Event<StepEventArg> stepEvent;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();
@@ -123,22 +130,13 @@ public:
     void Handle(Core::DeinitializeEventArg arg);
     void Handle(Core::ProcessEventArg arg);
     
-    void Handle(TimerEventArg arg);
-    
-    void SetNode(SpinNode *sn);
-    void SetPlot(MathGLPlot* plot);
-    void SetFFTPlot(MathGLPlot* plot);
-    
-    void DoFFT();
+    Event<StepEventArg>& StepEvent() { return stepEvent; }
     
     float GetTime();
     void SetStepSize(float);
     float GetStepSize();
     void SetStepsPerSecond(float);
     float GetStepsPerSecond();
-
-    FloatTexture2DPtr GetKPlane();
-    FloatTexture2DPtr GetImagePlane();
     
     Utils::Inspection::ValueList Inspect();
 };

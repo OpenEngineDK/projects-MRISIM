@@ -108,20 +108,18 @@ void SpinCanvas::Handle(OpenEngine::Display::ProcessEventArg arg) {
             if (data[i + j*w + slice*w*d] == 0)
                 continue;
 
-            // Vector<3,float> p1(2*i*rad + rad, 2*j*rad+rad, 0.0);
-            // Vector<3,float> p2 = magnets[i + j*w + slice*w*d];
-            // p2[2] = 0.0;
-            // if (p2*p2 > 0.0)
-            //     p2.Normalize();
-            // p2 = p2*rad + p1;
-            // Line l(p1, p2);
-            // renderer.DrawLine(l, Vector<3,float>());
-
             // calculate the rotation
             // since we normalize using three components we get a
             // scaling based on the equilibrium magnetization
             Vector<3,float> m = magnets[i + j*w + slice*w*d];
-            m.Normalize(); 
+            Vector<2,float> m2(m[0], m[1]);
+            if (m2.GetLength() > 0.0) {
+                // logger.info << "nonzero magnet" << logger.end;
+                // m2.Normalize(); 
+                m.Normalize(); 
+            }
+            // Matrix<2,2,float> rot(m2[0], -m2[1],
+            //                       m2[1], m2[0]);
             Matrix<2,2,float> rot(m[0], -m[1],
                                   m[1], m[0]);
 

@@ -60,10 +60,11 @@ void WindowCanvas::Handle(OpenEngine::Display::InitializeEventArg arg) {
     if (init) return;
     unsigned int width = backend->GetTexture()->GetWidth();
     unsigned int height = backend->GetTexture()->GetHeight();
-    if (width == 0 || height == 0) {
-        width = arg.canvas.GetWidth();
-        height = arg.canvas.GetHeight();
-    }
+    logger.info << "w: " << width << " h: " << height << logger.end;
+    // if (width == 0 || height == 0) {
+    //     width = arg.canvas.GetWidth();
+    //     height = arg.canvas.GetHeight();
+    // }
     renderer.LoadTexture(in);
     renderer.LoadTexture(out);
     backend->Init(width, height);

@@ -22,9 +22,12 @@ private:
     float tr, te;
     Phantom phantom;
     vector<pair<float, MRIEvent> > seq;
+    Vector<3,unsigned int> dims;
 public:
     SpinEchoSequence(float tr, float te, Phantom phantom);
     virtual ~SpinEchoSequence();
+
+    Vector<3,unsigned int> GetTargetDimensions(); 
 };
 
 } // NS Science

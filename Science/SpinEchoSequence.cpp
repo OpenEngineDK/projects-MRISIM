@@ -13,7 +13,13 @@ namespace MRI {
 namespace Science {
 
 SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
-    : ListSequence(seq), tr(tr), te(te), phantom(phantom)
+    : ListSequence(seq)
+    , tr(tr)
+    , te(te)
+    , phantom(phantom)
+    , dims(Vector<3,unsigned int>(phantom.texr->GetWidth(),
+                           phantom.texr->GetHeight(),
+                           phantom.texr->GetDepth()))
 {
     float time;
     MRIEvent e;
@@ -23,33 +29,27 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     // tr = 2000.0 * 1e-3;
     // te = 200.0 * 1e-3;
 
-    float gyro = 42.576; // hz/Tesla
+    const float gyro = 42.576*1e6; // hz/Tesla
     
-    unsigned int lines = phantom.texr->GetHeight(); 
-    unsigned int width = phantom.texr->GetWidth();
-    float fov = 1.2 * phantom.sizeX*1e-3*width;      // field of view 
+    const unsigned int lines = phantom.texr->GetHeight(); 
+    const unsigned int width = phantom.texr->GetWidth();
+    const float fov = 1.0*phantom.sizeX * 1e-3 * width;      // field of view 
     
-    float tau = 0.05;  // Gy duration
-    float gyMaxArea = float(lines) / (2*gyro*fov);
-    float gyMax = -gyMaxArea / tau; 
-    float dGy =  (2*gyMax) / float(lines); //1.0 / (gyro*tau*fov);
+    const float tau = 0.05;  // Gy duration
+    const float gyMaxArea = float(lines) / (gyro*fov);
+    const float gyMax = gyMaxArea / tau; 
+    const float gyStart = -gyMaxArea*0.5;
+    const float dGy =  (gyMax) / float(lines);
     logger.info << "dGY: " << dGy << logger.end;
 
-    // float gx = 0.0025;
-    // float samplingDT = 1.0 / (fov * gyro * gx);              
-    float samplingDT = 0.05 / (gyro);
-    float gxDuration = samplingDT * float(width);
-    float gx   = (gyMaxArea*2) / gxDuration;
-    //float gx   = 1.0 / fov ;
+    const float gx = 0.002;
+    const float samplingDT = 1.0 / (fov * gyro * gx);              
+    const float gxDuration = samplingDT * float(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
-    //float gx = (gyMaxArea*2) * samplingDT;//1.0 / fov; //(samplingDT * fov * gyro);
-    //float gx = (gyMaxArea*2) / gxDuration;
-    logger.info << "gx: " << gx << logger.end;
     
-    float gxFirst = gyMaxArea / tau;
-    //float gxFirst = (gx * samplingDT * 0.5) / tau;
+    const float gxFirst = (gx * gxDuration * 0.5) / tau;
 
-    float start = 0;//float(j)*tr;
+    float start = 0;
     for (unsigned int j = 0; j < lines; ++j) {
         start = float(j)*tr + .1;
         // logger.info << "start: " << start << logger.end;
@@ -57,7 +57,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         // turn on frequency encoding to move to the end of the x-direction
         e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT | MRIEvent::RESET;
         e.angleRF = Math::PI*0.5;
-        e.gradient = Vector<3,float>(gxFirst, gyMax + float(j)*dGy, 0.0);
+        e.gradient = Vector<3,float>(gxFirst, -gyStart + float(j)*dGy, 0.0);
         time = start;
         seq.push_back(make_pair(time, e));
 
@@ -69,7 +69,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         seq.push_back(make_pair(time, e));
 
         //180 degree pulse
-        e.action = MRIEvent::REPHASE;
+        e.action = MRIEvent::EXCITE;
         e.angleRF = Math::PI;
         time = start + te*0.5;
         seq.push_back(make_pair(time, e));
@@ -80,13 +80,12 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         time  = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
                 
-        e.action = MRIEvent::LINE;
-        seq.push_back(make_pair(time+samplingDT, e));
+        // e.action = MRIEvent::LINE;
+        // seq.push_back(make_pair(time + samplingDT, e));
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.recX = i;
-            e.recY = j;
+            e.point = Vector<3,unsigned int>(i, j, 0);
             seq.push_back(make_pair(time, e));
             time += samplingDT;
         }
@@ -97,14 +96,9 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
 
         // start = time + 10.0 * samplingDT;
     }
-    e.action = MRIEvent::STOP;
+    e.action = MRIEvent::DONE;
     time += 0.1;
     seq.push_back(make_pair(time, e));
-
-
-    // for (unsigned int i = 0; i < seq.size(); ++i) {
-    //     logger.info << "time: " << seq[i].first << " action: " << seq[i].second.action << logger.end;
-    // }
     
     Sort();
 }
@@ -113,22 +107,9 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
 SpinEchoSequence::~SpinEchoSequence() {
 }
 
-// MRIEvent SpinEchoSequence::GetState(float time) {
-//     // logger.info << "time: " << time << logger.end;
-//     MRIEvent state;
-//     const float flipTime = 0.001;
-//     const float echoTime = 0.02;
-//     if (time > flipTime) 
-//         state = MRIEvent(Vector<3,float>(0.0,0.0,1e-2), 0.0, MRIEvent::NONE);
-//     if (prevTime < flipTime && flipTime <= time)
-//         state = MRIEvent(Vector<3,float>(0.0,0.0,1e-2), Math::PI*0.5, MRIEvent::FLIP);
-//     // if (prevTime < echoTime && echoTime <= time)
-//     //     state = MRIEvent(Vector<3,float>(), Math::PI, MRIEvent::FLIP);
-
-
-//     prevTime = time;
-//     return state;
-// }
+Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
+    return dims;
+}
 
 } // NS Science
 } // NS MRI

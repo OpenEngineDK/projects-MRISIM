@@ -18,14 +18,13 @@ namespace Display {
 class ICanvasBackend;
 namespace OpenGL {
 
-    PhantomCanvas::PhantomCanvas(ICanvasBackend* backend, Phantom phantom) 
+PhantomCanvas::PhantomCanvas(ICanvasBackend* backend, Phantom phantom, unsigned int width, unsigned int height) 
         : ICanvas(backend)
         , init(false)
         , phantom(phantom)
     {
         UCharTexture3DPtr texr = phantom.texr;
         unsigned char* phanData = (unsigned char*)texr->GetVoidDataPtr();
-
         unsigned char* data = new unsigned char[texr->GetWidth()*texr->GetHeight()*texr->GetDepth()*3];
 
         vector<Vector<3,unsigned char> > colors(phantom.spinPackets.size());
@@ -33,6 +32,7 @@ namespace OpenGL {
         float phase = 0.0; // hue phase offset in degrees
         float freq  = 45.0 / float(phantom.spinPackets.size()-1); // uniform distribution of hue
         colors[0] = Vector<3,unsigned char>(255);
+
         for (unsigned int i = 1; i < phantom.spinPackets.size(); ++i) {
             hsl = HSLColor(phase + i * freq, 0.95, 0.6);
             colors[i] = hsl.GetRGB().GetUChar();
@@ -44,20 +44,15 @@ namespace OpenGL {
             data[i*3+1] = col[1];
             data[i*3+2] = col[2];
         }
-
+     
         UCharTexture3DPtr tex(new UCharTexture3D(texr->GetWidth(),
                                                  texr->GetHeight(),
                                                  texr->GetDepth(),
                                                  3,
                                                  data));
-        sliceCanvas = new SliceCanvas(backend, tex);
-
-        sliceCanvas->SetWidth(sliceCanvas->GetWidth());
-        sliceCanvas->SetHeight(sliceCanvas->GetHeight());
-        width = sliceCanvas->GetWidth(); 
-        height = sliceCanvas->GetHeight();
-        sliceCanvas->SetSlice(texr->GetDepth()/2);
-        backend->Create(width, height);
+        tex->SetWrapping(CLAMP);
+        tex->SetFiltering(BILINEAR);
+        sliceCanvas = new SliceCanvas(backend, tex, width, height);
     }
     
     PhantomCanvas::~PhantomCanvas() {
@@ -67,89 +62,11 @@ namespace OpenGL {
     void PhantomCanvas::Handle(Display::InitializeEventArg arg) {
         if (init) return;
         sliceCanvas->Handle(arg);
-        // backend->Init(width, height);
         init = true;
     }
 
     void PhantomCanvas::Handle(Display::ProcessEventArg arg) {
         sliceCanvas->Handle(arg);
-
-        // backend->Pre();
-        
-        // ITexture2DPtr tex = sliceCanvas->GetTexture();
-
-        // Vector<4,int> d(0, 0, width, height);
-        // glViewport((GLsizei)d[0], (GLsizei)d[1], (GLsizei)d[2], (GLsizei)d[3]);
-        // OrthogonalViewingVolume volume(-1, 1, 0, width, 0, height);
-
-        // // Select The Projection Matrix
-        // glMatrixMode(GL_PROJECTION);
-        // glPushMatrix();
-        // CHECK_FOR_GL_ERROR();
-    
-        // // Reset The Projection Matrix
-        // glLoadIdentity();
-        // CHECK_FOR_GL_ERROR();
-    
-        // // Setup OpenGL with the volumes projection matrix
-        // Matrix<4,4,float> projMatrix = volume.GetProjectionMatrix();
-        // float arr[16] = {0};
-        // projMatrix.ToArray(arr);
-        // glMultMatrixf(arr);
-        // CHECK_FOR_GL_ERROR();
-    
-        // // Select the modelview matrix
-        // glMatrixMode(GL_MODELVIEW);
-        // glPushMatrix();
-        // CHECK_FOR_GL_ERROR();
-    
-        // // Reset the modelview matrix
-        // glLoadIdentity();
-        // CHECK_FOR_GL_ERROR();
-        
-        // // Get the view matrix and apply it
-        // Matrix<4,4,float> matrix = volume.GetViewMatrix();
-        // float f[16] = {0};
-        // matrix.ToArray(f);
-        // glMultMatrixf(f);
-        // CHECK_FOR_GL_ERROR();
-        
-        // glDisable(GL_DEPTH_TEST);
-        // glEnable(GL_TEXTURE_2D);
-        // GLint texenv;
-        // glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texenv);
-        // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-        // const float z = 0.0;
-        
-        // glBindTexture(GL_TEXTURE_2D, tex->GetID());
-
-        // CHECK_FOR_GL_ERROR();
-        // glBegin(GL_QUADS);
-        // glTexCoord2f(0.0, 0.0);
-        // glVertex3i(0, height, z);
-        // glTexCoord2f(0.0, 1.0);
-        // glVertex3i(0, 0, z);
-        // glTexCoord2f(1.0, 1.0);
-        // glVertex3i(width, 0, z);
-        // glTexCoord2f(1.0, 0.0);
-        // glVertex3i(width, height, z);
-        // glEnd();
- 
-        // glBindTexture(GL_TEXTURE_2D, 0);
-
-        // glMatrixMode(GL_PROJECTION);
-        // glPopMatrix();
-        // CHECK_FOR_GL_ERROR();
-        // glMatrixMode(GL_MODELVIEW);
-        // glPopMatrix();
-        // CHECK_FOR_GL_ERROR();
-        
-        // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
-        // glEnable(GL_DEPTH_TEST);
-        // glDisable(GL_TEXTURE_2D);
-            
-        // backend->Post();
     }
     
     void PhantomCanvas::Handle(Display::ResizeEventArg arg) {
@@ -159,28 +76,27 @@ namespace OpenGL {
     void PhantomCanvas::Handle(Display::DeinitializeEventArg arg) {
         if (!init) return;
         sliceCanvas->Handle(arg);
-        // backend->Deinit();
         init = false;
     }
 
     unsigned int PhantomCanvas::GetWidth() const {
-        return width;
+        return sliceCanvas->GetWidth();
     }
 
     unsigned int PhantomCanvas::GetHeight() const {
-        return height;
+        return sliceCanvas->GetHeight();
     }
 
     void PhantomCanvas::SetWidth(const unsigned int width) {
-        // backend.SetDimensions(width, backend.GetHeight());
+        sliceCanvas->SetWidth(width);
     }
 
     void PhantomCanvas::SetHeight(const unsigned int height) {
-        // backend.SetDimensions(backend.GetWidth(), height);
+        sliceCanvas->SetHeight(height);
     }
 
     ITexture2DPtr PhantomCanvas::GetTexture() {
-        return sliceCanvas->GetTexture();//backend->GetTexture();
+        return sliceCanvas->GetTexture();
     }    
     
     SliceCanvas* PhantomCanvas::GetSliceCanvas() {

@@ -9,10 +9,17 @@
 
 #include "SimplePhantomBuilder.h"
 
+#include <Logging/Logger.h>
+
+
 namespace OpenEngine {
 namespace Resources {
 
-SimplePhantomBuilder::SimplePhantomBuilder() {
+using namespace std;
+
+SimplePhantomBuilder::SimplePhantomBuilder(unsigned int dims, float voxelSize)
+  : dims(dims)
+  , voxelSize(voxelSize) {
         
 }
 
@@ -22,11 +29,11 @@ SimplePhantomBuilder::~SimplePhantomBuilder() {
     
 Phantom SimplePhantomBuilder::GetPhantom() {
     Phantom phantom;
-    const unsigned int dims = 11; // 10 x 10 x 10 sample
     const unsigned int half = dims/2;
-    phantom.sizeX = phantom.sizeY = phantom.sizeZ = 3.0; // 3 mm^3 voxels
+    const unsigned int quarter = half/2;
+    phantom.sizeX = phantom.sizeY = phantom.sizeZ = voxelSize; // mm^3 voxels
     phantom.offsetX = phantom.offsetY = phantom.offsetZ = -half; // origo is in the center of the sample
-    vector<SpinPacket> spinPackets(4); // four different spin packet types.
+    vector<SpinPacket> spinPackets(5); // four different spin packet types.
  
     // Tissue Type; T1(ms); T2 (ms); ro; Ki * 10-6
     // Air; 0; 0; 0; 0
@@ -37,24 +44,43 @@ Phantom SimplePhantomBuilder::GetPhantom() {
     spinPackets[1] = SpinPacket("Connective", 0.500, 0.070, 0.77);
     spinPackets[2] = SpinPacket("CSF", 2.569, 0.329, 1.0);
     spinPackets[3] = SpinPacket("Fat", 0.350, 0.070, 1.0);
+    spinPackets[4] = SpinPacket("Gray matter", 0.833, 0.083, 0.86);
 
     phantom.spinPackets = spinPackets;
 
+    const unsigned int sphereCount = 4;
+    pair<Vector<3,float>, float> spheres[sphereCount] = 
+        { make_pair(Vector<3,float>(quarter), half),
+          make_pair(Vector<3,float>(quarter*3), quarter),
+
+          make_pair(Vector<3,float>(quarter*3, quarter, quarter), quarter),
+          make_pair(Vector<3,float>(quarter, quarter*3, quarter), quarter)
+        };
+
+    
+    // logger.info << "center: " << c1 << logger.end;
+    // logger.info << "diameter: " << d1 << logger.end;
+
     unsigned char* data = new unsigned char[dims*dims*dims];
     memset((void*)data, 0, dims*dims*dims);
-    // data[0] = 1;
-    for (unsigned int i = 0; i < half; ++i) {
-        for (unsigned int j = 0; j < half; ++j) {
-            for (unsigned int k = 0; k < half; ++k) {
-                data[i + j*dims + k*dims*dims] = 1;
+    for (unsigned int i = 0; i < dims; ++i) {
+        for (unsigned int j = 0; j < dims; ++j) {
+            for (unsigned int k = 0; k < dims; ++k) {
+                Vector<3,float> p(i,j,k);
+                for (unsigned int l = 0; l < sphereCount; ++l) {
+                    Vector<3,float> c = spheres[l].first;
+                    float d = spheres[l].second;
+                    // logger.info << "length: " << p.GetLength() << logger.end;
+                    unsigned int count = 0;
+                    if ((p - c).GetLength() < d) {
+                        data[i + j*dims + k*dims*dims] = l%4+1;
+                        count++;
+                    }
+                    if (count > 1) // intersections 
+                        data[i + j*dims + k*dims*dims] = 4;
+                        
+                }
             }
-        }
-    }
-
-    for (unsigned int i = half+1; i < dims; ++i) {
-        for (unsigned int j = half+1; j < dims; ++j) {
-                data[i + j*dims] = 1;
-            
         }
     }
 

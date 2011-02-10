@@ -16,8 +16,11 @@ namespace OpenEngine {
 namespace Resources {
 
 class SimplePhantomBuilder: public IPhantomBuilder {
+private:
+    unsigned int dims;
+    float voxelSize;
 public:
-    SimplePhantomBuilder();
+    SimplePhantomBuilder(unsigned int dims = 10, float voxelSize = 5.0);
     virtual ~SimplePhantomBuilder();
     Phantom GetPhantom();
 };

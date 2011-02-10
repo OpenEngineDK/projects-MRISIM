@@ -16,6 +16,8 @@
 #include <Display/RenderCanvas.h>
 #include <Display/OrthogonalViewingVolume.h>
 
+#include <Logging/Logger.h>
+
 namespace OpenEngine {
 namespace Display {
 class ICanvasBackend;
@@ -27,6 +29,8 @@ namespace OpenGL {
         XZ
     };
 
+using Renderers::OpenGL::Renderer;
+
 class SliceCanvas : public ICanvas {
 private:
     bool init, updateSlice;
@@ -34,8 +38,9 @@ private:
     SlicePlane plane;
     unsigned int slice, sliceMax;
     unsigned int width, height;
+    GLuint texid;
 public:
-    SliceCanvas(ICanvasBackend* backend, ITexture3DPtr tex, SlicePlane plane = XY) 
+    SliceCanvas(ICanvasBackend* backend, ITexture3DPtr tex, unsigned int w = 0, unsigned int h = 0, SlicePlane plane = XY) 
         : ICanvas(backend)
         , init(false)
         , updateSlice(true)
@@ -45,7 +50,12 @@ public:
         , sliceMax(tex->GetHeight())
         , width(tex->GetWidth())
         , height(tex->GetDepth())
+        , texid(0)
     {
+        if (w != 0 && h != 0) {
+            width = w;
+            height = h;
+        }
         backend->Create(width, height);
     }
 
@@ -58,10 +68,10 @@ public:
         if (init) return;
         
         // hack to bind 3d texture
-        Renderers::OpenGL::Renderer r;
-        Display::RenderCanvas rc(NULL);
-        r.Handle(Renderers::InitializeEventArg(rc));
-        r.LoadTexture(tex);
+        // Renderers::OpenGL::Renderer r;
+        // Display::RenderCanvas rc(NULL);
+        // r.Handle(Renderers::InitializeEventArg(rc));
+        // r.LoadTexture(tex);
 
         backend->Init(width, height);//Height());
         init = true;
@@ -71,6 +81,50 @@ public:
         if (!updateSlice) return;
         updateSlice = false;
         backend->Pre();
+
+        if (texid) {
+            glDeleteTextures(1, &texid);
+            texid = 0;
+        }
+        unsigned int twidth = tex->GetWidth();
+        unsigned int theight = tex->GetHeight();
+        void* data = tex->GetVoidDataPtr() + slice * twidth * theight * tex->GetChannels() * tex->GetChannelSize();
+
+        
+        GLint internalFormat = Renderer::GLInternalColorFormat(tex->GetColorFormat());
+        GLenum colorFormat = Renderer::GLColorFormat(tex->GetColorFormat());
+
+        glGenTextures(1, &texid);
+        CHECK_FOR_GL_ERROR();
+        // logger.info << "gentex: " << texid << logger.end;
+        // logger.info << "width: " << twidth << " height: " << theight << logger.end;
+
+        glBindTexture(GL_TEXTURE_2D, texid);
+        CHECK_FOR_GL_ERROR();
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        GLint filter;
+        if (tex->GetFiltering() == NONE) 
+            filter = GL_NEAREST;
+        else 
+            filter = GL_LINEAR;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, tex->GetWrapping());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, tex->GetWrapping());
+        CHECK_FOR_GL_ERROR();
+
+        glTexImage2D(GL_TEXTURE_2D,
+                     0, // mipmap level
+                     internalFormat,
+                     twidth,
+                     theight,
+                     0, // border
+                     colorFormat,
+                     tex->GetType(),
+                     data);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        CHECK_FOR_GL_ERROR();
         
         unsigned int width = GetWidth();
         unsigned int height = GetHeight();
@@ -112,33 +166,43 @@ public:
         CHECK_FOR_GL_ERROR();
         
         glDisable(GL_DEPTH_TEST);
-        glEnable(GL_TEXTURE_3D);
+        glDisable(GL_COLOR_MATERIAL);
+        glEnable(GL_TEXTURE_2D);
+        // glEnable(GL_TEXTURE_3D);
         GLint texenv;
         glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texenv);
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
         const float z = 0.0;
 
-        float texSlice = (float)slice/(float)sliceMax;
+        float texSlice = float(slice)/float(sliceMax);
         
-        glBindTexture(GL_TEXTURE_3D, tex->GetID());
+        // glBindTexture(GL_TEXTURE_3D, tex->GetID());
+        glBindTexture(GL_TEXTURE_2D, texid);
         CHECK_FOR_GL_ERROR();
+
         glBegin(GL_QUADS);
-        glTexCoord3f(0.0, texSlice, 1.0);
+        glColor3f(0.0,0.0,0.0);
+        // glTexCoord3f(0.0, texSlice, 1.0);
+        glTexCoord2f(0.0, 1.0);
         glVertex3f(0.0, 0.0, z);
 
-        glTexCoord3f(0.0, texSlice, 0.0);
+        // glTexCoord3f(0.0, texSlice, 0.0);
+        glTexCoord2f(0.0, 0.0);
         glVertex3f(0, height, z);
 
-        glTexCoord3f(1.0, texSlice, 0.0);
+        //glTexCoord3f(1.0, texSlice, 0.0);
+        glTexCoord2f(1.0, 0.0);
         glVertex3f(width, height, z);
 
-        glTexCoord3f(1.0, texSlice, 1.0);
+        //glTexCoord3f(1.0, texSlice, 1.0);
+        glTexCoord2f(1.0, 1.0);
         glVertex3f(width, 0.0, z);
 
         glEnd();
  
-        glBindTexture(GL_TEXTURE_3D, 0);
+        //glBindTexture(GL_TEXTURE_3D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -147,9 +211,10 @@ public:
         glPopMatrix();
         CHECK_FOR_GL_ERROR();
         
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
         glEnable(GL_DEPTH_TEST);
-        glDisable(GL_TEXTURE_3D);
+        //glDisable(GL_TEXTURE_3D);
+        glDisable(GL_TEXTURE_2D);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texenv);
             
         backend->Post();
     }
@@ -196,6 +261,11 @@ public:
     unsigned int GetSlice() {
         return slice;
     };
+
+    ITexture3DPtr GetSourceTexture() {
+        return tex;
+    }
+
 };
 
 } // NS OpenGL

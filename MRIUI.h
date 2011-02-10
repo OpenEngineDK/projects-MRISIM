@@ -20,6 +20,10 @@
 #include <Science/MathGLPlot.h>
 #include <Display/WallCanvas.h>
 #include <Display/CanvasQueue.h>
+#include <Core/IEngine.h>
+
+#include "Science/MRISim.h"
+#include "Science/CPUKernel.h"
 
 namespace Ui { class MRIUI; }
 
@@ -48,8 +52,9 @@ using namespace OpenEngine::Display;
 using namespace OpenEngine::Devices;
 using namespace OpenEngine::Display::OpenGL;
 using namespace MRI::Display::OpenGL;
+using namespace MRI::Science;
 using namespace OpenEngine::Science;
-
+using namespace OpenEngine::Core;
 
 
 class MRIUI : public QMainWindow {
@@ -58,8 +63,12 @@ class MRIUI : public QMainWindow {
     
     IFontResourcePtr font;
     IFrame* frame;
-    MINCResourcePtr phantom;
+    IEngine* engine;
     IMouse* mouse;
+
+    MRISim* sim;
+    CPUKernel* kern;
+    MINCResourcePtr phantom;
     SliceCanvas *sliceCanvas;
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
@@ -75,6 +84,7 @@ class MRIUI : public QMainWindow {
     void SetupPlugins();
     void SetupCanvas();
     void SetupWall();
+    void SetupSim();
     void SetupOpenCL();
     void LoadResources();
 

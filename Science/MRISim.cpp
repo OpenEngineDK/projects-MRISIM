@@ -24,27 +24,14 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     : phantom(phantom)
     , kernel(kernel)
     , sequence(sequence)
-    , kernelStep(2e-4)
-    , stepsPerSecond(2000)
+    , kernelStep(42e-6)
+    , stepsPerSecond(1)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
-    , spinNode(NULL)
-    , fftPlot(NULL)
-    , plotTimer(new EventTimer(.1))
-    , acq(new AcquisitionData(kernelStep, 2000))
-    , fft(new CPUFFT())
-    , fftData(new FFTData())
-    , sliceData(vector<complex<double> >(phantom.texr->GetWidth() * phantom.texr->GetHeight()))
 {
-    plotTimer->TimerEvent().Attach(*this);
     kernel->Init(phantom);
-    float* data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
-    memset(data, 0, phantom.texr->GetWidth() * phantom.texr->GetHeight()*sizeof(float));
-    sliceTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1, data));
-    data = new float[phantom.texr->GetWidth() * phantom.texr->GetHeight()];
-    memset(data, 0, phantom.texr->GetWidth() * phantom.texr->GetHeight()*sizeof(float));
-    invTex = FloatTexture2DPtr(new FloatTexture2D(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1,data));
+    samples = vector<complex<float> >(phantom.texr->GetWidth() * phantom.texr->GetHeight() * phantom.texr->GetDepth());
 }
 
 MRISim::~MRISim() {
@@ -52,19 +39,24 @@ MRISim::~MRISim() {
 
 void MRISim::Start() {
     if (running) return;
-    prevEvent = sequence->GetNextPoint();
+    if (sequence)
+        prevEvent = sequence->GetNextPoint();
     running = true;
+    logger.info << "Simulator Start." << logger.end;
 }
     
 void MRISim::Stop() {
     if (!running) return;
     running = false;
+    logger.info << "Simulator Stop." << logger.end;
 }
     
 void MRISim::Reset() {
+    Stop();
     kernel->Reset();
-    sequence->Reset();
+    if(sequence) sequence->Reset();
     theSimTime = theAccTime = 0.0;
+    logger.info << "Simulator Reset." << logger.end;
 }
 
 void MRISim::Handle(Core::InitializeEventArg arg) {
@@ -77,15 +69,14 @@ void MRISim::Handle(Core::DeinitializeEventArg arg) {
 
 void MRISim::Handle(Core::ProcessEventArg arg) {
     if (!running) return;
-    theAccTime += arg.approx / 1000000.0;
+    theAccTime += arg.approx * 1e-6;
     float stepTime = 1.0 / stepsPerSecond;
     while (theAccTime - stepTime > 0.0) {
-        //@todo: think about when action is evaluated; before or after kernel step? 
+        theAccTime -= stepTime;
         float prevTime, nextTime;
         MRIEvent event;
         pair<float,MRIEvent> nextEvent;
         if (sequence) {
-            // event = sequence->GetEvent(theSimTime);
             nextEvent = sequence->GetNextPoint();
             nextTime = nextEvent.first;
             prevTime = prevEvent.first;
@@ -94,81 +85,44 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             kernelStep = nextTime - prevTime;
         }
 
+        if (event.action & MRIEvent::RECORD) {
+            logger.info << "Record magnetization into grid point: " << event.point << logger.end;
+            Vector<3,float> signal = kernel->GetSignal();
+            complex<double> sample = complex<double>(signal[0], signal[1]);
+            samples.at(event.point[0] + 
+                       event.point[1] * phantom.texr->GetWidth() + 
+                       event.point[2] * phantom.texr->GetWidth() * phantom.texr->GetHeight())
+                = sample;
+        } 
+
         if (event.action & MRIEvent::RESET) {
-            logger.info << "resetEvent" << logger.end;
+            logger.info << "Reset magnetization to equilibrium." << logger.end;
             kernel->Reset();
         }
 
         if (event.action & MRIEvent::EXCITE) {
-            exciteStart = theSimTime;
-            logger.info << "excitation 90 deg" << logger.end;
-            kernel->RFPulse(event.angleRF);
-        }
-
-        if (event.action & MRIEvent::REPHASE) {
-            logger.info << "excitation 180 deg" << logger.end;
-            kernel->RFPulse(event.angleRF);
+            logger.info << "Instant excitation: " << event.angleRF * (180.0 / Math::PI) <<  " deg." << logger.end;
+            kernel->RFPulse(event.angleRF, event.slice);
         }
 
         if (event.action & MRIEvent::GRADIENT) {
+            logger.info << "Gradient vector set to: " << event.gradient << "." << logger.end;
             kernel->SetGradient(event.gradient);
-            logger.info << "gradientEvent: " << event.gradient << logger.end;
         }
 
         theSimTime += kernelStep;
-        Vector<3,float> signal = kernel->Step(kernelStep, theSimTime);
-        complex<double> sample = complex<double>(signal[0], signal[1]);
-        if (event.action & MRIEvent::LINE) {
-        }
-        if (event.action & MRIEvent::RECORD) {
-            logger.info << "recordEvent: (" << event.recX << "," << event.recY << ")" << logger.end;
-            // record a sample in k-space
-            sliceData.at(event.recX + event.recY * phantom.texr->GetWidth()) 
-                = sample;
-            sliceTex->GetData()[event.recX + event.recY * phantom.texr->GetWidth()] = abs(sample);
-            sliceTex->ChangedEvent().Notify(Texture2DChangedEventArg(sliceTex));
-            logger.info << "record value: " << abs(sample) << " at (" << event.recX << ", " << event.recY << "). Time: " << theSimTime << logger.end;
-            vector<complex<double> > inv = fft->FFT2D_Inverse(sliceData, sliceTex->GetWidth(), sliceTex->GetHeight());
-            for (unsigned int i = 0; i < inv.size(); ++i) {
-                invTex->GetData()[i] = abs(inv[i]);
-                // logger.info << "transformed value: " << inv[i] << logger.end;
-            }
-            invTex->ChangedEvent().Notify(Texture2DChangedEventArg(invTex));
+        kernel->Step(kernelStep, theSimTime);
+        logger.info << "Kernel step: " << kernelStep << logger.end;
 
-            //pause
-            // SetStepsPerSecond(0);
-            // break;
-        } 
-        // plot->AddPoint(theSimTime,signal[0]);
-        acq->AddSample(signal[0]);
-        if (spinNode) spinNode->M = signal;
-        theAccTime -= stepTime;
+        stepEvent.Notify(StepEventArg(*this));
         
-        if (nextEvent.second.action & MRIEvent::STOP) {
+        // stop the simulation if next event is a DONE signal
+        if (nextEvent.second.action & MRIEvent::DONE) {
+            logger.info << "Simulation sequence finished." << logger.end;
             Stop();
             break;
         }
     }
-    plotTimer->Handle(arg);
-}
-
-void MRISim::Handle(TimerEventArg arg) {
-    plot->Redraw();
-    DoFFT();
-}
-
-void MRISim::SetNode(SpinNode *sn) {
-    spinNode = sn;
-}    
-
-void MRISim::SetPlot(MathGLPlot* p) {
-    plot = p;
-    plot->SetData(acq);
-}
-
-void MRISim::SetFFTPlot(MathGLPlot* p) {
-    fftPlot = p;
-    fftPlot->SetData(fftData);
 }
 
 float MRISim::GetTime() {
@@ -191,43 +145,13 @@ float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
 }
 
-void MRISim::DoFFT() {    
-    //vector<complex<double> > input;
-    vector<double > input;
-    vector<complex<double> > output;
-    vector<float> data = acq->GetYData();
-    for (vector<float>::iterator itr = data.begin();
-         itr != data.end();
-         itr++) {
-        //input.push_back(complex<double>(*itr,0));
-        input.push_back(*itr);
-    }
-    //output = fft->FFT1D(input);
-    output = fft->FFT1D_Real(input);
-    
-    if (fftPlot) {
-        fftData->SetFFTOutput(output);
-        fftData->SetSampleRate(kernelStep);
-        fftPlot->Redraw();
-    }
-}
-
-FloatTexture2DPtr MRISim::GetKPlane() {
-    return sliceTex;
-}
-
-FloatTexture2DPtr MRISim::GetImagePlane() {
-    return invTex;
-}
-
-
 ValueList MRISim::Inspect() {
     ValueList values;
     {
         RValueCall<MRISim, float> *v
             = new RValueCall<MRISim,float> (*this,
                                             &MRISim::GetTime);
-        v->name = "time";
+        v->name = "Simulation Time";
         values.push_back(v);
     }
 
@@ -237,10 +161,10 @@ ValueList MRISim::Inspect() {
             = new RWValueCall<MRISim, float >(*this,
                                               &MRISim::GetStepSize,
                                               &MRISim::SetStepSize);
-        v->name = "kernel step size (s)";
-        v->properties[STEP] = 0.0001;
-        v->properties[MIN] = 0.0001;
-        v->properties[MAX] = 0.01;
+        v->name = "Kernel Step Size";
+        v->properties[STEP] = 0.00001;
+        v->properties[MIN] = 0.00001;
+        v->properties[MAX] = 0.001;
         values.push_back(v);
     }
 
@@ -249,16 +173,31 @@ ValueList MRISim::Inspect() {
             = new RWValueCall<MRISim, float >(*this,
                                               &MRISim::GetStepsPerSecond,
                                               &MRISim::SetStepsPerSecond);
-        v->name = "steps per second";
+        v->name = "Steps Per Second";
         v->properties[STEP] = 1.0;
         v->properties[MIN] = 0.1;
         v->properties[MAX] = 1000.0;
         values.push_back(v);
     }
+
     {
         ActionValueCall<MRISim> *v =
-            new ActionValueCall<MRISim>(*this, &MRISim::DoFFT);
-        v->name = "fft";
+            new ActionValueCall<MRISim>(*this, &MRISim::Start);
+        v->name = "Start";
+        values.push_back(v);
+    }
+
+    {
+        ActionValueCall<MRISim> *v =
+            new ActionValueCall<MRISim>(*this, &MRISim::Stop);
+        v->name = "Stop";
+        values.push_back(v);
+    }
+
+    {
+        ActionValueCall<MRISim> *v =
+            new ActionValueCall<MRISim>(*this, &MRISim::Reset);
+        v->name = "Reset";
         values.push_back(v);
     }
 

@@ -31,7 +31,7 @@ CPUKernel::CPUKernel()
     , depth(0)
     , sz(0)
     , b0(0.5)
-    , gyro(42.576*2*Math::PI) // hz/Tesla
+    , gyro(GYRO_RAD) // radians/Tesla
 {
     randomgen.SeedWithTime();
 }
@@ -59,6 +59,8 @@ void CPUKernel::Init(Phantom phantom) {
         //deltaB0[i] = RandomAttribute(0.0, 1e-3);
         deltaB0[i] = 0.0;
         eq[i] = phantom.spinPackets[data[i]].ro*b0;
+        // logger.info << "data[" << i << "] = " << int(data[i]) << logger.end;
+        // logger.info << "eq[" << i << "] = " << eq[i] << logger.end;
     }
     Reset();
 }
@@ -70,7 +72,7 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
     return m*vec;
 }
 
-Vector<3,float> CPUKernel::Step(float dt, float time) {
+void CPUKernel::Step(float dt, float time) {
     float T_1 = 2200.0*1e-3;
     float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
@@ -103,18 +105,18 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
                 refMagnets[i] = RotateZ(gyro * (deltaB0[i] + dG) * dt, refMagnets[i]);
                 
                 // add rf pulse and restore magnetization strength.
-                float len = refMagnets[i].GetLength();
-                refMagnets[i] = (refMagnets[i] + rf);
-                refMagnets[i].Normalize();
-                refMagnets[i] *= len;
+                //float len = refMagnets[i].GetLength();
+                // refMagnets[i] = (refMagnets[i] + rf);
+                // refMagnets[i].Normalize();
+                // refMagnets[i] *= len;
 
                 labMagnets[i] = 
                     RotateZ(omega0angle, refMagnets[i]);
                     // Vector<3,float>(refMagnets[i][0] * cos(omega0angle) - refMagnets[i][1] * sin(omega0angle), 
                     //                 refMagnets[i][0] * sin(omega0angle) + refMagnets[i][1] * cos(omega0angle), 
                     //                 refMagnets[i][2]);
-                signal += labMagnets[i];
-                //signal += refMagnets[i];
+                //signal += labMagnets[i];
+                signal += refMagnets[i];
             }    
         }
     }
@@ -126,25 +128,29 @@ Vector<3,float> CPUKernel::Step(float dt, float time) {
     //                          signal[0] * sin(omega * time) + signal[1] * cos(omega*time),  
     //                          signal[2]);
     // logger.info << "Magnitude: " << signal.GetLength() << logger.end;
+    // return signal;
+}
+
+void CPUKernel::Flip(unsigned int slice) {
+    RFPulse(Math::PI * 0.5, slice);
+}
+
+void CPUKernel::Flop(unsigned int slice) {
+    RFPulse(Math::PI, slice);
+}
+
+Vector<3,float> CPUKernel::GetSignal() {
     return signal;
 }
 
-void CPUKernel::Flip() {
-    RFPulse(Math::PI * 0.5);
-}
-
-void CPUKernel::Flop() {
-    RFPulse(Math::PI);
-}
-
-void CPUKernel::RFPulse(float angle) {
+void CPUKernel::RFPulse(float angle, unsigned int slice) {
     Matrix<3,3,float> rot(
                           1.0, 0.0, 0.0,
                           0.0, cos(angle), sin(angle),
                           0.0,-sin(angle), cos(angle)
                           );
     // hack to only excite slice 0
-    unsigned int z = 0;
+    unsigned int z = slice;
     for (unsigned int i = 0; i < width; ++i) {
         for (unsigned int j = 0; j < height; ++j) {
             if (data[i + j*width  + z*width*height] == 0) continue;
@@ -167,35 +173,15 @@ void CPUKernel::Reset() {
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
-        //signal += labMagnets[i];
-        signal += refMagnets[i];
+        signal += labMagnets[i];
+        //signal += refMagnets[i];
     }
     // logger.info << "Signal: " << signal << logger.end;
 }
 
-ValueList CPUKernel::Inspect() {
-    ValueList values;
-    {
-        ActionValueCall<CPUKernel> *v
-            = new ActionValueCall<CPUKernel> (*this,
-                                           &CPUKernel::Flip);
-        v->name = "flip 90";
-        values.push_back(v);
-    }
-    {
-        ActionValueCall<CPUKernel> *v
-            = new ActionValueCall<CPUKernel> (*this,
-                                              &CPUKernel::Flop);
-        v->name = "flip 180";
-        values.push_back(v);
-    }
-    return values;
-
-}
-
 Vector<3,float>* CPUKernel::GetMagnets() {
-    return refMagnets;
-    //return labMagnets;
+    //return refMagnets;
+    return labMagnets;
 }
 
 Phantom CPUKernel::GetPhantom() {

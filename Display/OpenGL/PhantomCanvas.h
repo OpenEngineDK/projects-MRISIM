@@ -25,7 +25,7 @@ private:
     SliceCanvas* sliceCanvas;
     unsigned int width, height;
 public:
-    PhantomCanvas(ICanvasBackend* backend, Phantom phantom);
+    PhantomCanvas(ICanvasBackend* backend, Phantom phantom, unsigned int width = 0, unsigned int height = 0);
     virtual ~PhantomCanvas();
     void Handle(Display::InitializeEventArg arg);    
     void Handle(Display::ProcessEventArg arg);
