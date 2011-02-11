@@ -69,7 +69,7 @@ class MRIUI : public QMainWindow {
     MRISim* sim;
     CPUKernel* kern;
     MINCResourcePtr phantom;
-    SliceCanvas *sliceCanvas;
+    SliceCanvas *samplesCanvas;
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
     WallCanvas* wc;

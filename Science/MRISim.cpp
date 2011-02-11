@@ -31,7 +31,11 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     , running(false)
 {
     kernel->Init(phantom);
-    samples = vector<complex<float> >(phantom.texr->GetWidth() * phantom.texr->GetHeight() * phantom.texr->GetDepth());
+    Vector<3,unsigned int> dims; 
+    if (sequence)
+        dims = sequence->GetTargetDimensions();
+    samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
+                                      complex<float>(0.0,0.0));
 }
 
 MRISim::~MRISim() {
@@ -54,7 +58,13 @@ void MRISim::Stop() {
 void MRISim::Reset() {
     Stop();
     kernel->Reset();
-    if(sequence) sequence->Reset();
+    Vector<3,unsigned int> dims; 
+    if(sequence) {
+        dims = sequence->GetTargetDimensions();
+        sequence->Reset();
+    }
+    samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
+                                      complex<float>(0.0,0.0));
     theSimTime = theAccTime = 0.0;
     logger.info << "Simulator Reset." << logger.end;
 }
@@ -89,10 +99,11 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             logger.info << "Record magnetization into grid point: " << event.point << logger.end;
             Vector<3,float> signal = kernel->GetSignal();
             complex<double> sample = complex<double>(signal[0], signal[1]);
-            samples.at(event.point[0] + 
-                       event.point[1] * phantom.texr->GetWidth() + 
-                       event.point[2] * phantom.texr->GetWidth() * phantom.texr->GetHeight())
-                = sample;
+            unsigned int index = event.point[0] + 
+                event.point[1] * phantom.texr->GetWidth() + 
+                event.point[2] * phantom.texr->GetWidth() * phantom.texr->GetHeight();
+                samples.at(index) = sample;
+                samplesEvent.Notify(SamplesChangedEventArg(index, index+1));
         } 
 
         if (event.action & MRIEvent::RESET) {
@@ -143,6 +154,17 @@ void MRISim::SetStepsPerSecond(float steps) {
 
 float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
+}
+
+vector<complex<float> >& MRISim::GetSamples() {
+    return samples;
+}
+
+Vector<3,unsigned int> MRISim::GetSampleDimensions() {
+    Vector<3,unsigned int> dims;
+    if (sequence) 
+        dims = sequence->GetTargetDimensions();
+    return dims;
 }
 
 ValueList MRISim::Inspect() {

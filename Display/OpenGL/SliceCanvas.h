@@ -31,7 +31,7 @@ namespace OpenGL {
 
 using Renderers::OpenGL::Renderer;
 
-class SliceCanvas : public ICanvas {
+class SliceCanvas : public ICanvas, public IListener<Texture3DChangedEventArg> {
 private:
     bool init, updateSlice;
     ITexture3DPtr tex;
@@ -52,6 +52,7 @@ public:
         , height(tex->GetDepth())
         , texid(0)
     {
+        tex->ChangedEvent().Attach(*this);
         if (w != 0 && h != 0) {
             width = w;
             height = h;
@@ -59,11 +60,15 @@ public:
         backend->Create(width, height);
     }
 
-    unsigned int GetMaxSlice() { return sliceMax; }
-    
     virtual ~SliceCanvas() {
     }
 
+    void Handle(Texture3DChangedEventArg arg) {
+        updateSlice = true;
+    }
+
+    unsigned int GetMaxSlice() { return sliceMax; }
+    
     void Handle(Display::InitializeEventArg arg) {
         if (init) return;
         

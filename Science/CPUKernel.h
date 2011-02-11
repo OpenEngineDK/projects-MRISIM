@@ -42,15 +42,16 @@ public:
 
     void Init(Phantom phantom);
     void Step(float dt, float time);    
-    Vector<3,float>* GetMagnets();
-    Phantom GetPhantom();
+    Vector<3,float>* GetMagnets() const;
+    Phantom GetPhantom() const;
     void RFPulse(float angle, unsigned int slice);
     void Reset();
     void SetGradient(Vector<3,float> gradient);
     void SetRFSignal(Vector<3,float> signal);
     void Flip(unsigned int slice);
     void Flop(unsigned int slice);
-    Vector<3,float> GetSignal();
+    Vector<3,float> GetSignal() const;
+    Vector<3,float> GetGradient() const;
 
 };
 

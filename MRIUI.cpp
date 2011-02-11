@@ -34,6 +34,8 @@
 #include "Resources/Phantom.h"
 #include "Resources/SimplePhantomBuilder.h"
 #include "Resources/MINCPhantomBuilder.h"
+#include "Resources/Sample3DTexture.h"
+
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 
@@ -61,6 +63,7 @@ using namespace OpenEngine::Display::OpenGL;
 
 using namespace MRI::Scene;
 using namespace MRI::Science;
+using namespace MRI::Resources;
 using namespace MRI::Display::OpenGL;
 
 
@@ -126,8 +129,11 @@ void MRIUI::SetupCanvas() {
 }
 
 void MRIUI::SetupSim() {
+    const unsigned int texWidth = 300;
+    const unsigned int texHeight = 300;
+
     // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(41);
+    IPhantomBuilder* pb = new SimplePhantomBuilder(21);
     Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
@@ -139,22 +145,34 @@ void MRIUI::SetupSim() {
     // Phantom p = Phantom("test.yaml");
 
     // init a canvas that scrolls through the slices of the phantom
-    phantomCanvas = new PhantomCanvas(new TextureCopy(), p, 300, 300);
+    phantomCanvas = new PhantomCanvas(new TextureCopy(), p, texWidth, texHeight);
     // tl->Load(phantomCanvas->GetSliceCanvas()->GetSourceTexture());
     cq->PushCanvas(phantomCanvas);
     wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
 
-    // init the simulator and kernel
+    // --- init the simulator and kernel ---
     kern = new CPUKernel();
-    sim = new MRISim(p, kern, NULL);//new SpinEchoSequence(2000.0, 200.0, p));
+    sim = new MRISim(p, kern, new SpinEchoSequence(2000.0, 200.0, p));
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);
     engine->DeinitializeEvent().Attach(*sim);
     
-    // -- visualise transverse spins, slice by slice --
-    spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, 300, 300);
+    // --- visualise transverse spins, slice by slice ---
+    spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, texWidth, texHeight);
     cq->PushCanvas(spinCanvas);
     wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
+
+    // --- visualise the output samples ---
+    Sample3DTexture*  sampleTex = new Sample3DTexture(sim->GetSamples(), sim->GetSampleDimensions());
+    sim->SamplesChangedEvent().Attach(*sampleTex);
+    samplesCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(sampleTex), texWidth, texHeight);
+    cq->PushCanvas(samplesCanvas);
+    wc->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
+
+    // --- reconstruct and visualize ---
+    
+    
+
 
     // WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), sim->GetKPlane(), *r, 1.0);
     // cq->PushCanvas(windowCanvas);
@@ -205,6 +223,37 @@ public:
         kern->RFPulse(Math::PI, spinCanvas->GetSlice());
     }
 
+
+    void SetGradientX(float g) {
+        Vector<3,float> gv = kern->GetGradient();
+        gv[0] = g;
+        kern->SetGradient(gv);
+    }
+
+    void SetGradientY(float g) {
+        Vector<3,float> gv = kern->GetGradient();
+        gv[1] = g;
+        kern->SetGradient(gv);
+    }
+
+     void SetGradientZ(float g) {
+        Vector<3,float> gv = kern->GetGradient();
+        gv[2] = g;
+        kern->SetGradient(gv);
+    }
+
+    float GetGradientX() {
+        return kern->GetGradient()[0];
+    }
+
+    float GetGradientY() {
+        return kern->GetGradient()[1];
+    }
+
+    float GetGradientZ() {
+        return kern->GetGradient()[2];
+    }
+
 ValueList Inspect() {
     ValueList values;
     {
@@ -220,6 +269,48 @@ ValueList Inspect() {
         v->name = "Flip 180";
         values.push_back(v);
     }
+
+    const float gradientMin = -0.3;
+    const float gradientMax =  0.3;
+    const float gradientStep =  0.01;
+
+    {
+        RWValueCall<Flipper, float> *v
+            = new RWValueCall<Flipper, float>(*this,
+                                             &Flipper::GetGradientX,
+                                             &Flipper::SetGradientX);
+        v->name = "Gradient x";
+        v->properties[MIN] = gradientMin;
+        v->properties[MAX] = gradientMax;
+        v->properties[STEP] = gradientStep;
+        values.push_back(v);
+    }
+
+    {
+        RWValueCall<Flipper, float> *v
+            = new RWValueCall<Flipper, float>(*this,
+                                             &Flipper::GetGradientY,
+                                             &Flipper::SetGradientY);
+        v->name = "Gradient y";
+        v->properties[MIN] = gradientMin;
+        v->properties[MAX] = gradientMax;
+        v->properties[STEP] = gradientStep;
+        values.push_back(v);
+    }
+
+    {
+        RWValueCall<Flipper, float> *v
+            = new RWValueCall<Flipper, float>(*this,
+                                             &Flipper::GetGradientZ,
+                                             &Flipper::SetGradientZ);
+        v->name = "Gradient z";
+        v->properties[MIN] = gradientMin;
+        v->properties[MAX] = gradientMax;
+        v->properties[STEP] = gradientStep;
+        values.push_back(v);
+    }
+
+
     return values;
     
 }
@@ -276,7 +367,6 @@ MRIUI::MRIUI(QtEnvironment *env) {
     SetupPlugins();
     LoadResources();
 
-
     SetupCanvas();
     SetupWall();
     SetupOpenCL();
@@ -293,6 +383,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
 
     Slicer slicer(spinCanvas);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
+    slicer.slices.push_back(samplesCanvas);
     ValueList vl = slicer.Inspect();
 
     ActionValue* av = new ActionValueCall<MRIUI>(*this, &MRIUI::Exit);
@@ -306,15 +397,14 @@ MRIUI::MRIUI(QtEnvironment *env) {
     iw2->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw2);
 
-
     Flipper flipper(kern, spinCanvas);
     InspectionWidget *iw3 = new InspectionWidget("Flipper", flipper.Inspect());
     iw3->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw3);
 
-    QDockWidget *dwI  = new QDockWidget("Slice Inspector",this);
-    QDockWidget *dwI2 = new QDockWidget("MRISim Inspector",this);
-    QDockWidget *dwI3 = new QDockWidget("Kernel Inspector",this);
+    QDockWidget *dwI  = new QDockWidget("Slicer",this);
+    QDockWidget *dwI2 = new QDockWidget("Simulator ",this);
+    QDockWidget *dwI3 = new QDockWidget("Kernel",this);
 
     dwI->setWidget(iw);
     dwI2->setWidget(iw2);
@@ -327,13 +417,13 @@ MRIUI::MRIUI(QtEnvironment *env) {
     ui->menuView->addAction(dwI->toggleViewAction());
     ui->menuView->addAction(dwI2->toggleViewAction());
     ui->menuView->addAction(dwI3->toggleViewAction());
-    
+
     show();
     setup->GetEngine().Start();
 }
 
 int main(int argc, char* argv[]) {
-    QtEnvironment* env = new QtEnvironment(false, 800, 700, 32, 
+    QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
                                            FrameOption(), argc, argv);
     MRIUI *ui = new MRIUI(env);
 }

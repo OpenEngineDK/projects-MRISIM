@@ -89,17 +89,25 @@ public:
     virtual void Init(Phantom phantom) = 0;      // initialize kernel state to reflect the given phantom
     virtual void Step(float dt, float time) = 0; // take a simulation step
 
-    virtual Phantom GetPhantom() = 0;            // get the current phantom
-    virtual Vector<3,float> GetSignal() = 0;     // get the current total magnetization (sum of all spins)
-    virtual Vector<3,float>* GetMagnets() = 0;   // get all the spin states (for debugging only).
+    virtual Phantom GetPhantom() const = 0;            // get the current phantom
+    virtual Vector<3,float> GetSignal() const = 0;     // get the current total magnetization (sum of all spins)
+    virtual Vector<3,float>* GetMagnets() const = 0;   // get all the spin states (for debugging only).
 
     virtual void RFPulse(float angle, unsigned int slice) = 0;       // instantly rotate the vectors in a slice around the y' axis. (cheap way of simulating rf pulse).
     virtual void SetGradient(Vector<3,float> gradient) = 0; // apply a gradient vector
+    virtual Vector<3,float> GetGradient() const = 0; // get the current gradient vector
+
     virtual void SetRFSignal(Vector<3,float> signal) = 0;   // apply an rf vector. (Slower than RFPulse, but much more precise).
     virtual void Reset() = 0;                    // reset spin states to equilibrium. (Quick an dirty way to force spin relaxation).
 };
 
 class MRISim;
+
+
+struct SamplesChangedEventArg {
+    SamplesChangedEventArg(unsigned int begin, unsigned int end): begin(begin), end(end) {}
+    unsigned int begin, end;
+};
 
 struct StepEventArg {
     StepEventArg(MRISim& sim): sim(sim) {}
@@ -118,6 +126,7 @@ private:
     vector<complex<float> > samples;
     pair<float,MRIEvent> prevEvent;
     Event<StepEventArg> stepEvent;
+    Event<SamplesChangedEventArg> samplesEvent;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();
@@ -131,12 +140,17 @@ public:
     void Handle(Core::ProcessEventArg arg);
     
     Event<StepEventArg>& StepEvent() { return stepEvent; }
+    Event<SamplesChangedEventArg>& SamplesChangedEvent() { return samplesEvent; }
     
     float GetTime();
     void SetStepSize(float);
     float GetStepSize();
     void SetStepsPerSecond(float);
     float GetStepsPerSecond();
+
+    vector<complex<float> >& GetSamples();
+    Vector<3,unsigned int> GetSampleDimensions();
+    
     
     Utils::Inspection::ValueList Inspect();
 };

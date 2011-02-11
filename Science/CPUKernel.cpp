@@ -76,14 +76,15 @@ void CPUKernel::Step(float dt, float time) {
     float T_1 = 2200.0*1e-3;
     float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
-    const float omega0 = gyro * b0;
-    const float omega0angle = omega0*time;
+    const float omega0 = GYRO_RAD * b0;
+    const float omega0Angle = omega0*time;
     // move rf signal into reference space
-    const Vector<3,float> rf = RotateZ(-omega0angle, rfSignal);
+    const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
 
     for (unsigned int x = 0; x < width; ++x) {
         for (unsigned int y = 0; y < height; ++y) {
             for (unsigned int z = 0; z < depth; ++z) {
+
                 unsigned int i = x + y*width + z*width*height;
                 if (data[i] == 0) continue;
                 
@@ -97,12 +98,14 @@ void CPUKernel::Step(float dt, float time) {
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 
                                                  (eq[i]-refMagnets[i][2])*dtt1);
+
                 float dG = gradient * Vector<3,float>(float(int(x) + phantom.offsetX) * (phantom.sizeX*1e-3),
                                                       float(int(y) + phantom.offsetY) * (phantom.sizeY*1e-3),
                                                       float(int(z) + phantom.offsetZ) * (phantom.sizeZ*1e-3));
+
                 // logger.info << "dG: " << dG << logger.end;
                 // logger.info << "angle: " << gyro * (deltaB0[i] + dG) * dt << logger.end;
-                refMagnets[i] = RotateZ(gyro * (deltaB0[i] + dG) * dt, refMagnets[i]);
+                refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
                 
                 // add rf pulse and restore magnetization strength.
                 //float len = refMagnets[i].GetLength();
@@ -111,24 +114,15 @@ void CPUKernel::Step(float dt, float time) {
                 // refMagnets[i] *= len;
 
                 labMagnets[i] = 
-                    RotateZ(omega0angle, refMagnets[i]);
-                    // Vector<3,float>(refMagnets[i][0] * cos(omega0angle) - refMagnets[i][1] * sin(omega0angle), 
-                    //                 refMagnets[i][0] * sin(omega0angle) + refMagnets[i][1] * cos(omega0angle), 
+                    RotateZ(omega0Angle, refMagnets[i]);
+                    // Vector<3,float>(refMagnets[i][0] * cos(omega0Angle) - refMagnets[i][1] * sin(omega0Angle), 
+                    //                 refMagnets[i][0] * sin(omega0Angle) + refMagnets[i][1] * cos(omega0Angle), 
                     //                 refMagnets[i][2]);
                 //signal += labMagnets[i];
                 signal += refMagnets[i];
             }    
         }
     }
-
-    // Convert from reference to laboratory system. This should be
-    // done in the for-loop, but as long as our operations are
-    // distributive over addition this optimization should work just fine.
-    // signal = Vector<3,float>(signal[0] * cos(omega * time) - signal[1] * sin(omega*time), 
-    //                          signal[0] * sin(omega * time) + signal[1] * cos(omega*time),  
-    //                          signal[2]);
-    // logger.info << "Magnitude: " << signal.GetLength() << logger.end;
-    // return signal;
 }
 
 void CPUKernel::Flip(unsigned int slice) {
@@ -139,7 +133,7 @@ void CPUKernel::Flop(unsigned int slice) {
     RFPulse(Math::PI, slice);
 }
 
-Vector<3,float> CPUKernel::GetSignal() {
+Vector<3,float> CPUKernel::GetSignal() const {
     return signal;
 }
 
@@ -163,6 +157,10 @@ void CPUKernel::SetGradient(Vector<3,float> gradient) {
     this->gradient = gradient;
 }
 
+Vector<3,float> CPUKernel::GetGradient() const {
+    return gradient;
+}
+
 void CPUKernel::SetRFSignal(Vector<3,float> signal) {
     rfSignal = signal;
 }
@@ -179,12 +177,12 @@ void CPUKernel::Reset() {
     // logger.info << "Signal: " << signal << logger.end;
 }
 
-Vector<3,float>* CPUKernel::GetMagnets() {
+Vector<3,float>* CPUKernel::GetMagnets() const {
     //return refMagnets;
     return labMagnets;
 }
 
-Phantom CPUKernel::GetPhantom() {
+Phantom CPUKernel::GetPhantom() const {
   return phantom;
 }
 
