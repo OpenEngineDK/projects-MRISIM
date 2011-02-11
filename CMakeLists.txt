@@ -26,6 +26,10 @@ SET( PROJECT_SOURCES
   Resources/SimplePhantomBuilder.cpp
   Resources/MINCPhantomBuilder.h
   Resources/MINCPhantomBuilder.cpp
+  Resources/Sample3DTexture.h
+  Resources/Sample3DTexture.cpp
+
+
   Display/OpenGL/PhantomCanvas.h
   Display/OpenGL/PhantomCanvas.cpp
   Display/OpenGL/SpinCanvas.h
@@ -54,6 +58,8 @@ SET( PROJECT_SOURCES
   Science/CPUFFT.cpp
   Science/ImageFFT.h
   Science/ImageFFT.cpp
+  Science/CartesianFFT.h
+  Science/CartesianFFT.cpp
 
   Scene/SpinNode.h
   Scene/SpinNode.cpp
