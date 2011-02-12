@@ -17,14 +17,16 @@ namespace Science {
 
 using namespace Resources;
 
-CartesianFFT::CartesianFFT(IFFT& fft, vector<complex<float> >& samples, Vector<3,unsigned int> dims)
+CartesianFFT::CartesianFFT(IFFT& fft, vector<complex<float> >& samples, Vector<3,unsigned int> dims, bool autoWindow)
     : fft(fft) 
-    , samples(samples)
-    , out(samples.size(), complex<float>(0.0,0.0))
-    , dims(dims)
     , size(dims[0] * dims[1] * dims[2])
+    , samples(samples)
+    , out(size , complex<float>(0.0,0.0))
+    , dims(dims)
 {
-    res = Sample3DTexturePtr(new Sample3DTexture(out, dims));
+    logger.info << "dims: " << dims << logger.end;
+    res = Sample3DTexturePtr(new Sample3DTexture(out, dims, autoWindow));
+    res->Handle(SamplesChangedEventArg(0, size));
 }
 
 CartesianFFT::~CartesianFFT() {
@@ -40,10 +42,12 @@ void CartesianFFT::ReconstructSlice(unsigned int i) {
     for (unsigned int j = 0; j < w * h; ++j)
         in[j] = samples[i * w * h + j];
 
-    vector<complex<double> > out = fft.FFT2D(in, dims[0], dims[1]);
+    vector<complex<double> > fftres = fft.FFT2D_Inverse(in, dims[0], dims[1]);
     
-    for (unsigned int j = 0; j < w * h; ++j)
-        data[i * w * h + j] = abs(out[j]);
+    for (unsigned int j = 0; j < w * h; ++j) {
+        out[i * w * h + j] = fftres[j];
+        logger.info << out[i * w * h + j] << logger.end;
+    }
 
     res->Handle(SamplesChangedEventArg(i * w * h, i * w * h + w * h));
 }

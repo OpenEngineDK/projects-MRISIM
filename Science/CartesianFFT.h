@@ -37,14 +37,14 @@ class IFFT;
 class CartesianFFT {
 private:
     IFFT& fft;
+    unsigned int size;
     vector<complex<float> >& samples;
     vector<complex<float> > out;
     Vector<3,unsigned int> dims;
     Sample3DTexturePtr res;
     float* data;
-    unsigned int size;
 public:   
-    CartesianFFT(IFFT& fft, vector<complex<float> >& samples, Vector<3,unsigned int> dims);
+    CartesianFFT(IFFT& fft, vector<complex<float> >& samples, Vector<3,unsigned int> dims, bool autoWindow = false);
     virtual ~CartesianFFT();
 
     void ReconstructSlice(unsigned int i);

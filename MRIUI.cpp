@@ -163,14 +163,17 @@ void MRIUI::SetupSim() {
     wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
 
     // --- visualise the output samples ---
-    Sample3DTexture*  sampleTex = new Sample3DTexture(sim->GetSamples(), sim->GetSampleDimensions());
+    Sample3DTexture* sampleTex = new Sample3DTexture(sim->GetSamples(), sim->GetSampleDimensions(), true);
     sim->SamplesChangedEvent().Attach(*sampleTex);
     samplesCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(sampleTex), texWidth, texHeight);
     cq->PushCanvas(samplesCanvas);
     wc->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
 
     // --- reconstruct and visualize ---
-    
+    fft = new CartesianFFT(*(new CPUFFT()), sim->GetSamples(), sim->GetSampleDimensions(), true);
+    fftCanvas = new SliceCanvas(new TextureCopy(), fft->GetResult(), texWidth, texHeight);
+    cq->PushCanvas(fftCanvas);
+    wc->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
     
 
 
@@ -320,9 +323,10 @@ ValueList Inspect() {
 class Slicer {
 private:
     SpinCanvas* spins;
+    CartesianFFT* fft;
 public:
     vector<SliceCanvas*> slices;
-    Slicer(SpinCanvas* spins = NULL): spins(spins) {}
+    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL): spins(spins), fft(fft) {}
     virtual ~Slicer() {}
 
     void SetSlice(unsigned int slice) {
@@ -343,6 +347,11 @@ public:
         return slices[0]->GetMaxSlice();
     }
 
+    
+    void Recon() {
+        if (fft) fft->ReconstructSlice(GetSlice());
+    }
+
     ValueList Inspect() {
         ValueList values;
         {
@@ -353,6 +362,12 @@ public:
             v->name = "Slice";
             v->properties[MIN] = 0;
             v->properties[MAX] = GetMaxSlice();
+            values.push_back(v);
+        }
+        {
+            ActionValueCall<Slicer> *v =
+                new ActionValueCall<Slicer>(*this, &Slicer::Recon);
+            v->name = "Reconstruct Slice";
             values.push_back(v);
         }
         return values;
@@ -381,9 +396,10 @@ MRIUI::MRIUI(QtEnvironment *env) {
     ui->setupUi(this);
     ui->topLayout->addWidget(env->GetGLWidget());
 
-    Slicer slicer(spinCanvas);
+    Slicer slicer(spinCanvas, fft);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
     slicer.slices.push_back(samplesCanvas);
+    slicer.slices.push_back(fftCanvas);
     ValueList vl = slicer.Inspect();
 
     ActionValue* av = new ActionValueCall<MRIUI>(*this, &MRIUI::Exit);

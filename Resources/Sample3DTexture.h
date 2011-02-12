@@ -42,8 +42,9 @@ class Sample3DTexture : public FloatTexture3D, public IListener<SamplesChangedEv
 private:
     vector<complex<float> >& samples;
     FloatTexture3DPtr ref;
+    bool autoWindow;
 public:   
-    Sample3DTexture(vector<complex<float> >& samples, Vector<3,unsigned int> dims);
+    Sample3DTexture(vector<complex<float> >& samples, Vector<3,unsigned int> dims, bool autoWindow = false);
     virtual ~Sample3DTexture();
 
     void Handle(SamplesChangedEventArg arg);

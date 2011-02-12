@@ -24,6 +24,7 @@
 
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
+#include "Science/CartesianFFT.h"
 
 namespace Ui { class MRIUI; }
 
@@ -69,9 +70,10 @@ class MRIUI : public QMainWindow {
     MRISim* sim;
     CPUKernel* kern;
     MINCResourcePtr phantom;
-    SliceCanvas *samplesCanvas;
+    SliceCanvas *samplesCanvas, *fftCanvas;
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
+    CartesianFFT* fft;
     WallCanvas* wc;
     CanvasQueue* cq;
     MathGLPlot* plot;

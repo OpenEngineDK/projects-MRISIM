@@ -49,15 +49,17 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     
     const float gxFirst = (gx * gxDuration * 0.5) / tau;
 
-    float start = 0;
+    float start = 0.0;
+    unsigned int slice = 2;
     for (unsigned int j = 0; j < lines; ++j) {
-        start = float(j)*tr + .1;
+        start = float(j)*tr + 0.1;
         // logger.info << "start: " << start << logger.end;
         // reset + 90 degree pulse + turn on phase encoding gradient
         // turn on frequency encoding to move to the end of the x-direction
         e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT | MRIEvent::RESET;
         e.angleRF = Math::PI*0.5;
         e.gradient = Vector<3,float>(gxFirst, -gyStart + float(j)*dGy, 0.0);
+        e.slice = slice;
         time = start;
         seq.push_back(make_pair(time, e));
 
@@ -85,7 +87,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, j, 0);
+            e.point = Vector<3,unsigned int>(i, j, slice);
             seq.push_back(make_pair(time, e));
             time += samplingDT;
         }
@@ -96,6 +98,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
 
         // start = time + 10.0 * samplingDT;
     }
+
     e.action = MRIEvent::DONE;
     time += 0.1;
     seq.push_back(make_pair(time, e));
