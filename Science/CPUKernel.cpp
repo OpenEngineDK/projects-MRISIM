@@ -73,11 +73,11 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
 }
 
 void CPUKernel::Step(float dt, float time) {
-    float T_1 = 2200.0*1e-3;
-    float T_2 = 500.0*1e-3;
+    // float T_1 = 2200.0*1e-3;
+    // float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
     const float omega0 = GYRO_RAD * b0;
-    const float omega0Angle = omega0*time;
+    const float omega0Angle = omega0*dt;
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
 
@@ -90,10 +90,10 @@ void CPUKernel::Step(float dt, float time) {
                 
                 // refMagnets[i] = RotateZ(state.angleRF, refMagnets[i]);
 
-                float dtt1 = dt/T_1;
-                float dtt2 = dt/T_2;
-                // float dtt1 = dt/phantom.spinPackets[data[i]].t1;
-                // float dtt2 = dt/phantom.spinPackets[data[i]].t2;
+                // float dtt1 = dt/T_1;
+                // float dtt2 = dt/T_2;
+                float dtt1 = dt/phantom.spinPackets[data[i]].t1;
+                float dtt2 = dt/phantom.spinPackets[data[i]].t2;
                 // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 

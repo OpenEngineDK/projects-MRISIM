@@ -30,7 +30,7 @@ public:
 
     vector<complex<double > > FFT2D_Real(vector<double> input, unsigned int w, unsigned int h);
     vector<complex<double > > FFT2D(vector<complex<double> > input, unsigned int w, unsigned int h);
-    vector<complex<double> > FFT2D_Inverse(vector<complex<double> > input, unsigned int width, unsigned int height);
+    vector<complex<double> > FFT2D_Inverse(vector<complex<double> > input, unsigned int width, unsigned int height, bool flip = false);
 };
 
 } // NS Science

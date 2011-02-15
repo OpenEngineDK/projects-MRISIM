@@ -28,8 +28,9 @@ public:
     virtual ~ListSequence();
     MRIEvent GetEvent(float time);
     pair<float, MRIEvent> GetNextPoint();
-    void Reset();
+    virtual void Reset();
     void Sort();
+    void Clear();
 };
 
 } // NS Science

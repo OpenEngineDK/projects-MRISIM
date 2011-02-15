@@ -25,6 +25,8 @@
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
 #include "Science/CartesianFFT.h"
+#include "Science/SpinEchoSequence.h"
+
 
 namespace Ui { class MRIUI; }
 
@@ -69,6 +71,7 @@ class MRIUI : public QMainWindow {
 
     MRISim* sim;
     CPUKernel* kern;
+    SpinEchoSequence* seq;
     MINCResourcePtr phantom;
     SliceCanvas *samplesCanvas, *fftCanvas;
     PhantomCanvas *phantomCanvas;

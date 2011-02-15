@@ -14,51 +14,89 @@ namespace Science {
 
 SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     : ListSequence(seq)
-    , tr(tr)
-    , te(te)
+    , tr(tr * 1e-3)
+    , te(te * 1e-3)
+    , fov(phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
     , phantom(phantom)
     , dims(Vector<3,unsigned int>(phantom.texr->GetWidth(),
                            phantom.texr->GetHeight(),
                            phantom.texr->GetDepth()))
+    , slice(0)
 {
+    Reset();
+}
+
+    
+SpinEchoSequence::~SpinEchoSequence() {
+}
+
+Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
+    return dims;
+}
+
+void SpinEchoSequence::SetSlice(unsigned int slice) {
+    logger.info <<  "setslice: " << slice << logger.end;
+    if (slice < phantom.texr->GetDepth()) {
+        this->slice = slice;
+    }
+}
+
+void SpinEchoSequence::SetFOV(float fov) {
+        this->fov = fov;
+}
+
+void SpinEchoSequence::SetTR(float tr) {
+        this->tr = 1e-3*tr;
+}
+
+void SpinEchoSequence::SetTE(float te) {
+        this->te = 1e-3*te;
+}
+
+float SpinEchoSequence::GetFOV() {
+        return fov;
+}
+
+float SpinEchoSequence::GetTR() {
+        return tr*1e3;
+}
+    
+float SpinEchoSequence::GetTE() {
+        return te*1e3;
+}
+
+void SpinEchoSequence::Reset() {
+    ListSequence::Clear();
+
+    logger.info <<  "slice: " << slice << logger.end;
     float time;
     MRIEvent e;
     
-    tr *= 1e-3;
-    te *= 1e-3;
-    // tr = 2000.0 * 1e-3;
-    // te = 200.0 * 1e-3;
-
-    const float gyro = 42.576*1e6; // hz/Tesla
-    
-    const unsigned int lines = phantom.texr->GetHeight(); 
+    const unsigned int height = phantom.texr->GetHeight(); 
     const unsigned int width = phantom.texr->GetWidth();
-    const float fov = 1.0*phantom.sizeX * 1e-3 * width;      // field of view 
-    
-    const float tau = 0.05;  // Gy duration
-    const float gyMaxArea = float(lines) / (gyro*fov);
-    const float gyMax = gyMaxArea / tau; 
-    const float gyStart = -gyMaxArea*0.5;
-    const float dGy =  (gyMax) / float(lines);
+
+    const float gyMax = 0.02;
+    const float tau = float(height)/(GYRO_HERTZ * gyMax * fov);
+    const float gyStart = -gyMax*0.5;
+    const float dGy =  (gyMax) / float(height);
     logger.info << "dGY: " << dGy << logger.end;
 
-    const float gx = 0.002;
-    const float samplingDT = 1.0 / (fov * gyro * gx);              
+    const float gx = 0.02;
+    const float samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
     const float gxDuration = samplingDT * float(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
-    
     const float gxFirst = (gx * gxDuration * 0.5) / tau;
 
+
     float start = 0.0;
-    unsigned int slice = 2;
-    for (unsigned int j = 0; j < lines; ++j) {
-        start = float(j)*tr + 0.1;
+    for (unsigned int j = 0; j < height; ++j) {
+        start = float(j)*tr;
         // logger.info << "start: " << start << logger.end;
         // reset + 90 degree pulse + turn on phase encoding gradient
         // turn on frequency encoding to move to the end of the x-direction
-        e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT | MRIEvent::RESET;
+        e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT;// | MRIEvent::RESET;
         e.angleRF = Math::PI*0.5;
-        e.gradient = Vector<3,float>(gxFirst, -gyStart + float(j)*dGy, 0.0);
+        e.gradient = Vector<3,float>(gxFirst, gyStart + float(j)*dGy, 0.0);
         e.slice = slice;
         time = start;
         seq.push_back(make_pair(time, e));
@@ -87,7 +125,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, j, slice);
+            e.point = Vector<3,unsigned int>(i, height-j-1, slice);
             seq.push_back(make_pair(time, e));
             time += samplingDT;
         }
@@ -95,6 +133,14 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
         e.action = MRIEvent::GRADIENT;
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
+
+
+        time += 0.08;
+        while (time < float(j)*tr + tr) {
+            e.action = 0;
+            seq.push_back(make_pair(time, e));
+            time += 0.08;
+        }
 
         // start = time + 10.0 * samplingDT;
     }
@@ -106,12 +152,46 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
     Sort();
 }
 
+ValueList SpinEchoSequence::Inspect() {
+    ValueList values;
     
-SpinEchoSequence::~SpinEchoSequence() {
-}
+    {
+        RWValueCall<SpinEchoSequence, float > *v
+            = new RWValueCall<SpinEchoSequence, float >(*this,
+                                              &SpinEchoSequence::GetTR,
+                                              &SpinEchoSequence::SetTR);
+        v->name = "TR(ms)";
+        v->properties[STEP] = 1.0;
+        v->properties[MIN]  = 50.0;
+        v->properties[MAX]  = 4000.0;
+        values.push_back(v);
+    }
 
-Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
-    return dims;
+    {
+        RWValueCall<SpinEchoSequence, float > *v
+            = new RWValueCall<SpinEchoSequence, float >(*this,
+                                              &SpinEchoSequence::GetTE,
+                                              &SpinEchoSequence::SetTE);
+        v->name = "TE(ms)";
+        v->properties[STEP] = 1.0;
+        v->properties[MIN]  = 0.0;
+        v->properties[MAX]  = 1000.0;
+        values.push_back(v);
+    }
+
+    {
+        RWValueCall<SpinEchoSequence, float > *v
+            = new RWValueCall<SpinEchoSequence, float >(*this,
+                                              &SpinEchoSequence::GetFOV,
+                                              &SpinEchoSequence::SetFOV);
+        v->name = "FOV(m)";
+        v->properties[STEP] = 0.01;
+        v->properties[MIN]  = 0.0;
+        v->properties[MAX]  = 2.0;
+        values.push_back(v);
+    }
+
+    return values;
 }
 
 } // NS Science

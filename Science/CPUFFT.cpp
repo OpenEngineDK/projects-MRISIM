@@ -88,8 +88,8 @@ vector<complex<double > > CPUFFT::FFT1D(vector<complex<double> > input) {
     return output;
 }
 
-vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, unsigned int w, unsigned int h) {
-    vector<complex<double> > output;
+vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, unsigned int w, unsigned int h, bool flip) {
+    vector<complex<double> > output(w*h);
     if (!input.size()) return output;
 
     int rows = h;
@@ -113,10 +113,8 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
         // src_co = idx_to_co(idx, dim);
 
         // uint2 co;
-        unsigned int temp = i;
-        unsigned int sX = temp%w;
-        temp -= sX;
-        unsigned int sY = temp/w;
+        unsigned int sX = i%w;
+        unsigned int sY = i/w;
         
 
 		//Where should this data go?
@@ -126,20 +124,28 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
         unsigned int dI = dX + dY*w;
 
         complex<double> c = *itr;
-        in[dI][0] = real(c);
-        in[dI][1] = imag(c);
+        // in[dI][0] = real(c);
+        // in[dI][1] = imag(c);
+        in[i][0] = real(c);
+        in[i][1] = imag(c);
         ++i;
     }
 
-    // plan = fftw_plan_dft_c2r_2d(rows, cols, in, out, FFTW_ESTIMATE);
     plan = fftw_plan_dft_2d(rows, cols,  in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
-
     fftw_execute(plan);
-
     fftw_destroy_plan(plan);
 
-    for (int n=0;n<cols*rows;n++) {
-        output.push_back(complex<double>(out[n][0],out[n][1]));
+    for (int n = 0; n < cols * rows; ++n) {
+        unsigned int sX = n%w;
+        unsigned int sY = n/w;
+        unsigned int dX = (sX+(w>>1))%w;
+        unsigned int dY = (sY+(h>>1))%h;
+        unsigned int dI = dX + dY*w;
+
+        output[dI] = (complex<double>(out[n][0],out[n][1]));
+        // output[n] = (complex<double>(out[n][0],out[n][1]));
+
+        // output[n] = (complex<double>(in[n][0],in[n][1]));
     }
 
     fftw_free(in);

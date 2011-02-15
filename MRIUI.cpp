@@ -39,8 +39,6 @@
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 
-#include "Science/SpinEchoSequence.h"
-
 #include "Science/ImageFFT.h"
 #include "Science/CPUFFT.h"
 
@@ -152,7 +150,8 @@ void MRIUI::SetupSim() {
 
     // --- init the simulator and kernel ---
     kern = new CPUKernel();
-    sim = new MRISim(p, kern, new SpinEchoSequence(2000.0, 200.0, p));
+    seq = new SpinEchoSequence(500.0, 340.0, p);
+    sim = new MRISim(p, kern, seq);
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);
     engine->DeinitializeEvent().Attach(*sim);
@@ -324,9 +323,10 @@ class Slicer {
 private:
     SpinCanvas* spins;
     CartesianFFT* fft;
+    SpinEchoSequence* seq;
 public:
     vector<SliceCanvas*> slices;
-    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL): spins(spins), fft(fft) {}
+    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL, SpinEchoSequence* seq = NULL): spins(spins), fft(fft), seq(seq) {}
     virtual ~Slicer() {}
 
     void SetSlice(unsigned int slice) {
@@ -335,6 +335,8 @@ public:
         }
         if (spins)
             spins->SetSlice(slice);
+        if (seq) seq->SetSlice(slice);
+
     };
 
     unsigned int GetSlice() {
@@ -396,7 +398,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     ui->setupUi(this);
     ui->topLayout->addWidget(env->GetGLWidget());
 
-    Slicer slicer(spinCanvas, fft);
+    Slicer slicer(spinCanvas, fft, seq);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
     slicer.slices.push_back(samplesCanvas);
     slicer.slices.push_back(fftCanvas);
@@ -409,7 +411,11 @@ MRIUI::MRIUI(QtEnvironment *env) {
     iw->setMinimumWidth(200);
     setup->GetEngine().ProcessEvent().Attach(*iw);
 
-    InspectionWidget *iw2 = new InspectionWidget("MRISim", sim->Inspect());
+    InspectionWidget *iw1 = new InspectionWidget("MRISim", sim->Inspect());
+    iw1->setMinimumWidth(300);
+    setup->GetEngine().ProcessEvent().Attach(*iw1);
+
+    InspectionWidget *iw2 = new InspectionWidget("Sequence", seq->Inspect());
     iw2->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw2);
 
@@ -419,18 +425,22 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().ProcessEvent().Attach(*iw3);
 
     QDockWidget *dwI  = new QDockWidget("Slicer",this);
-    QDockWidget *dwI2 = new QDockWidget("Simulator ",this);
+    QDockWidget *dwI1 = new QDockWidget("Simulator ",this);
+    QDockWidget *dwI2 = new QDockWidget("Sequence ",this);
     QDockWidget *dwI3 = new QDockWidget("Kernel",this);
 
     dwI->setWidget(iw);
+    dwI1->setWidget(iw1);
     dwI2->setWidget(iw2);
     dwI3->setWidget(iw3);
     
     addDockWidget(Qt::RightDockWidgetArea, dwI);
+    addDockWidget(Qt::RightDockWidgetArea, dwI1);
     addDockWidget(Qt::RightDockWidgetArea, dwI2);
     addDockWidget(Qt::RightDockWidgetArea, dwI3);
 
     ui->menuView->addAction(dwI->toggleViewAction());
+    ui->menuView->addAction(dwI1->toggleViewAction());
     ui->menuView->addAction(dwI2->toggleViewAction());
     ui->menuView->addAction(dwI3->toggleViewAction());
 

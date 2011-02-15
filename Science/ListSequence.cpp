@@ -49,5 +49,10 @@ void ListSequence::Sort() {
     sort(seq.begin(), seq.end(), sortf);
 }
 
+void ListSequence::Clear() {
+    seq.clear();
+    index = 0;
+}
+
 } // NS Science
 } // NS MRI

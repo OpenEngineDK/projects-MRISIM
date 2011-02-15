@@ -21,8 +21,8 @@
 #include "IFFT.h"
 #include "FFTData.h"
 
-#define GYRO_HERZ 42.576*1e6 // herz/tesla
-#define GYRO_RAD GYRO_HERZ * 2.0 * Math::PI // radians/tesla
+#define GYRO_HERTZ 42.576*1e6 // herz/tesla
+#define GYRO_RAD GYRO_HERTZ * 2.0 * Math::PI // radians/tesla
 
 namespace MRI {
     namespace Scene {
