@@ -40,7 +40,7 @@ void BlochTest::Handle(Core::ProcessEventArg arg) {
 
     //logger.info << M << logger.end;
 
-    spinNode->M = M;
+    //spinNode->Mp = M;
 }
 
 ValueList BlochTest::Inspect() {

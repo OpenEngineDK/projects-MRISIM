@@ -20,7 +20,7 @@ class SpinNode : public RenderNode {
     int trace_idx;
     Timer traceTimer;
 public:
-    Vector<3,float> M;
+    Vector<3,float> *Mp;
     SpinNode();
     void Apply(Renderers::RenderingEventArg arg, ISceneNodeVisitor& v);
 };

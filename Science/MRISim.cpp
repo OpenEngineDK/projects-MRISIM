@@ -121,6 +121,11 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             kernel->SetGradient(event.gradient);
         }
 
+        if (event.action & MRIEvent::RFPULSE) {
+            logger.info << "RFPulse :" << event.rfSignal << logger.end;
+            kernel->SetRFSignal(event.rfSignal);
+        }
+
         theSimTime += kernelStep;
         kernel->Step(kernelStep, theSimTime);
         logger.info << "Kernel step: " << kernelStep << logger.end;

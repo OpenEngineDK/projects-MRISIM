@@ -12,9 +12,15 @@ SpinNode::SpinNode() {
     scale = 10;
     trace = vector<Vector<3,float> >(10);
     traceTimer.Start();
+    Mp = NULL;
 }
 
 void SpinNode::Apply(Renderers::RenderingEventArg arg, ISceneNodeVisitor& v) {
+    
+    Vector<3,float> M;
+    if (Mp)
+        M = *Mp;
+
     IRenderer& rend = arg.renderer;
     Vector<3,float> zero(0,0,0);
     

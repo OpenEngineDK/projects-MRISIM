@@ -39,6 +39,11 @@
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 
+#include "Scene/SpinNode.h"
+
+#include "Science/SpinEchoSequence.h"
+#include "Science/ExcitationPulseSequence.h"
+
 #include "Science/ImageFFT.h"
 #include "Science/CPUFFT.h"
 
@@ -150,8 +155,14 @@ void MRIUI::SetupSim() {
 
     // --- init the simulator and kernel ---
     kern = new CPUKernel();
+
+
+
     seq = new SpinEchoSequence(500.0, 340.0, p);
-    sim = new MRISim(p, kern, seq);
+    sim = new MRISim(p, kern, new ExcitationPulseSequence(p));
+    //sim = new MRISim(p, kern, seq);
+
+
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);
     engine->DeinitializeEvent().Attach(*sim);
@@ -173,7 +184,29 @@ void MRIUI::SetupSim() {
     fftCanvas = new SliceCanvas(new TextureCopy(), fft->GetResult(), texWidth, texHeight);
     cq->PushCanvas(fftCanvas);
     wc->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
+        
     
+    RenderCanvas *rc = new RenderCanvas(new TextureCopy(), Vector<2,int>(200,200));
+    Renderer *rend = new Renderer();
+
+    Camera *cam = new Camera(*(new PerspectiveViewingVolume()));
+    cam->SetPosition(Vector<3,float>(10,10,10));
+    cam->LookAt(Vector<3,float>(0,0,0));
+    rc->SetViewingVolume(cam);
+    
+    // SpinNode *sn = new SpinNode(); 
+    // sn->Mp = kern->GetMagnets();
+
+    RenderNode *sn = kern->GetRenderNode();
+
+    rc->SetScene(sn);
+    rc->SetRenderer(rend);
+    RenderingView *rv = new RenderingView();
+    rend->ProcessEvent().Attach(*rv);
+    rend->InitializeEvent().Attach(*rv);
+    cq->PushCanvas(rc);
+
+    wc->AddTextureWithText(rc->GetTexture(), "Spin Node");
 
 
     // WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), sim->GetKPlane(), *r, 1.0);

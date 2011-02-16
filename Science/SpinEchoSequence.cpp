@@ -137,7 +137,7 @@ void SpinEchoSequence::Reset() {
 
         time += 0.08;
         while (time < float(j)*tr + tr) {
-            e.action = 0;
+            e.action = MRIEvent::NONE;
             seq.push_back(make_pair(time, e));
             time += 0.08;
         }

@@ -36,6 +36,7 @@ SET( PROJECT_SOURCES
   Display/OpenGL/SpinCanvas.cpp
   Display/OpenGL/WindowCanvas.h
   Display/OpenGL/WindowCanvas.cpp
+  Science/Science.cpp
   Science/MRISim.h
   Science/MRISim.cpp
   Science/CPUKernel.h
@@ -49,6 +50,9 @@ SET( PROJECT_SOURCES
   Science/IRFCoil.h
   Science/TestRFCoil.h
   Science/TestRFCoil.cpp
+
+  Science/ExcitationPulseSequence.h
+  Science/ExcitationPulseSequence.cpp
 
   Science/FFTData.h
   Science/FFTData.cpp

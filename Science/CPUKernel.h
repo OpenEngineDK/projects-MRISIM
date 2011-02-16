@@ -15,6 +15,7 @@
 
 #include <Utils/IInspector.h>
 #include <Math/RandomGenerator.h>
+#include <Scene/RenderNode.h>
 
 namespace MRI {
 namespace Science {
@@ -22,9 +23,24 @@ namespace Science {
 using Resources::Phantom;
 using MRI::Scene::SpinNode;
 using OpenEngine::Math::RandomGenerator;
+using OpenEngine::Scene::RenderNode;
 
 class CPUKernel: public IMRIKernel {
 private:
+
+    class KernRenderNode : public RenderNode {
+        CPUKernel *kern;
+    protected:
+        friend class CPUKernel;
+        Vector<3,float> magnet;
+        Vector<3,float> rf;
+    public:
+        KernRenderNode(CPUKernel* k);
+        void Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v);
+    };
+
+    KernRenderNode *rn;
+
     Phantom phantom;
     Vector<3,float>* refMagnets, *labMagnets;
     float *eq, *deltaB0;
@@ -52,6 +68,8 @@ public:
     void Flop(unsigned int slice);
     Vector<3,float> GetSignal() const;
     Vector<3,float> GetGradient() const;
+
+    RenderNode *GetRenderNode();
 
 };
 

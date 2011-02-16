@@ -34,6 +34,7 @@ CPUKernel::CPUKernel()
     , gyro(GYRO_RAD) // radians/Tesla
 {
     randomgen.SeedWithTime();
+    rn = new KernRenderNode(this);
 }
 
 CPUKernel::~CPUKernel() {
@@ -77,9 +78,15 @@ void CPUKernel::Step(float dt, float time) {
     // float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
     const float omega0 = GYRO_RAD * b0;
-    const float omega0Angle = omega0*dt;
+    const float omega0Angle = omega0*time;
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    logger.info << "RFSIGNAL: " << rf << logger.end; 
+
+    rn->magnet = labMagnets[0];
+    rn->rf = rfSignal;
+
+    logger.info << "Ref " <<  refMagnets[0] << logger.end;
 
     for (unsigned int x = 0; x < width; ++x) {
         for (unsigned int y = 0; y < height; ++y) {
@@ -108,10 +115,10 @@ void CPUKernel::Step(float dt, float time) {
                 refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
                 
                 // add rf pulse and restore magnetization strength.
-                //float len = refMagnets[i].GetLength();
-                // refMagnets[i] = (refMagnets[i] + rf);
-                // refMagnets[i].Normalize();
-                // refMagnets[i] *= len;
+                float len = refMagnets[i].GetLength();
+                refMagnets[i] = (refMagnets[i] + rf);
+                refMagnets[i].Normalize();
+                refMagnets[i] *= len;
 
                 labMagnets[i] = 
                     RotateZ(omega0Angle, refMagnets[i]);
@@ -184,6 +191,41 @@ Vector<3,float>* CPUKernel::GetMagnets() const {
 
 Phantom CPUKernel::GetPhantom() const {
   return phantom;
+}
+
+RenderNode* CPUKernel::GetRenderNode() {
+    return rn;
+}
+
+CPUKernel::KernRenderNode::KernRenderNode(CPUKernel *k) : kern(k) {
+
+}
+
+void CPUKernel::KernRenderNode::Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v) {
+
+    using namespace OpenEngine::Renderers;
+
+    float scale = 10;
+
+    IRenderer& rend = arg.renderer;
+    Vector<3,float> zero(0,0,0);
+    
+    Line xaxis(zero, Vector<3,float>(1,0,0)*scale);
+    Line yaxis(zero, Vector<3,float>(0,1,0)*scale);
+    Line zaxis(zero, Vector<3,float>(0,0,1)*scale);
+
+    rend.DrawLine(xaxis, Vector<3,float>(1,0,0));
+    rend.DrawLine(yaxis, Vector<3,float>(0,1,0));
+    rend.DrawLine(zaxis, Vector<3,float>(0,0,1));
+
+    Line l(zero, magnet*scale);
+    Line l2(magnet*scale, (magnet*scale+rf*400));
+    
+    rend.DrawLine(l, Vector<3,float>(1,0,0),2);
+    rend.DrawLine(l2, Vector<3,float>(0,1,0),2);
+    
+
+
 }
 
 } // NS Science

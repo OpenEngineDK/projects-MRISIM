@@ -9,6 +9,7 @@
 
 
 #include "TestRFCoil.h"
+#include <Logging/Logger.h>
 
 namespace MRI {
 namespace Science {
@@ -19,6 +20,7 @@ TestRFCoil::TestRFCoil(float alpha, float b1, float tau)
     , b1(b1)
     , tau(tau)
     , halftime(tau*0.5)
+    , unitDirection(Vector<3,float>(1,0,0))
 {
 
 } 
@@ -29,6 +31,7 @@ TestRFCoil::~TestRFCoil() {
 
 Vector<3,float> TestRFCoil::GetSignal(const float time) {
     if (time < 0.0 || time > tau) return Vector<3,float>(0.0);
+    logger.info << "RF Time: " << time << logger.end;
     const float reltime = time - halftime;
     if (reltime == 0.0) return unitDirection*b1; // lim(sinc(x)) = 1.0, for x -> 0.0
     const float x = halfalpha*reltime;
