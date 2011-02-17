@@ -155,13 +155,9 @@ void MRIUI::SetupSim() {
 
     // --- init the simulator and kernel ---
     kern = new CPUKernel();
-
-
-
     seq = new SpinEchoSequence(500.0, 340.0, p);
     sim = new MRISim(p, kern, new ExcitationPulseSequence(p));
     //sim = new MRISim(p, kern, seq);
-
 
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);

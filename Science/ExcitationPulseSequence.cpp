@@ -29,14 +29,15 @@ ExcitationPulseSequence::ExcitationPulseSequence(Phantom phantom)
     //e.rfSignal = Vector<3,float>(1,0,0);
     seq.push_back(make_pair(time, e));
     float b0 = 0.5;
-    float bRF = 0.01;
+    float bRF = 23.51e-6;
     float w0 =  GYRO_RAD * b0;
     float w1 =  GYRO_RAD * bRF;
-    float totalTime = (Math::PI/2.0)/w1;
+    float totalTime = 0.001;
     
     logger.error << totalTime << logger.end;;
-    int count = 100;
+    int count = 10000;
     float dt = totalTime/float(count);
+    
 
     logger.error << dt << logger.end;
 
@@ -69,7 +70,7 @@ ExcitationPulseSequence::ExcitationPulseSequence(Phantom phantom)
     // // end
 
     e.action = MRIEvent::DONE;
-    time += 0.0;
+    time += 0.1;
     seq.push_back(make_pair(time, e));
 
     Sort();

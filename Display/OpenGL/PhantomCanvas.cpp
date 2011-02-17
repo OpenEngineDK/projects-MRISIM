@@ -51,7 +51,7 @@ PhantomCanvas::PhantomCanvas(ICanvasBackend* backend, Phantom phantom, unsigned 
                                                  3,
                                                  data));
         tex->SetWrapping(CLAMP);
-        tex->SetFiltering(BILINEAR);
+        tex->SetFiltering(NONE);
         sliceCanvas = new SliceCanvas(backend, tex, width, height);
     }
     

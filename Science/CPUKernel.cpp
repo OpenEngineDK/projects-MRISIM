@@ -73,20 +73,26 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
     return m*vec;
 }
 
+inline Vector<3,float> RotateX(float angle, Vector<3,float> vec) {
+    Matrix<3,3,float> m(1.0, 0.0, 0.0,
+                        0.0, cos(angle), sin(angle),
+                        0.0, -sin(angle), cos(angle));
+    return m*vec;
+}
+
 void CPUKernel::Step(float dt, float time) {
-    // float T_1 = 2200.0*1e-3;
-    // float T_2 = 500.0*1e-3;
     signal = Vector<3,float>();
     const float omega0 = GYRO_RAD * b0;
     const float omega0Angle = omega0*time;
+
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
-    logger.info << "RFSIGNAL: " << rf << logger.end; 
+    // logger.info << "RFSIGNAL: " << rf << logger.end; 
 
     rn->magnet = labMagnets[0];
     rn->rf = rfSignal;
 
-    logger.info << "Ref " <<  refMagnets[0] << logger.end;
+    // logger.info << "Ref " <<  refMagnets[0] << logger.end;
 
     for (unsigned int x = 0; x < width; ++x) {
         for (unsigned int y = 0; y < height; ++y) {
@@ -115,10 +121,15 @@ void CPUKernel::Step(float dt, float time) {
                 refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
                 
                 // add rf pulse and restore magnetization strength.
-                float len = refMagnets[i].GetLength();
-                refMagnets[i] = (refMagnets[i] + rf);
-                refMagnets[i].Normalize();
-                refMagnets[i] *= len;
+                // float len = refMagnets[i].GetLength();
+                // refMagnets[i] = (refMagnets[i] + rf);
+                // refMagnets[i].Normalize();
+                // refMagnets[i] *= len;
+
+                // logger.info << "Bx: " << rfSignal.Get(0) << logger.end;
+                // logger.info << "Bx': " << rf.Get(0) << logger.end;
+                // logger.info << "angle: " << rf.Get(0) * GYRO_RAD * dt << logger.end;
+                refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
 
                 labMagnets[i] = 
                     RotateZ(omega0Angle, refMagnets[i]);

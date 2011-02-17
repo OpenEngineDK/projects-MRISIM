@@ -35,7 +35,7 @@ Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
 }
 
 void SpinEchoSequence::SetSlice(unsigned int slice) {
-    logger.info <<  "setslice: " << slice << logger.end;
+    // logger.info <<  "setslice: " << slice << logger.end;
     if (slice < phantom.texr->GetDepth()) {
         this->slice = slice;
     }
