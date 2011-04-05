@@ -69,6 +69,9 @@ public:
     Vector<3,float> GetSignal() const;
     Vector<3,float> GetGradient() const;
 
+    void SetB0(float b0);
+    float GetB0() const;
+
     RenderNode *GetRenderNode();
 
 };

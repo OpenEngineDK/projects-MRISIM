@@ -66,13 +66,6 @@ void CPUKernel::Init(Phantom phantom) {
     Reset();
 }
 
-inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
-    Matrix<3,3,float> m(cos(angle), -sin(angle), 0.0,
-                        sin(angle), cos(angle), 0.0,
-                        0.0, 0.0, 1.0);
-    return m*vec;
-}
-
 inline Vector<3,float> RotateX(float angle, Vector<3,float> vec) {
     Matrix<3,3,float> m(1.0, 0.0, 0.0,
                         0.0, cos(angle), sin(angle),
@@ -80,16 +73,34 @@ inline Vector<3,float> RotateX(float angle, Vector<3,float> vec) {
     return m*vec;
 }
 
+inline Vector<3,float> RotateY(float angle, Vector<3,float> vec) {
+    Matrix<3,3,float> m(cos(angle), 0.0, sin(angle),
+                               0.0, 1.0,        0.0,
+                       -sin(angle), 0.0, cos(angle));
+    return m*vec;
+}
+
+inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
+    Matrix<3,3,float> m(cos(angle), -sin(angle), 0.0,
+                        sin(angle), cos(angle), 0.0,
+                        0.0, 0.0, 1.0);
+    return m*vec;
+}
+
+
 void CPUKernel::Step(float dt, float time) {
     signal = Vector<3,float>();
     const float omega0 = GYRO_RAD * b0;
-    const float omega0Angle = omega0*time;
+    const float omega0Angle = fmod(float(omega0*time), float(Math::PI * 2.0));
 
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    // const Vector<3,float> rf = rfSignal;
     // logger.info << "RFSIGNAL: " << rf << logger.end; 
-
-    rn->magnet = labMagnets[0];
+    // logger.info << "Bx: " << rf.Get(0) << logger.end;
+    // logger.info << "By: " << rf.Get(1) << logger.end;
+    
+    //rn->magnet = rfSignal.GetNormalize();
     rn->rf = rfSignal;
 
     // logger.info << "Ref " <<  refMagnets[0] << logger.end;
@@ -118,7 +129,12 @@ void CPUKernel::Step(float dt, float time) {
 
                 // logger.info << "dG: " << dG << logger.end;
                 // logger.info << "angle: " << gyro * (deltaB0[i] + dG) * dt << logger.end;
+                // Vector<3,float> v(deltaB0[i] + dG + rf + b0);
+                // Quaternion<float> q(v.GetLength()*GYRO_RAD*dt, v.GetNormalize());
+
                 refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
+
+                // labMagnets[i] = q.RotateVector(labMagnets[i]);
                 
                 // add rf pulse and restore magnetization strength.
                 // float len = refMagnets[i].GetLength();
@@ -128,9 +144,11 @@ void CPUKernel::Step(float dt, float time) {
 
                 // logger.info << "Bx: " << rfSignal.Get(0) << logger.end;
                 // logger.info << "Bx': " << rf.Get(0) << logger.end;
-                // logger.info << "angle: " << rf.Get(0) * GYRO_RAD * dt << logger.end;
-                refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
 
+                // refMagnets[i] = RotateX(rf.GetLength() * GYRO_RAD * dt, refMagnets[i]);
+                refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
+                refMagnets[i] = RotateY(rf.Get(1) * GYRO_RAD * dt, refMagnets[i]);
+                
                 labMagnets[i] = 
                     RotateZ(omega0Angle, refMagnets[i]);
                     // Vector<3,float>(refMagnets[i][0] * cos(omega0Angle) - refMagnets[i][1] * sin(omega0Angle), 
@@ -153,6 +171,14 @@ void CPUKernel::Flop(unsigned int slice) {
 
 Vector<3,float> CPUKernel::GetSignal() const {
     return signal;
+}
+
+void CPUKernel::SetB0(float b0) {
+    this->b0 = b0;
+}
+
+float CPUKernel::GetB0() const {
+    return b0;
 }
 
 void CPUKernel::RFPulse(float angle, unsigned int slice) {

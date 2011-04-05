@@ -38,6 +38,8 @@
 
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
+#include "Display/InitCanvasQueue.h"
+
 
 #include "Scene/SpinNode.h"
 
@@ -46,6 +48,9 @@
 
 #include "Science/ImageFFT.h"
 #include "Science/CPUFFT.h"
+
+#include "Science/RFTester.h"
+#include "Science/TestRFCoil.h"
 
 // #include "Science/OpenCLTest.h"
 
@@ -69,6 +74,9 @@ using namespace MRI::Science;
 using namespace MRI::Resources;
 using namespace MRI::Display::OpenGL;
 
+
+
+ExcitationPulseSequence *rfTestSequence = NULL;
 
 void MRIUI::SetupPlugins() {
     DirectoryManager::AppendPath("projects/MRISIM/data/");
@@ -120,15 +128,22 @@ void MRIUI::SetupCanvas() {
     tl = new TextureLoader(*r);
     r->PreProcessEvent().Attach(*tl);
 
-    wc = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
-
-    mouse->MouseMovedEvent().Attach(*wc);
-    mouse->MouseButtonEvent().Attach(*wc);
+    wcSim = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
+    wcRF = new WallCanvas(new TextureCopy(), *r, *tl, font, new GridLayout());
 
     // push canvases on the queue to get processing time.
+
     cq = new CanvasQueue();
-    cq->PushCanvas(wc);
     frame->SetCanvas(cq);
+
+    cSwitch = new CanvasSwitch(wcSim);
+    cq->PushCanvas(cSwitch);
+ 
+    InitCanvasQueue* icq = new InitCanvasQueue();
+    icq->PushCanvas(wcSim);
+    icq->PushCanvas(wcRF);
+    cq->PushCanvas(icq);
+
 }
 
 void MRIUI::SetupSim() {
@@ -151,12 +166,12 @@ void MRIUI::SetupSim() {
     phantomCanvas = new PhantomCanvas(new TextureCopy(), p, texWidth, texHeight);
     // tl->Load(phantomCanvas->GetSliceCanvas()->GetSourceTexture());
     cq->PushCanvas(phantomCanvas);
-    wc->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
+    wcSim->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
 
     // --- init the simulator and kernel ---
     kern = new CPUKernel();
     seq = new SpinEchoSequence(500.0, 340.0, p);
-    sim = new MRISim(p, kern, new ExcitationPulseSequence(p));
+    sim = new MRISim(p, kern, rfTestSequence);
     //sim = new MRISim(p, kern, seq);
 
     engine->InitializeEvent().Attach(*sim);
@@ -166,20 +181,20 @@ void MRIUI::SetupSim() {
     // --- visualise transverse spins, slice by slice ---
     spinCanvas = new SpinCanvas(new TextureCopy(), *kern, *r, texWidth, texHeight);
     cq->PushCanvas(spinCanvas);
-    wc->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
+    wcSim->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
 
     // --- visualise the output samples ---
     Sample3DTexture* sampleTex = new Sample3DTexture(sim->GetSamples(), sim->GetSampleDimensions(), true);
     sim->SamplesChangedEvent().Attach(*sampleTex);
     samplesCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(sampleTex), texWidth, texHeight);
     cq->PushCanvas(samplesCanvas);
-    wc->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
+    wcSim->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
 
     // --- reconstruct and visualize ---
     fft = new CartesianFFT(*(new CPUFFT()), sim->GetSamples(), sim->GetSampleDimensions(), true);
     fftCanvas = new SliceCanvas(new TextureCopy(), fft->GetResult(), texWidth, texHeight);
     cq->PushCanvas(fftCanvas);
-    wc->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
+    wcSim->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
         
     
     RenderCanvas *rc = new RenderCanvas(new TextureCopy(), Vector<2,int>(200,200));
@@ -202,7 +217,7 @@ void MRIUI::SetupSim() {
     rend->InitializeEvent().Attach(*rv);
     cq->PushCanvas(rc);
 
-    wc->AddTextureWithText(rc->GetTexture(), "Spin Node");
+    wcSim->AddTextureWithText(rc->GetTexture(), "RF Node");
 
 
     // WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), sim->GetKPlane(), *r, 1.0);
@@ -218,6 +233,31 @@ void MRIUI::SetupSim() {
 
     // tl->Load(plot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
     // tl->Load(fftPlot->GetTexture(), TextureLoader::RELOAD_IMMEDIATE);
+}
+
+void MRIUI::SetupRF() {
+    TestRFCoil* rfcoil = new TestRFCoil(.005, 1.0, GYRO_RAD, 1000 * Math::PI);
+    RFTester* tester = new RFTester(*(new CPUFFT()), rfcoil, 600, 200);
+    tl->Load(tester->GetTimeTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    tl->Load(tester->GetFrequencyTexture(), TextureLoader::RELOAD_IMMEDIATE);
+    wcRF->AddTextureWithText(tester->GetTimeTexture(), "RF Pulse Time Domain");
+    wcRF->AddTextureWithText(tester->GetFrequencyTexture(), "RF Pulse Frequency Domain");
+    tester->RunTest();
+
+    InspectionWidget *iw4 = new InspectionWidget("RFTester", tester->Inspect());
+    InspectionWidget *iw5 = new InspectionWidget("RFCoil", rfcoil->Inspect());
+    iw4->setMinimumWidth(300);
+    iw5->setMinimumWidth(300);
+    engine->ProcessEvent().Attach(*iw4);
+    engine->ProcessEvent().Attach(*iw5);
+
+    dwI4 = new QDockWidget("RFTester", this);
+    dwI4->setWidget(iw4);
+    
+    dwI5 = new QDockWidget("RFCoil", this);
+    dwI5->setWidget(iw5);
+
+    rfTestSequence = new ExcitationPulseSequence(rfcoil);
 }
 
 void MRIUI::LoadResources() {
@@ -416,6 +456,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     SetupCanvas();
     SetupWall();
     SetupOpenCL();
+    SetupRF();
     SetupSim();
  
     QApplication *app = env->GetApplication();
@@ -423,10 +464,18 @@ MRIUI::MRIUI(QtEnvironment *env) {
     //app->setStyle("motif");
     app->setStyle("clearlooks");
 
+    QGLWidget* glw = env->GetGLWidget();
+    glw->setMaximumSize(glw->minimumSize());
     ui = new Ui::MRIUI();
     ui->setupUi(this);
-    ui->topLayout->addWidget(env->GetGLWidget());
+    ui->glLayout->addWidget(glw);
 
+    QObject::connect(ui->radioSim, SIGNAL(toggled(bool)),
+                     this, SLOT(SetSimView(bool)));
+
+    QObject::connect(ui->radioRF, SIGNAL(toggled(bool)),
+                     this, SLOT(SetRFView(bool)));
+    
     Slicer slicer(spinCanvas, fft, seq);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
     slicer.slices.push_back(samplesCanvas);
@@ -453,29 +502,85 @@ MRIUI::MRIUI(QtEnvironment *env) {
     iw3->setMinimumWidth(300);
     setup->GetEngine().ProcessEvent().Attach(*iw3);
 
-    QDockWidget *dwI  = new QDockWidget("Slicer",this);
-    QDockWidget *dwI1 = new QDockWidget("Simulator ",this);
-    QDockWidget *dwI2 = new QDockWidget("Sequence ",this);
-    QDockWidget *dwI3 = new QDockWidget("Kernel",this);
+
+
+    dwI  = new QDockWidget("Slicer",this);
+    dwI1 = new QDockWidget("Simulator ",this);
+    dwI2 = new QDockWidget("Sequence ",this);
+    dwI3 = new QDockWidget("Kernel",this);
 
     dwI->setWidget(iw);
     dwI1->setWidget(iw1);
     dwI2->setWidget(iw2);
     dwI3->setWidget(iw3);
-    
-    addDockWidget(Qt::RightDockWidgetArea, dwI);
-    addDockWidget(Qt::RightDockWidgetArea, dwI1);
-    addDockWidget(Qt::RightDockWidgetArea, dwI2);
-    addDockWidget(Qt::RightDockWidgetArea, dwI3);
 
-    ui->menuView->addAction(dwI->toggleViewAction());
-    ui->menuView->addAction(dwI1->toggleViewAction());
-    ui->menuView->addAction(dwI2->toggleViewAction());
-    ui->menuView->addAction(dwI3->toggleViewAction());
-
+    SetSimView(true);
+    SetRFView(false);
     show();
     setup->GetEngine().Start();
 }
+
+void MRIUI::SetSimView(bool toggle) {
+    if (toggle) {
+        mouse->MouseMovedEvent().Attach(*wcSim);
+        mouse->MouseButtonEvent().Attach(*wcSim);
+        cSwitch->SetCanvas(wcSim);
+
+        addDockWidget(Qt::RightDockWidgetArea, dwI);
+        addDockWidget(Qt::RightDockWidgetArea, dwI1);
+        addDockWidget(Qt::RightDockWidgetArea, dwI2);
+        addDockWidget(Qt::RightDockWidgetArea, dwI3);
+        
+        dwI->show();
+        dwI1->show();
+        dwI2->show();
+        dwI3->show();
+      
+        ui->menuView->addAction(dwI->toggleViewAction());
+        ui->menuView->addAction(dwI1->toggleViewAction());
+        ui->menuView->addAction(dwI2->toggleViewAction());
+        ui->menuView->addAction(dwI3->toggleViewAction());
+    }
+    else {
+        removeDockWidget(dwI);
+        removeDockWidget(dwI1);
+        removeDockWidget(dwI2);
+        removeDockWidget(dwI3);
+
+        ui->menuView->removeAction(dwI->toggleViewAction());
+        ui->menuView->removeAction(dwI1->toggleViewAction());
+        ui->menuView->removeAction(dwI2->toggleViewAction());
+        ui->menuView->removeAction(dwI3->toggleViewAction());
+
+        mouse->MouseMovedEvent().Detach(*wcSim);
+        mouse->MouseButtonEvent().Detach(*wcSim);
+    }
+}
+
+void MRIUI::SetRFView(bool toggle) {
+    if (toggle) {
+        mouse->MouseMovedEvent().Attach(*wcRF);
+        mouse->MouseButtonEvent().Attach(*wcRF);
+        cSwitch->SetCanvas(wcRF);
+
+        addDockWidget(Qt::RightDockWidgetArea, dwI4);
+        addDockWidget(Qt::RightDockWidgetArea, dwI5);
+        ui->menuView->addAction(dwI4->toggleViewAction());
+        ui->menuView->addAction(dwI5->toggleViewAction());
+        dwI4->show();
+        dwI5->show();
+    }
+    else {
+        removeDockWidget(dwI4);
+        removeDockWidget(dwI5);
+        ui->menuView->removeAction(dwI4->toggleViewAction());
+        ui->menuView->removeAction(dwI5->toggleViewAction());
+
+        mouse->MouseMovedEvent().Detach(*wcRF);
+        mouse->MouseButtonEvent().Detach(*wcRF);
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 

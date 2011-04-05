@@ -30,6 +30,8 @@ SET( PROJECT_SOURCES
   Resources/Sample3DTexture.cpp
 
 
+  Display/CanvasSwitch.h
+  Display/CanvasSwitch.cpp
   Display/OpenGL/PhantomCanvas.h
   Display/OpenGL/PhantomCanvas.cpp
   Display/OpenGL/SpinCanvas.h
@@ -41,8 +43,10 @@ SET( PROJECT_SOURCES
   Science/MRISim.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
-  Science/AcquisitionData.h
-  Science/AcquisitionData.cpp
+  Science/UniformSampler.h
+  Science/UniformSampler.cpp
+  Science/FrequencyData.h
+  Science/FrequencyData.cpp
   Science/SpinEchoSequence.h
   Science/SpinEchoSequence.cpp
   Science/ListSequence.h
@@ -51,11 +55,14 @@ SET( PROJECT_SOURCES
   Science/TestRFCoil.h
   Science/TestRFCoil.cpp
 
+  Science/RFTester.h
+  Science/RFTester.cpp
+
   Science/ExcitationPulseSequence.h
   Science/ExcitationPulseSequence.cpp
 
-  Science/FFTData.h
-  Science/FFTData.cpp
+  # Science/FFTData.h
+  # Science/FFTData.cpp
 
   Science/IFFT.h
   Science/CPUFFT.h

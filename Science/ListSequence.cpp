@@ -39,7 +39,11 @@ pair<float, MRIEvent> ListSequence::GetNextPoint() {
     return seq[index++];
 }
 
-void ListSequence::Reset() {
+bool ListSequence::HasNextPoint() const {
+    return !(index == seq.size());
+}
+
+void ListSequence::Reset(MRISim& sim) {
     index = 0;
 }
 

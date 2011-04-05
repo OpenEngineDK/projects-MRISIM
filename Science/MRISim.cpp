@@ -31,11 +31,12 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     , running(false)
 {
     kernel->Init(phantom);
-    Vector<3,unsigned int> dims; 
-    if (sequence)
-        dims = sequence->GetTargetDimensions();
-    samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
-                                      complex<float>(0.0,0.0));
+    Reset();
+    // Vector<3,unsigned int> dims; 
+    // if (sequence)
+    //     dims = sequence->GetTargetDimensions();
+    // samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
+    //                                   complex<float>(0.0,0.0));
 }
 
 MRISim::~MRISim() {
@@ -61,7 +62,7 @@ void MRISim::Reset() {
     Vector<3,unsigned int> dims; 
     if(sequence) {
         dims = sequence->GetTargetDimensions();
-        sequence->Reset();
+        sequence->Reset(*this);
     }
     samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
                                       complex<float>(0.0,0.0));
@@ -87,7 +88,13 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         MRIEvent event;
         pair<float,MRIEvent> nextEvent;
         if (sequence) {
-            nextEvent = sequence->GetNextPoint();
+            if (sequence->HasNextPoint()) {
+                nextEvent = sequence->GetNextPoint();
+            }
+            else {
+                nextEvent = prevEvent;
+                nextEvent.second.action = MRIEvent::DONE;
+            }
             nextTime = nextEvent.first;
             prevTime = prevEvent.first;
             event = prevEvent.second;
@@ -117,18 +124,18 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         }
 
         if (event.action & MRIEvent::GRADIENT) {
-            logger.info << "Gradient vector set to: " << event.gradient << "." << logger.end;
+            // logger.info << "Gradient vector set to: " << event.gradient << "." << logger.end;
             kernel->SetGradient(event.gradient);
         }
 
         if (event.action & MRIEvent::RFPULSE) {
-            logger.info << "RFPulse :" << event.rfSignal << logger.end;
+            // logger.info << "RFPulse :" << event.rfSignal << logger.end;
             kernel->SetRFSignal(event.rfSignal);
         }
 
         theSimTime += kernelStep;
         kernel->Step(kernelStep, theSimTime);
-        logger.info << "Kernel step: " << kernelStep << logger.end;
+        // logger.info << "Kernel step: " << kernelStep << logger.end;
 
         stepEvent.Notify(StepEventArg(*this));
         
@@ -151,6 +158,14 @@ void MRISim::SetStepSize(float dt) {
 
 float MRISim::GetStepSize() {
     return kernelStep;
+}
+
+void MRISim::SetB0(float b0) {
+    kernel->SetB0(b0);
+}
+
+float MRISim::GetB0() {
+    return kernel->GetB0();
 }
 
 void MRISim::SetStepsPerSecond(float steps) {

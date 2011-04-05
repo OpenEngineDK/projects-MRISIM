@@ -28,7 +28,8 @@ public:
     virtual ~ListSequence();
     MRIEvent GetEvent(float time);
     pair<float, MRIEvent> GetNextPoint();
-    virtual void Reset();
+    virtual void Reset(MRISim& sim);
+    virtual bool HasNextPoint() const;
     void Sort();
     void Clear();
 };

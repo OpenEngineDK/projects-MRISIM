@@ -12,7 +12,6 @@
 
 #include "../Resources/Phantom.h"
 #include "../EventTimer.h"
-#include "AcquisitionData.h"
 
 #include <Core/IModule.h>
 #include <Core/Event.h>
@@ -71,12 +70,15 @@ public:
     virtual ~MRIEvent() {};
 };
 
+class MRISim;
+
 class IMRISequence {
 public:
     virtual ~IMRISequence() {}
     // virtual MRIEvent GetEvent(float time) = 0;
     virtual pair<float, MRIEvent> GetNextPoint() = 0;
-    virtual void Reset() = 0;
+    virtual bool HasNextPoint() const = 0;
+    virtual void Reset(MRISim& sim) = 0; // recalculate the points based on the simulator parameters.
     // tells the simulator to allocate an output array of the specified dimensions
     virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
 
@@ -97,11 +99,12 @@ public:
     virtual void SetGradient(Vector<3,float> gradient) = 0; // apply a gradient vector
     virtual Vector<3,float> GetGradient() const = 0; // get the current gradient vector
 
+    virtual void SetB0(float b0) = 0;
+    virtual float GetB0() const = 0;
+
     virtual void SetRFSignal(Vector<3,float> signal) = 0;   // apply an rf vector. (Slower than RFPulse, but much more precise).
     virtual void Reset() = 0;                    // reset spin states to equilibrium. (Quick an dirty way to force spin relaxation).
 };
-
-class MRISim;
 
 
 struct SamplesChangedEventArg {
@@ -147,6 +150,8 @@ public:
     float GetStepSize();
     void SetStepsPerSecond(float);
     float GetStepsPerSecond();
+    void SetB0(float);
+    float GetB0();
 
     vector<complex<float> >& GetSamples();
     Vector<3,unsigned int> GetSampleDimensions();

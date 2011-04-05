@@ -42,7 +42,7 @@ public:
     float GetTR();
     float GetTE();
 
-    void Reset();
+    void Reset(MRISim& sim);
     Utils::Inspection::ValueList Inspect();
 
 };

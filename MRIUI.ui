@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>557</width>
-    <height>406</height>
+    <width>675</width>
+    <height>549</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,38 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="topLayout"/>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="spacing">
+         <number>6</number>
+        </property>
+        <item>
+         <widget class="QRadioButton" name="radioSim">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="text">
+           <string>Simulation View</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioRF">
+          <property name="text">
+           <string>RF view</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="glLayout"/>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -28,11 +59,17 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>557</width>
-     <height>22</height>
+     <width>675</width>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
     <property name="title">
      <string>View</string>
     </property>

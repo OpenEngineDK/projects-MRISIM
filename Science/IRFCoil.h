@@ -27,6 +27,7 @@ class IRFCoil {
 public:
     virtual ~IRFCoil() {}
     virtual Vector<3,float> GetSignal(const float time) = 0;
+    virtual float GetDuration() = 0;
 };
 
 }

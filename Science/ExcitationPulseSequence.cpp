@@ -12,75 +12,64 @@
 namespace MRI {
 namespace Science {
 
-ExcitationPulseSequence::ExcitationPulseSequence(Phantom phantom)
+ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil)
     : ListSequence(seq)
-    , phantom(phantom)
-    , dims(Vector<3,unsigned int>(phantom.texr->GetWidth(),
-                                  phantom.texr->GetHeight(),
-                                  phantom.texr->GetDepth()))
+    , rfcoil(rfcoil)
 {
-    MRIEvent e;
-    
-    float time = 0;
-
-    e.action = MRIEvent::RFPULSE ;
-    //e.action = MRIEvent::EXCITE ;
-    //e.angleRF = Math::PI*0.5;
-    //e.rfSignal = Vector<3,float>(1,0,0);
-    seq.push_back(make_pair(time, e));
-    float b0 = 0.5;
-    float bRF = 23.51e-6;
-    float w0 =  GYRO_RAD * b0;
-    float w1 =  GYRO_RAD * bRF;
-    float totalTime = 0.001;
-    
-    logger.error << totalTime << logger.end;;
-    int count = 10000;
-    float dt = totalTime/float(count);
-    
-
-    logger.error << dt << logger.end;
-
-    for (int i=0;i<count;i++) {
-        //e.action = MRIEvent::NONE;
-        e.action = MRIEvent::RFPULSE;
-        int dir = (i % 2)*2-1; // 0-1
-        
-        time += dt;
-        
-
-        e.rfSignal = Vector<3,float>(bRF*sin(w0 * time),0,0);
-        
-        seq.push_back(make_pair(time, e));
-
-    }
-
-    // for (int i=0;i<100;i++) {
-    //     // simulate a bit
-    //     e.action = MRIEvent::NONE;
-    //     time += 0.001;
-    //     seq.push_back(make_pair(time, e));
-
-    // }
-
-    // // simulate a bit
-    // e.action = MRIEvent::NONE;
-    // time += 4.0;
-    // seq.push_back(make_pair(time, e));
-    // // end
-
-    e.action = MRIEvent::DONE;
-    time += 0.1;
-    seq.push_back(make_pair(time, e));
-
-    Sort();
-    
 }
 
 ExcitationPulseSequence::~ExcitationPulseSequence() {}
 
 Vector<3,unsigned int> ExcitationPulseSequence::GetTargetDimensions() {
-    return dims;
+    return Vector<3,unsigned int>(1);
+}
+
+void ExcitationPulseSequence::Reset(MRISim& sim) {
+    Clear();
+    MRIEvent e;
+
+    e.action = MRIEvent::RFPULSE | MRIEvent::GRADIENT;
+    float Gz = 50e-3; // slice gradient magnitude
+
+    e.gradient = Vector<3,float>(1.0, 1.0, 0.0); // slice normal (gradient direction)
+    e.gradient.Normalize();
+    e.gradient *= Gz;
+
+    const unsigned int lobes = 6; 
+    const float d = 0.04; // thickness in meters
+    const float offset = 0.0; // slice plane offset from magnetic center in meters.
+    const float tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
+    const float flipAngle = Math::PI / 6.0;//Math::PI * 0.5;
+    const float ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
+
+    const float totalTime = tauPrime * float(lobes);
+    const unsigned int steps = 2000; // number of steps
+    const float dt = totalTime / float(steps);
+
+    float w0 = sim.GetB0() * GYRO_RAD;
+    rfcoil->SetDuration(totalTime);
+    rfcoil->SetAmplitude(ampl);
+    rfcoil->SetChannel(w0 + offset * Gz * GYRO_RAD);
+    rfcoil->SetBandwidth(d * Gz * GYRO_RAD);
+    
+    float time = 0.0;
+    for (unsigned int i = 0; i < steps; ++i) {
+        e.rfSignal = rfcoil->GetSignal(time);
+        seq.push_back(make_pair(time, e));
+        time += dt;
+    }
+
+    // e.action = MRIEvent::GRADIENT;
+    e.gradient = -e.gradient;
+    e.rfSignal = Vector<3,float>(0.0);
+    seq.push_back(make_pair(time, e));
+
+    // e.action |= MRIEvent::DONE;
+    e.gradient = Vector<3,float>(0.0);
+    time += totalTime * 0.5;
+    seq.push_back(make_pair(time, e));
+
+    Sort();
 }
 
 

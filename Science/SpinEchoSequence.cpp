@@ -23,7 +23,6 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
                            phantom.texr->GetDepth()))
     , slice(0)
 {
-    Reset();
 }
 
     
@@ -65,7 +64,7 @@ float SpinEchoSequence::GetTE() {
         return te*1e3;
 }
 
-void SpinEchoSequence::Reset() {
+void SpinEchoSequence::Reset(MRISim& sim) {
     ListSequence::Clear();
 
     logger.info <<  "slice: " << slice << logger.end;

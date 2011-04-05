@@ -13,6 +13,9 @@
 
 #include "ListSequence.h"
 
+#include "MRISim.h"
+#include "TestRFCoil.h"
+
 namespace MRI {
 namespace Science {
 
@@ -23,17 +26,16 @@ namespace Science {
  */
 class ExcitationPulseSequence: public ListSequence {
 private:
-    Phantom phantom;
     vector<pair<float, MRIEvent> > seq;
-    Vector<3,unsigned int> dims;
-
+    TestRFCoil* rfcoil;
 public:
-    ExcitationPulseSequence(Phantom phantom);
+    ExcitationPulseSequence(TestRFCoil* rfcoil);
 
     virtual ~ExcitationPulseSequence(); 
 
     Vector<3,unsigned int> GetTargetDimensions(); 
     
+    void Reset(MRISim& sim);
 };
 
 } // NS Science

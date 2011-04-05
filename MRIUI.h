@@ -27,6 +27,8 @@
 #include "Science/CartesianFFT.h"
 #include "Science/SpinEchoSequence.h"
 
+#include "Display/CanvasSwitch.h"
+
 
 namespace Ui { class MRIUI; }
 
@@ -77,7 +79,8 @@ class MRIUI : public QMainWindow {
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
     CartesianFFT* fft;
-    WallCanvas* wc;
+    WallCanvas* wcSim, *wcRF; 
+    CanvasSwitch* cSwitch;
     CanvasQueue* cq;
     MathGLPlot* plot;
     MathGLPlot* fftPlot;
@@ -85,15 +88,21 @@ class MRIUI : public QMainWindow {
     TextureLoader* tl;
     MRI::Scene::SpinNode *spinNode;
 
+    QDockWidget *dwI, *dwI1, *dwI2, *dwI3, *dwI4, *dwI5;
     
     void SetupPlugins();
     void SetupCanvas();
     void SetupWall();
     void SetupSim();
+    void SetupRF();
     void SetupOpenCL();
     void LoadResources();
 
     void Exit();
+
+public slots:
+    void SetSimView(bool toggle);
+    void SetRFView(bool toggle);
 public:
     MRIUI(OpenEngine::Display::QtEnvironment *env);    
 
