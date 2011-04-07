@@ -50,6 +50,8 @@ private:
     float b0, gyro;
     Vector<3,float> signal;
     RandomGenerator randomgen;
+    
+    double time;
 
     inline float RandomAttribute(float base, float variance);
 public:
@@ -57,7 +59,7 @@ public:
     virtual ~CPUKernel();
 
     void Init(Phantom phantom);
-    void Step(float dt, float time);    
+    void Step(float dt);    
     Vector<3,float>* GetMagnets() const;
     Phantom GetPhantom() const;
     void RFPulse(float angle, unsigned int slice);

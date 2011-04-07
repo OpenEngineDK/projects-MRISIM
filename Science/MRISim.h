@@ -76,11 +76,13 @@ class IMRISequence {
 public:
     virtual ~IMRISequence() {}
     // virtual MRIEvent GetEvent(float time) = 0;
-    virtual pair<float, MRIEvent> GetNextPoint() = 0;
+    virtual pair<double, MRIEvent> GetNextPoint() = 0;
     virtual bool HasNextPoint() const = 0;
-    virtual void Reset(MRISim& sim) = 0; // recalculate the points based on the simulator parameters.
+    // recalculate the points based on the simulator parameters.
+    virtual void Reset(MRISim& sim) = 0; 
     // tells the simulator to allocate an output array of the specified dimensions
     virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
+    virtual double GetDuration() = 0; 
 
 };
 
@@ -89,7 +91,7 @@ protected:
 public:
     virtual ~IMRIKernel() {}
     virtual void Init(Phantom phantom) = 0;      // initialize kernel state to reflect the given phantom
-    virtual void Step(float dt, float time) = 0; // take a simulation step
+    virtual void Step(float dt) = 0; // take a simulation step
 
     virtual Phantom GetPhantom() const = 0;            // get the current phantom
     virtual Vector<3,float> GetSignal() const = 0;     // get the current total magnetization (sum of all spins)
@@ -124,10 +126,11 @@ private:
     Phantom phantom;
     IMRIKernel* kernel;
     IMRISequence* sequence;
-    float kernelStep, stepsPerSecond, theAccTime, theSimTime;
+    float kernelStep, stepsPerSecond, theAccTime;
+    double theSimTime;
     bool running;
     vector<complex<float> > samples;
-    pair<float,MRIEvent> prevEvent;
+    pair<double,MRIEvent> prevEvent;
     Event<StepEventArg> stepEvent;
     Event<SamplesChangedEventArg> samplesEvent;
 public:
@@ -156,7 +159,8 @@ public:
     vector<complex<float> >& GetSamples();
     Vector<3,unsigned int> GetSampleDimensions();
     
-    
+    Phantom GetPhantom();
+
     Utils::Inspection::ValueList Inspect();
 };
 

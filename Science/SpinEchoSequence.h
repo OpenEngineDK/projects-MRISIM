@@ -24,17 +24,15 @@ using namespace Utils::Inspection;
 class SpinEchoSequence: public ListSequence {
 private:
     float tr, te, fov;
-    Phantom phantom;
-    vector<pair<float, MRIEvent> > seq;
+    // Phantom phantom;
+    vector<pair<double, MRIEvent> > seq;
     Vector<3,unsigned int> dims;
-    unsigned int slice;
 public:
-    SpinEchoSequence(float tr, float te, Phantom phantom);
+    SpinEchoSequence(float tr, float te);
     virtual ~SpinEchoSequence();
 
     Vector<3,unsigned int> GetTargetDimensions(); 
 
-    void SetSlice(unsigned int slice);
     void SetFOV(float fov);
     void SetTR(float tr);
     void SetTE(float te);

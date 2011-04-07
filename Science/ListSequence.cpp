@@ -14,7 +14,7 @@
 namespace MRI {
 namespace Science {
 
-ListSequence::ListSequence(vector<pair<float, MRIEvent> >& seq)
+ListSequence::ListSequence(vector<pair<double, MRIEvent> >& seq)
     : seq(seq), index(0)
 {
         
@@ -25,22 +25,32 @@ ListSequence::~ListSequence() {
 }
 
 // warning: for now do not mix calls to GetEvent with calls to GetNextPoint;
-MRIEvent ListSequence::GetEvent(float time) {
-    MRIEvent state;
-    if (index >= seq.size()) return state;
-    if (seq[index].first <= time)
-        return seq[index++].second;
-    return state;
-}
+// MRIEvent ListSequence::GetEvent(float time) {
+//     MRIEvent state;
+//     if (index >= seq.size()) return state;
+//     if (seq[index].first <= time)
+//         return seq[index++].second;
+//     return state;
+// }
 
 // warning: for now do not mix calls to GetEvent with calls to GetNextPoint;
-pair<float, MRIEvent> ListSequence::GetNextPoint() {
+pair<double, MRIEvent> ListSequence::GetNextPoint() {
     if (index == seq.size()) throw Exception("no more time points");
     return seq[index++];
 }
 
 bool ListSequence::HasNextPoint() const {
     return !(index == seq.size());
+}
+
+// vector<pair<double, MRIEvent> > ListSequence::GetPoints() {
+//     return seq;
+// }
+
+double ListSequence::GetDuration() {
+    if (seq.empty()) 
+        return 0.0;
+    return seq[seq.size()-1].first - seq[0].first;
 }
 
 void ListSequence::Reset(MRISim& sim) {

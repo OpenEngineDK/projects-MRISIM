@@ -61,8 +61,8 @@ void MRISim::Reset() {
     kernel->Reset();
     Vector<3,unsigned int> dims; 
     if(sequence) {
-        dims = sequence->GetTargetDimensions();
         sequence->Reset(*this);
+        dims = sequence->GetTargetDimensions();
     }
     samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
                                       complex<float>(0.0,0.0));
@@ -81,12 +81,12 @@ void MRISim::Handle(Core::DeinitializeEventArg arg) {
 void MRISim::Handle(Core::ProcessEventArg arg) {
     if (!running) return;
     theAccTime += arg.approx * 1e-6;
-    float stepTime = 1.0 / stepsPerSecond;
+    double stepTime = 1.0 / stepsPerSecond;
     while (theAccTime - stepTime > 0.0) {
         theAccTime -= stepTime;
-        float prevTime, nextTime;
+        double prevTime, nextTime;
         MRIEvent event;
-        pair<float,MRIEvent> nextEvent;
+        pair<double,MRIEvent> nextEvent;
         if (sequence) {
             if (sequence->HasNextPoint()) {
                 nextEvent = sequence->GetNextPoint();
@@ -103,7 +103,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         }
 
         if (event.action & MRIEvent::RECORD) {
-            logger.info << "Record magnetization into grid point: " << event.point << logger.end;
+            // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
             Vector<3,float> signal = kernel->GetSignal();
             complex<double> sample = complex<double>(signal[0], signal[1]);
             unsigned int index = event.point[0] + 
@@ -114,34 +114,38 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         } 
 
         if (event.action & MRIEvent::RESET) {
-            logger.info << "Reset magnetization to equilibrium." << logger.end;
+            // logger.info << "Time: " << theSimTime << ", Reset magnetization to equilibrium." << logger.end;
             kernel->Reset();
         }
 
         if (event.action & MRIEvent::EXCITE) {
-            logger.info << "Instant excitation: " << event.angleRF * (180.0 / Math::PI) <<  " deg." << logger.end;
+            logger.info << "Time: " << theSimTime << ", Instant excitation: " << event.angleRF * (180.0 / Math::PI) <<  " deg." << logger.end;
             kernel->RFPulse(event.angleRF, event.slice);
         }
 
         if (event.action & MRIEvent::GRADIENT) {
-            // logger.info << "Gradient vector set to: " << event.gradient << "." << logger.end;
+            // logger.info << "Time: " << theSimTime << ", Gradient vector set to: " << event.gradient << "." << logger.end;
             kernel->SetGradient(event.gradient);
         }
 
         if (event.action & MRIEvent::RFPULSE) {
-            // logger.info << "RFPulse :" << event.rfSignal << logger.end;
+            // logger.info << "Time: " << theSimTime << ", RFPulse :" << event.rfSignal << logger.end;
             kernel->SetRFSignal(event.rfSignal);
         }
 
         theSimTime += kernelStep;
-        kernel->Step(kernelStep, theSimTime);
-        // logger.info << "Kernel step: " << kernelStep << logger.end;
+        if (kernelStep > 0.0) {
+            kernel->Step(kernelStep);
+            // logger.info << "doing Kernel step: " << kernelStep << logger.end;
+            stepEvent.Notify(StepEventArg(*this));
+        }
+        else {
+            logger.info << "not doing Kernel step <= 0.0: " << kernelStep << logger.end;
 
-        stepEvent.Notify(StepEventArg(*this));
-        
+        }
         // stop the simulation if next event is a DONE signal
         if (nextEvent.second.action & MRIEvent::DONE) {
-            logger.info << "Simulation sequence finished." << logger.end;
+            logger.info << "Time: " << theSimTime << ", Simulation sequence finished." << logger.end;
             Stop();
             break;
         }
@@ -166,6 +170,10 @@ void MRISim::SetB0(float b0) {
 
 float MRISim::GetB0() {
     return kernel->GetB0();
+}
+
+Phantom MRISim::GetPhantom() {
+    return phantom;
 }
 
 void MRISim::SetStepsPerSecond(float steps) {

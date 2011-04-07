@@ -21,17 +21,17 @@ using std::vector;
 
 class ListSequence: public IMRISequence {
 private:
-    vector<pair<float, MRIEvent> >& seq;
+    vector<pair<double, MRIEvent> >& seq;
     unsigned int index;
 public:
-    ListSequence(vector<pair<float, MRIEvent> >& seq);
+    ListSequence(vector<pair<double, MRIEvent> >& seq);
     virtual ~ListSequence();
-    MRIEvent GetEvent(float time);
-    pair<float, MRIEvent> GetNextPoint();
+    pair<double, MRIEvent> GetNextPoint();
     virtual void Reset(MRISim& sim);
     virtual bool HasNextPoint() const;
     void Sort();
     void Clear();
+    double GetDuration();
 };
 
 } // NS Science

@@ -31,19 +31,20 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     e.action = MRIEvent::RFPULSE | MRIEvent::GRADIENT;
     float Gz = 50e-3; // slice gradient magnitude
 
-    e.gradient = Vector<3,float>(1.0, 1.0, 0.0); // slice normal (gradient direction)
+    e.gradient = Vector<3,float>(0.0, 0.0, 1.0); // slice normal (gradient direction)
     e.gradient.Normalize();
     e.gradient *= Gz;
 
     const unsigned int lobes = 6; 
-    const float d = 0.04; // thickness in meters
-    const float offset = 0.0; // slice plane offset from magnetic center in meters.
+    const float d = 0.001; // thickness in meters
+    const float offset = 0.005; // slice plane offset from magnetic center in meters.
     const float tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
-    const float flipAngle = Math::PI / 6.0;//Math::PI * 0.5;
+    //const float flipAngle = Math::PI / 6.0;
+    const float flipAngle = Math::PI * 0.5;
     const float ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
 
     const float totalTime = tauPrime * float(lobes);
-    const unsigned int steps = 2000; // number of steps
+    const unsigned int steps = 5000; // number of steps
     const float dt = totalTime / float(steps);
 
     float w0 = sim.GetB0() * GYRO_RAD;
@@ -52,14 +53,16 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     rfcoil->SetChannel(w0 + offset * Gz * GYRO_RAD);
     rfcoil->SetBandwidth(d * Gz * GYRO_RAD);
     
-    float time = 0.0;
+    double time = 0.0;
     for (unsigned int i = 0; i < steps; ++i) {
         e.rfSignal = rfcoil->GetSignal(time);
         seq.push_back(make_pair(time, e));
+
+        e.action = MRIEvent::RFPULSE; // to remove gradient action
         time += dt;
     }
 
-    // e.action = MRIEvent::GRADIENT;
+    e.action = MRIEvent::GRADIENT | MRIEvent::RFPULSE;
     e.gradient = -e.gradient;
     e.rfSignal = Vector<3,float>(0.0);
     seq.push_back(make_pair(time, e));
@@ -69,7 +72,7 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     time += totalTime * 0.5;
     seq.push_back(make_pair(time, e));
 
-    Sort();
+    // Sort();
 }
 
 

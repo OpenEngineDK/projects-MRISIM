@@ -32,6 +32,7 @@ CPUKernel::CPUKernel()
     , sz(0)
     , b0(0.5)
     , gyro(GYRO_RAD) // radians/Tesla
+    , time(0.0)
 {
     randomgen.SeedWithTime();
     rn = new KernRenderNode(this);
@@ -88,10 +89,11 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
 }
 
 
-void CPUKernel::Step(float dt, float time) {
+void CPUKernel::Step(float dt) {
+    time += dt;
     signal = Vector<3,float>();
-    const float omega0 = GYRO_RAD * b0;
-    const float omega0Angle = fmod(float(omega0*time), float(Math::PI * 2.0));
+    const double omega0 = GYRO_RAD * b0;
+    const double omega0Angle = fmod(omega0*time, double(Math::PI * 2.0));
 
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
@@ -212,6 +214,7 @@ void CPUKernel::SetRFSignal(Vector<3,float> signal) {
 void CPUKernel::Reset() {
     // initialize refMagnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
+    time = 0.0;
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);

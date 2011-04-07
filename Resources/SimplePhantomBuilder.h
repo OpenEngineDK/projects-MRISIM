@@ -20,7 +20,7 @@ private:
     unsigned int dims;
     float voxelSize;
 public:
-    SimplePhantomBuilder(unsigned int dims = 10, float voxelSize = 5.0);
+    SimplePhantomBuilder(unsigned int dims = 10, float voxelSize = 1.0);
     virtual ~SimplePhantomBuilder();
     Phantom GetPhantom();
 };

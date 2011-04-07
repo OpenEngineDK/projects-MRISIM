@@ -9,19 +9,18 @@
 
 #include "SpinEchoSequence.h"
 
+#include "TestRFCoil.h"
+#include "ExcitationPulseSequence.h"
+
 namespace MRI {
 namespace Science {
 
-SpinEchoSequence::SpinEchoSequence(float tr, float te, Phantom phantom)
+SpinEchoSequence::SpinEchoSequence(float tr, float te)
     : ListSequence(seq)
     , tr(tr * 1e-3)
     , te(te * 1e-3)
-    , fov(phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
-    , phantom(phantom)
-    , dims(Vector<3,unsigned int>(phantom.texr->GetWidth(),
-                           phantom.texr->GetHeight(),
-                           phantom.texr->GetDepth()))
-    , slice(0)
+    , fov(0.01) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
+    , dims(Vector<3,unsigned int>(1.0))
 {
 }
 
@@ -31,13 +30,6 @@ SpinEchoSequence::~SpinEchoSequence() {
 
 Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
     return dims;
-}
-
-void SpinEchoSequence::SetSlice(unsigned int slice) {
-    // logger.info <<  "setslice: " << slice << logger.end;
-    if (slice < phantom.texr->GetDepth()) {
-        this->slice = slice;
-    }
 }
 
 void SpinEchoSequence::SetFOV(float fov) {
@@ -67,78 +59,105 @@ float SpinEchoSequence::GetTE() {
 void SpinEchoSequence::Reset(MRISim& sim) {
     ListSequence::Clear();
 
-    logger.info <<  "slice: " << slice << logger.end;
-    float time;
+    TestRFCoil* rfcoil = new TestRFCoil(1.0);
+    ExcitationPulseSequence* pulseSeq = new ExcitationPulseSequence(rfcoil);
+
+    double time;
     MRIEvent e;
-    
+
+    Phantom phantom = sim.GetPhantom();
+    dims = Vector<3,unsigned int>(phantom.texr->GetWidth(),
+                                  phantom.texr->GetHeight(),
+                                  phantom.texr->GetDepth());
+
+    // this is actually number of sample in x and y direction
     const unsigned int height = phantom.texr->GetHeight(); 
     const unsigned int width = phantom.texr->GetWidth();
+    logger.info << "sample width: " << width << logger.end;
+    logger.info << "sample height: " << height << logger.end;
 
-    const float gyMax = 0.02;
+    const float gyMax = 20e-3; // mT/m
     const float tau = float(height)/(GYRO_HERTZ * gyMax * fov);
     const float gyStart = -gyMax*0.5;
     const float dGy =  (gyMax) / float(height);
     logger.info << "dGY: " << dGy << logger.end;
 
-    const float gx = 0.02;
+    const float gx = 20e-3; // mT/m
     const float samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
     const float gxDuration = samplingDT * float(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
     const float gxFirst = (gx * gxDuration * 0.5) / tau;
 
 
-    float start = 0.0;
+    time = 0.0;
+    double start = 0.0;
     for (unsigned int j = 0; j < height; ++j) {
-        start = float(j)*tr;
-        // logger.info << "start: " << start << logger.end;
-        // reset + 90 degree pulse + turn on phase encoding gradient
-        // turn on frequency encoding to move to the end of the x-direction
-        e.action = MRIEvent::EXCITE | MRIEvent::GRADIENT;// | MRIEvent::RESET;
-        e.angleRF = Math::PI*0.5;
-        e.gradient = Vector<3,float>(gxFirst, gyStart + float(j)*dGy, 0.0);
-        e.slice = slice;
-        time = start;
+        time = start = double(j) * double(tr);
+
+        //start with reset state (full relaxation cheating)
+        // e.action = MRIEvent::RESET;
+        // seq.push_back(make_pair(time, e));
+
+        // use the 90 degree flip pulse sequence
+        logger.info << "tr start time: " << time << logger.end;
+        pulseSeq->Reset(sim);
+        while (pulseSeq->HasNextPoint()) {
+            pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
+            // printf("rf point time before: %e\n", point.first);
+            // logger.info << "rf point time before: " << point.first << logger.end;
+            point.first += time;
+
+            // printf("rf point time after: %e\n", point.first);
+            // logger.info << "rf point time after: " << point.first << logger.end;
+            
+            seq.push_back(point);
+        }
+        time += pulseSeq->GetDuration();
+        // logger.info << "rf done at time: " << time << logger.end;
+        // setup phase encoding gradient
+        time += 0.1e-3; // wait time after excitation
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(-gxFirst, gyStart + float(j)*dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
         e.action = MRIEvent::GRADIENT;
-        //e.gradient = Vector<3,float>(0.0, gx, 0.0);
         e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
         time += tau;
         seq.push_back(make_pair(time, e));
 
         //180 degree pulse
-        e.action = MRIEvent::EXCITE;
-        e.angleRF = Math::PI;
-        time = start + te*0.5;
-        seq.push_back(make_pair(time, e));
+        // e.action = MRIEvent::EXCITE;
+        // e.angleRF = Math::PI;
+        // time = start + te * 0.5;
+        // seq.push_back(make_pair(time, e));
         
         // frequency encoding gradient on
         e.action = MRIEvent::GRADIENT;
         e.gradient = Vector<3,float>(gx, 0.0, 0.0);
-        time  = start + te - gxDuration * 0.5;
+        time = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
-                
-        // e.action = MRIEvent::LINE;
-        // seq.push_back(make_pair(time + samplingDT, e));
+        
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, height-j-1, slice);
+            e.point = Vector<3,unsigned int>(i, height-j-1, 0);
+            // logger.info << "push back record with time: " << time << logger.end;
             seq.push_back(make_pair(time, e));
             time += samplingDT;
         }
+
         // frequency encoding gradient off
         e.action = MRIEvent::GRADIENT;
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
 
 
-        time += 0.08;
-        while (time < float(j)*tr + tr) {
+        time += 0.1;
+        while (time < float(j) * tr + tr) {
             e.action = MRIEvent::NONE;
             seq.push_back(make_pair(time, e));
-            time += 0.08;
+            time += 0.1;
         }
 
         // start = time + 10.0 * samplingDT;

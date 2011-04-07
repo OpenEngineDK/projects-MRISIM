@@ -151,7 +151,7 @@ void MRIUI::SetupSim() {
     const unsigned int texHeight = 300;
 
     // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(21);
+    IPhantomBuilder* pb = new SimplePhantomBuilder(20);
     Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
@@ -170,9 +170,9 @@ void MRIUI::SetupSim() {
 
     // --- init the simulator and kernel ---
     kern = new CPUKernel();
-    seq = new SpinEchoSequence(500.0, 340.0, p);
-    sim = new MRISim(p, kern, rfTestSequence);
-    //sim = new MRISim(p, kern, seq);
+    seq = new SpinEchoSequence(300.0, 50.0);
+    sim = new MRISim(p, kern, seq);
+    //sim = new MRISim(p, kern, rfTestSequence);
 
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);
@@ -404,7 +404,7 @@ public:
         }
         if (spins)
             spins->SetSlice(slice);
-        if (seq) seq->SetSlice(slice);
+        // if (seq) seq->SetSlice(slice);
 
     };
 

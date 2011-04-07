@@ -26,7 +26,7 @@ namespace Science {
  */
 class ExcitationPulseSequence: public ListSequence {
 private:
-    vector<pair<float, MRIEvent> > seq;
+    vector<pair<double, MRIEvent> > seq;
     TestRFCoil* rfcoil;
 public:
     ExcitationPulseSequence(TestRFCoil* rfcoil);
