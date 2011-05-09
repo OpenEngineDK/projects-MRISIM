@@ -19,7 +19,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te)
     : ListSequence(seq)
     , tr(tr * 1e-3)
     , te(te * 1e-3)
-    , fov(0.01) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
+    , fov(0.02) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
     , dims(Vector<3,unsigned int>(1.0))
 {
 }

@@ -119,9 +119,9 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
 
 		//Where should this data go?
 		// T dst_co = (src_co+(dim>>1))%dim;
-        unsigned int dX = (sX+(w>>1))%w;
-        unsigned int dY = (sY+(h>>1))%h;
-        unsigned int dI = dX + dY*w;
+        //unsigned int dX = (sX+(w>>1))%w;
+        //unsigned int dY = (sY+(h>>1))%h;
+        //unsigned int dI = dX + dY*w;
 
         complex<double> c = *itr;
         // in[dI][0] = real(c);

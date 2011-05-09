@@ -114,13 +114,10 @@ void CPUKernel::Step(float dt) {
                 unsigned int i = x + y*width + z*width*height;
                 if (data[i] == 0) continue;
                 
-                // refMagnets[i] = RotateZ(state.angleRF, refMagnets[i]);
 
-                // float dtt1 = dt/T_1;
-                // float dtt2 = dt/T_2;
                 float dtt1 = dt/phantom.spinPackets[data[i]].t1;
                 float dtt2 = dt/phantom.spinPackets[data[i]].t2;
-                // logger.info << "dtt1: " << dtt1 << " dtt2: " << dtt2 << logger.end;
+
                 refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
                                                  -refMagnets[i][1]*dtt2, 
                                                  (eq[i]-refMagnets[i][2])*dtt1);
@@ -129,38 +126,22 @@ void CPUKernel::Step(float dt) {
                                                       float(int(y) + phantom.offsetY) * (phantom.sizeY*1e-3),
                                                       float(int(z) + phantom.offsetZ) * (phantom.sizeZ*1e-3));
 
-                // logger.info << "dG: " << dG << logger.end;
-                // logger.info << "angle: " << gyro * (deltaB0[i] + dG) * dt << logger.end;
-                // Vector<3,float> v(deltaB0[i] + dG + rf + b0);
-                // Quaternion<float> q(v.GetLength()*GYRO_RAD*dt, v.GetNormalize());
+
 
                 refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
 
-                // labMagnets[i] = q.RotateVector(labMagnets[i]);
-                
-                // add rf pulse and restore magnetization strength.
-                // float len = refMagnets[i].GetLength();
-                // refMagnets[i] = (refMagnets[i] + rf);
-                // refMagnets[i].Normalize();
-                // refMagnets[i] *= len;
-
-                // logger.info << "Bx: " << rfSignal.Get(0) << logger.end;
-                // logger.info << "Bx': " << rf.Get(0) << logger.end;
-
-                // refMagnets[i] = RotateX(rf.GetLength() * GYRO_RAD * dt, refMagnets[i]);
                 refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
                 refMagnets[i] = RotateY(rf.Get(1) * GYRO_RAD * dt, refMagnets[i]);
                 
                 labMagnets[i] = 
                     RotateZ(omega0Angle, refMagnets[i]);
-                    // Vector<3,float>(refMagnets[i][0] * cos(omega0Angle) - refMagnets[i][1] * sin(omega0Angle), 
-                    //                 refMagnets[i][0] * sin(omega0Angle) + refMagnets[i][1] * cos(omega0Angle), 
-                    //                 refMagnets[i][2]);
-                //signal += labMagnets[i];
                 signal += refMagnets[i];
             }    
         }
     }
+    //logger.error << refMagnets[500] << logger.end;
+
+
 }
 
 void CPUKernel::Flip(unsigned int slice) {
@@ -221,7 +202,7 @@ void CPUKernel::Reset() {
         signal += labMagnets[i];
         //signal += refMagnets[i];
     }
-    // logger.info << "Signal: " << signal << logger.end;
+    logger.info << "Signal: " << signal << logger.end;
 }
 
 Vector<3,float>* CPUKernel::GetMagnets() const {

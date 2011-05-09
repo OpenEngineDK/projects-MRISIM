@@ -134,15 +134,22 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         }
 
         theSimTime += kernelStep;
+
+
         if (kernelStep > 0.0) {
+            Timer t;
+            t.Start();
             kernel->Step(kernelStep);
+            t.Stop();
+
+            logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
             // logger.info << "doing Kernel step: " << kernelStep << logger.end;
             stepEvent.Notify(StepEventArg(*this));
         }
         else {
             logger.info << "not doing Kernel step <= 0.0: " << kernelStep << logger.end;
-
         }
+
         // stop the simulation if next event is a DONE signal
         if (nextEvent.second.action & MRIEvent::DONE) {
             logger.info << "Time: " << theSimTime << ", Simulation sequence finished." << logger.end;

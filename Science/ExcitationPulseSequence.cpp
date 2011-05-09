@@ -44,7 +44,7 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     const float ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
 
     const float totalTime = tauPrime * float(lobes);
-    const unsigned int steps = 5000; // number of steps
+    const unsigned int steps = 50; // number of steps
     const float dt = totalTime / float(steps);
 
     float w0 = sim.GetB0() * GYRO_RAD;

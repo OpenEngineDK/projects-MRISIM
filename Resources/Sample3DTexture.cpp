@@ -33,7 +33,7 @@ Sample3DTexture::~Sample3DTexture() {
 }
 
 void Sample3DTexture::Handle(SamplesChangedEventArg arg) {
-    logger.info << " samples changed: " << arg.begin << " - " << arg.end << logger.end;
+    //logger.info << " samples changed: " << arg.begin << " - " << arg.end << logger.end;
     for (unsigned int i = arg.begin; i < arg.end; ++i)
         ((float*)data)[i] = abs(samples[i]);
 
@@ -41,7 +41,7 @@ void Sample3DTexture::Handle(SamplesChangedEventArg arg) {
         unsigned int sliceBegin = arg.begin / (width*height);
         unsigned int sliceEnd = arg.end / (width*height);
         for (unsigned int slice = sliceBegin; slice < sliceEnd; ++slice) {
-            logger.info << "slice: " <<  slice << logger.end;
+            //logger.info << "slice: " <<  slice << logger.end;
             float min = INFINITY;
             float max = -INFINITY;
             // fetch max and min values

@@ -24,6 +24,7 @@
 
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
+#include "Science/OpenCLKernel.h"
 #include "Science/CartesianFFT.h"
 #include "Science/SpinEchoSequence.h"
 
@@ -71,8 +72,10 @@ class MRIUI : public QMainWindow {
     IEngine* engine;
     IMouse* mouse;
 
+    bool useCPU;
+
     MRISim* sim;
-    CPUKernel* kern;
+    IMRIKernel* kern;
     SpinEchoSequence* seq;
     MINCResourcePtr phantom;
     SliceCanvas *samplesCanvas, *fftCanvas;
@@ -104,7 +107,7 @@ public slots:
     void SetSimView(bool toggle);
     void SetRFView(bool toggle);
 public:
-    MRIUI(OpenEngine::Display::QtEnvironment *env);    
+    MRIUI(OpenEngine::Display::QtEnvironment *env, bool);    
 
 };
 

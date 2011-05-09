@@ -168,8 +168,14 @@ void MRIUI::SetupSim() {
     cq->PushCanvas(phantomCanvas);
     wcSim->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
 
-    // --- init the simulator and kernel ---
-    kern = new CPUKernel();
+    // --- init the simulator and kernel ---    
+
+    DirectoryManager::AppendPath("projects/MRISIM/Science/");
+    if (useCPU)
+        kern = new CPUKernel();
+    else
+        kern = new OpenCLKernel();
+    
     seq = new SpinEchoSequence(300.0, 50.0);
     sim = new MRISim(p, kern, seq);
     //sim = new MRISim(p, kern, rfTestSequence);
@@ -197,27 +203,28 @@ void MRIUI::SetupSim() {
     wcSim->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
         
     
-    RenderCanvas *rc = new RenderCanvas(new TextureCopy(), Vector<2,int>(200,200));
-    Renderer *rend = new Renderer();
+    // RenderCanvas *rc = new RenderCanvas(new TextureCopy(), Vector<2,int>(200,200));
+    // Renderer *rend = new Renderer();
 
-    Camera *cam = new Camera(*(new PerspectiveViewingVolume()));
-    cam->SetPosition(Vector<3,float>(10,10,10));
-    cam->LookAt(Vector<3,float>(0,0,0));
-    rc->SetViewingVolume(cam);
+    // Camera *cam = new Camera(*(new PerspectiveViewingVolume()));
+    // cam->SetPosition(Vector<3,float>(10,10,10));
+    // cam->LookAt(Vector<3,float>(0,0,0));
+    // rc->SetViewingVolume(cam);
     
     // SpinNode *sn = new SpinNode(); 
     // sn->Mp = kern->GetMagnets();
 
-    RenderNode *sn = kern->GetRenderNode();
+    // RenderNode *sn = kern->GetRenderNode();
 
-    rc->SetScene(sn);
-    rc->SetRenderer(rend);
-    RenderingView *rv = new RenderingView();
-    rend->ProcessEvent().Attach(*rv);
-    rend->InitializeEvent().Attach(*rv);
-    cq->PushCanvas(rc);
+    // rc->SetScene(sn);
+    // rc->SetRenderer(rend);
+    // RenderingView *rv = new RenderingView();
+    // rend->ProcessEvent().Attach(*rv);
+    // rend->InitializeEvent().Attach(*rv);
+    // cq->PushCanvas(rc);
 
-    wcSim->AddTextureWithText(rc->GetTexture(), "RF Node");
+    // wc->AddTextureWithText(rc->GetTexture(), "Spin Node");
+    // wcSim->AddTextureWithText(rc->GetTexture(), "RF Node");
 
 
     // WindowCanvas* windowCanvas = new WindowCanvas(new TextureCopy(), sim->GetKPlane(), *r, 1.0);
@@ -278,10 +285,10 @@ void MRIUI::SetupOpenCL() {
 
 class Flipper {
 private:
-    CPUKernel* kern;
+    IMRIKernel* kern;
     SpinCanvas* spinCanvas;
 public:
-    Flipper(CPUKernel* kern,
+    Flipper(IMRIKernel* kern,
             SpinCanvas* spinCanvas): kern(kern), spinCanvas(spinCanvas) {}
     virtual ~Flipper() {}
     void Flip() {
@@ -445,8 +452,9 @@ public:
     }
 };
 
-MRIUI::MRIUI(QtEnvironment *env) {
+MRIUI::MRIUI(QtEnvironment *env, bool useCPU) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
+    this->useCPU = useCPU;
     frame = &setup->GetFrame();
     mouse = &setup->GetMouse();
     engine = &setup->GetEngine();
@@ -520,6 +528,7 @@ MRIUI::MRIUI(QtEnvironment *env) {
     setup->GetEngine().Start();
 }
 
+
 void MRIUI::SetSimView(bool toggle) {
     if (toggle) {
         mouse->MouseMovedEvent().Attach(*wcSim);
@@ -582,8 +591,20 @@ void MRIUI::SetRFView(bool toggle) {
 }
 
 
+void nop(MRIUI *n) {}
+
 int main(int argc, char* argv[]) {
+
+    bool useCPU = false;
+
+    for (int i=1;i<argc;i++) {
+        if (strcmp(argv[i],"-cpu") == 0)
+            useCPU = true;
+    }
+
     QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
                                            FrameOption(), argc, argv);
-    MRIUI *ui = new MRIUI(env);
+    MRIUI *ui = new MRIUI(env,useCPU);
+    nop(ui);
+    
 }

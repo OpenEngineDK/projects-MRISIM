@@ -41,6 +41,8 @@ SET( PROJECT_SOURCES
   Science/Science.cpp
   Science/MRISim.h
   Science/MRISim.cpp
+  Science/OpenCLKernel.h
+  Science/OpenCLKernel.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
   Science/UniformSampler.h

@@ -180,7 +180,7 @@ public:
 
         const float z = 0.0;
 
-        float texSlice = float(slice)/float(sliceMax);
+        //float texSlice = float(slice)/float(sliceMax);
         
         // glBindTexture(GL_TEXTURE_3D, tex->GetID());
         glBindTexture(GL_TEXTURE_2D, texid);
