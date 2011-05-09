@@ -101,8 +101,8 @@ void OpenCLKernel::Init(Phantom phantom) {
     int sps = phantom.spinPackets.size();
     spinPacks = new cl_float2[sps];
     for (int i=0;i<sps;i++) {
-        spinPacks[i][0] = phantom.spinPackets[i].t1;
-        spinPacks[i][1] = phantom.spinPackets[i].t2;
+        ((cl_float*)&spinPacks[i])[0] = phantom.spinPackets[i].t1;
+        ((cl_float*)&spinPacks[i])[1] = phantom.spinPackets[i].t2;
     }
 
 
@@ -202,15 +202,15 @@ void OpenCLKernel::Init(Phantom phantom) {
     GpuPhantomInfo pinfo;
     
 
-    pinfo.offset[0] = phantom.offsetX;;
-    pinfo.offset[1] = phantom.offsetY;;
-    pinfo.offset[2] = phantom.offsetZ;;
-    pinfo.offset[3] = 0;
+    ((cl_float*)&pinfo.offset)[0] = phantom.offsetX;;
+    ((cl_float*)&pinfo.offset)[1] = phantom.offsetY;;
+    ((cl_float*)&pinfo.offset)[2] = phantom.offsetZ;;
+    ((cl_float*)&pinfo.offset)[3] = 0;
 
-    pinfo.size[0] = phantom.sizeX;
-    pinfo.size[1] = phantom.sizeY;
-    pinfo.size[2] = phantom.sizeZ;
-    pinfo.size[3] = 0.0;
+    ((cl_float*)&pinfo.size)[0] = phantom.sizeX;
+    ((cl_float*)&pinfo.size)[1] = phantom.sizeY;
+    ((cl_float*)&pinfo.size)[2] = phantom.sizeZ;
+    ((cl_float*)&pinfo.size)[3] = 0.0;
 
     //kernel->setArg(6, sizeof(GpuPhantomInfo), &pinfo);
     err = kernel->setArg(6, sizeof(cl_float4), &pinfo.offset);
@@ -247,15 +247,15 @@ void OpenCLKernel::Step(float dt) {
     cl::Event event;
 
     cl_float2 rf_cl;
-    rf_cl[0] = rf.Get(0);
-    rf_cl[1] = rf.Get(1);
+    ((cl_float*)&rf_cl)[0] = rf.Get(0);
+    ((cl_float*)&rf_cl)[1] = rf.Get(1);
 
     kernel->setArg(8, sizeof(cl_float2), &rf_cl);
 
     cl_float4 vec;
-    gradient.ToArray(vec);
+    gradient.ToArray(((cl_float*)&vec));
     
-    kernel->setArg(5, 4*sizeof(float), vec);
+    kernel->setArg(5, 4*sizeof(float), ((cl_float*)&vec));
 
     kernel->setArg(0,dt);
     cl_int err = queue->enqueueNDRangeKernel(*kernel, 
