@@ -156,6 +156,10 @@ void OpenCLKernel::Init(Phantom phantom) {
     if (err)
         logger.error << "Made kernel: " << err << logger.end;
 
+    reduceKernel = new cl::Kernel(program, "reduce_signal", &err);
+    if (err)
+        logger.error << "Made reduce kernel: " << err << logger.end;
+
     refMBuffer = new cl::Buffer(context,
                                 CL_MEM_READ_WRITE,
                                 sz*sizeof(Vector<3,float>),
@@ -179,6 +183,24 @@ void OpenCLKernel::Init(Phantom phantom) {
                               eq,
                               &err);
     
+    reduceA = new cl::Buffer(context,
+                             CL_MEM_READ_WRITE,
+                             sz*sizeof(Vector<3,float>),
+                             NULL,
+                             &err);
+    if (err)
+        logger.error << "Create buffer a: " << err << logger.end;
+    
+    reduceB = new cl::Buffer(context,
+                             CL_MEM_READ_WRITE,
+                             sz*sizeof(Vector<3,float>),
+                             NULL,
+                             &err);    
+    if (err)
+        logger.error << "Create buffer b: " << err << logger.end;
+
+    
+
     logger.info << "Creating memory " << sz << " " << sz*sizeof(Vector<3,float>) << logger.end;
     inbuffer = new cl::Buffer(context, 
                         CL_MEM_READ_ONLY, 
@@ -276,23 +298,64 @@ void OpenCLKernel::Step(float dt) {
     queue->enqueueReadBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3,float>), refMagnets, NULL, &event);
     event.wait();
 
+    // reduce!
 
-    for (unsigned int x = 0; x < width; ++x) {
-        for (unsigned int y = 0; y < height; ++y) {
-            for (unsigned int z = 0; z < depth; ++z) {
+    int size = width*height*depth;
+    int i =0;
+    cl::Buffer* lastBuf;
+    while (size > 1) {
+        if (i % 2) {
+            reduceKernel->setArg(0, *reduceA);
+            reduceKernel->setArg(1, *reduceB);
+            lastBuf = reduceB;
+        } else {
+            reduceKernel->setArg(0, *reduceB);
+            reduceKernel->setArg(1, *reduceA);
+            lastBuf = reduceA;
+        }        
 
-                unsigned int i = x + y*width + z*width*height;
-                if (data[i] == 0) continue;
-                
-                
-                // labMagnets[i] = 
-                //     RotateZ(omega0Angle, refMagnets[i]);
-                signal += refMagnets[i];
-            }    
+        if (i == 0) {
+            reduceKernel->setArg(0, *refMBuffer);
         }
-    }
-    //logger.error << refMagnets[500] << logger.end;
 
+        size = ceil(size/2.0);
+
+        cl_int err = queue->enqueueNDRangeKernel(*reduceKernel,
+                                                 cl::NullRange,
+                                                 cl::NDRange(size),
+                                                 cl::NullRange,
+                                                 NULL,
+                                                 &event);
+        if (err)
+            logger.error << "error = " << err << logger.end;
+
+        i++;
+    }
+
+    Vector<3,float> signal2;
+    queue->enqueueReadBuffer(*lastBuf, CL_TRUE, 0, sizeof(Vector<3,float>), &signal2, NULL, &event);
+    event.wait();
+    //logger.warning << signal2 << logger.end;
+
+    signal = signal2;
+
+    // for (unsigned int x = 0; x < width; ++x) {
+    //     for (unsigned int y = 0; y < height; ++y) {
+    //         for (unsigned int z = 0; z < depth; ++z) {
+
+    //             unsigned int i = x + y*width + z*width*height;
+    //             //if (data[i] == 0) continue;
+                
+                
+    //             // labMagnets[i] = 
+    //             //     RotateZ(omega0Angle, refMagnets[i]);
+    //             signal += refMagnets[i];
+    //         }    
+    //     }
+    // }
+    // logger.warning << signal << logger.end;
+    // //logger.error << refMagnets[500] << logger.end;
+    
 
 }
 

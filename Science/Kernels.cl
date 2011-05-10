@@ -73,9 +73,6 @@ __kernel void mri_step(float dt,                     // 0
 
 
     if (type != 0) {
-
-
-
         float dtt1 = dt/packs[type].t1;
         float dtt2 = dt/packs[type].t2;
 
@@ -100,13 +97,44 @@ __kernel void mri_step(float dt,                     // 0
 
         refMagnet = RotateX(rf.x * GYRO_RAD * dt, refMagnet);
         refMagnet = RotateY(rf.y * GYRO_RAD * dt, refMagnet);
-    
-        refM[vi+0] = refMagnet.x;
-        refM[vi+1] = refMagnet.y;
-        refM[vi+2] = refMagnet.z;
-    }    
 
 
-    
+    } else {
+        refMagnet = (float4)(0.0, 0.0, 0.0, 0.0);
+    }
+    refM[vi+0] = refMagnet.x;
+    refM[vi+1] = refMagnet.y;
+    refM[vi+2] = refMagnet.z;
+     
 }
+
+__kernel void reduce_signal(__global float* input, __global float* output) {
+
+    int size = get_global_size(0);
+    int x = get_global_id(0);
+    
+    
+    int idx = x*2;
+    
+    int vi = idx*3;
+    int vi2 = (idx+1)*3;
+    
+    /* float4 refMagnet; */
+    /* refMagnet.x = input[vi+0]; */
+    /* refMagnet.y = input[vi+1]; */
+    /* refMagnet.z = input[vi+2]; */
+
+    /* float4 refMagnet2; */
+    /* refMagnet2.x = input[vi2+0]; */
+    /* refMagnet2.y = input[vi2+1]; */
+    /* refMagnet2.z = input[vi2+2]; */
+
+    int ov = x*3;
+    output[ov+0] = input[vi+0] + input[vi2+0];
+    output[ov+1] = input[vi+1] + input[vi2+1];
+    output[ov+2] = input[vi+2] + input[vi2+2];
+
+   
+}
+
 

@@ -56,6 +56,9 @@ private:
     cl::Context context;
     cl::CommandQueue* queue;
     cl::Kernel* kernel;
+
+    cl::Kernel* reduceKernel;
+
     cl::Buffer* inbuffer;
     cl::Buffer* outbuffer;
 
@@ -63,6 +66,9 @@ private:
     cl::Buffer* dataBuffer;
     cl::Buffer* spinPackBuffer;
     cl::Buffer* eqBuffer;
+
+    cl::Buffer* reduceA;
+    cl::Buffer* reduceB;
 
 
     RandomGenerator randomgen;
