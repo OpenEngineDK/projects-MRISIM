@@ -11,6 +11,7 @@
 #define _MRI_SPIN_ECHO_SEQUENCE_
 
 #include "ListSequence.h"
+#include "CartesianSampler.h"
 
 #include "../Resources/Phantom.h"
 
@@ -27,6 +28,7 @@ private:
     // Phantom phantom;
     vector<pair<double, MRIEvent> > seq;
     Vector<3,unsigned int> dims;
+    CartesianSampler* sampler;
 public:
     SpinEchoSequence(float tr, float te);
     virtual ~SpinEchoSequence();
@@ -41,6 +43,8 @@ public:
     float GetTE();
 
     void Reset(MRISim& sim);
+    IMRISampler& GetSampler();
+
     Utils::Inspection::ValueList Inspect();
 
 };

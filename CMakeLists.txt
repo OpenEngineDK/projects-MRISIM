@@ -63,6 +63,8 @@ SET( PROJECT_SOURCES
   Science/ExcitationPulseSequence.h
   Science/ExcitationPulseSequence.cpp
 
+  Science/CartesianSampler.h
+  Science/CartesianSampler.cpp
   # Science/FFTData.h
   # Science/FFTData.cpp
 

@@ -103,8 +103,10 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         }
 
         if (event.action & MRIEvent::RECORD) {
-            // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
+
             Vector<3,float> signal = kernel->GetSignal();
+            sequence->GetSampler().AddSample(event.point, Vector<2,float>(signal[0], signal[1]));
+            // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
             complex<double> sample = complex<double>(signal[0], signal[1]);
             unsigned int index = event.point[0] + 
                 event.point[1] * phantom.texr->GetWidth() + 

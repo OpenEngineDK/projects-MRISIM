@@ -24,7 +24,6 @@ CartesianFFT::CartesianFFT(IFFT& fft, vector<complex<float> >& samples, Vector<3
     , out(size , complex<float>(0.0,0.0))
     , dims(dims)
 {
-    logger.info << "dims: " << dims << logger.end;
     res = Sample3DTexturePtr(new Sample3DTexture(out, dims, autoWindow));
     res->Handle(SamplesChangedEventArg(0, size));
 }
@@ -46,7 +45,7 @@ void CartesianFFT::ReconstructSlice(unsigned int i) {
     
     for (unsigned int j = 0; j < w * h; ++j) {
         out[i * w * h + j] = fftres[j];
-        logger.info << out[i * w * h + j] << logger.end;
+        //logger.info << out[i * w * h + j] << logger.end;
     }
 
     res->Handle(SamplesChangedEventArg(i * w * h, i * w * h + w * h));

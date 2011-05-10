@@ -151,7 +151,7 @@ void MRIUI::SetupSim() {
     const unsigned int texHeight = 300;
 
     // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(20);
+    IPhantomBuilder* pb = new SimplePhantomBuilder(50);
     Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
@@ -176,7 +176,7 @@ void MRIUI::SetupSim() {
     else
         kern = new OpenCLKernel();
     
-    seq = new SpinEchoSequence(300.0, 50.0);
+    seq = new SpinEchoSequence(1500.0, 50.0);
     sim = new MRISim(p, kern, seq);
     //sim = new MRISim(p, kern, rfTestSequence);
 
@@ -197,8 +197,8 @@ void MRIUI::SetupSim() {
     wcSim->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
 
     // --- reconstruct and visualize ---
-    fft = new CartesianFFT(*(new CPUFFT()), sim->GetSamples(), sim->GetSampleDimensions(), true);
-    fftCanvas = new SliceCanvas(new TextureCopy(), fft->GetResult(), texWidth, texHeight);
+    // fft = new CartesianFFT(*(new CPUFFT()), sim->GetSamples(), sim->GetSampleDimensions(), true);
+    fftCanvas = new SliceCanvas(new TextureCopy(), seq->GetSampler().Reconstruct(), texWidth, texHeight);
     cq->PushCanvas(fftCanvas);
     wcSim->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
         
@@ -427,7 +427,8 @@ public:
 
     
     void Recon() {
-        if (fft) fft->ReconstructSlice(GetSlice());
+        seq->GetSampler().Reconstruct();
+        //if (fft) fft->ReconstructSlice(GetSlice());
     }
 
     ValueList Inspect() {

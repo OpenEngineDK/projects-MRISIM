@@ -12,6 +12,7 @@
 #define _OE_EXCITATION_PULSE_SEQUENCE_H_
 
 #include "ListSequence.h"
+#include "NULLSampler.h"
 
 #include "MRISim.h"
 #include "TestRFCoil.h"
@@ -28,6 +29,7 @@ class ExcitationPulseSequence: public ListSequence {
 private:
     vector<pair<double, MRIEvent> > seq;
     TestRFCoil* rfcoil;
+    NULLSampler sampler;
 public:
     ExcitationPulseSequence(TestRFCoil* rfcoil);
 
@@ -35,6 +37,7 @@ public:
 
     Vector<3,unsigned int> GetTargetDimensions(); 
     
+    IMRISampler& GetSampler();
     void Reset(MRISim& sim);
 };
 

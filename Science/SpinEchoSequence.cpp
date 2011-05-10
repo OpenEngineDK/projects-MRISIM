@@ -19,13 +19,15 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te)
     : ListSequence(seq)
     , tr(tr * 1e-3)
     , te(te * 1e-3)
-    , fov(0.02) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
-    , dims(Vector<3,unsigned int>(1.0))
+    , fov(1e-3 * 50. * 0.99) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
+    , dims(Vector<3,unsigned int>(1))
+    , sampler(new CartesianSampler(dims))
 {
 }
 
     
 SpinEchoSequence::~SpinEchoSequence() {
+    delete sampler;
 }
 
 Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
@@ -58,7 +60,7 @@ float SpinEchoSequence::GetTE() {
 
 void SpinEchoSequence::Reset(MRISim& sim) {
     ListSequence::Clear();
-
+    
     TestRFCoil* rfcoil = new TestRFCoil(1.0);
     ExcitationPulseSequence* pulseSeq = new ExcitationPulseSequence(rfcoil);
 
@@ -70,9 +72,13 @@ void SpinEchoSequence::Reset(MRISim& sim) {
                                   phantom.texr->GetHeight(),
                                   phantom.texr->GetDepth());
 
+    const unsigned int hest = 1;
+    //delete sampler;
+    sampler = new CartesianSampler(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
+
     // this is actually number of sample in x and y direction
-    const unsigned int height = phantom.texr->GetHeight(); 
-    const unsigned int width = phantom.texr->GetWidth();
+    const unsigned int width = sampler->GetDimensions()[0];//phantom.texr->GetWidth();
+    const unsigned int height = sampler->GetDimensions()[1];//phantom.texr->GetHeight(); 
     logger.info << "sample width: " << width << logger.end;
     logger.info << "sample height: " << height << logger.end;
 
@@ -211,6 +217,11 @@ ValueList SpinEchoSequence::Inspect() {
 
     return values;
 }
+
+IMRISampler& SpinEchoSequence::GetSampler() {
+    return *sampler;
+}
+
 
 } // NS Science
 } // NS MRI

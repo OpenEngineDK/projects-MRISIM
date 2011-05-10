@@ -72,10 +72,18 @@ public:
 
 class MRISim;
 
+class IMRISampler {
+public:
+    virtual ~IMRISampler() {}
+    virtual void AddSample(Vector<3,unsigned int> location, Vector<2,float> value) = 0;
+    virtual Vector<3,unsigned int> GetDimensions() = 0;
+    virtual FloatTexture3DPtr Reconstruct() = 0;    
+    virtual void Reset() = 0;
+};
+
 class IMRISequence {
 public:
     virtual ~IMRISequence() {}
-    // virtual MRIEvent GetEvent(float time) = 0;
     virtual pair<double, MRIEvent> GetNextPoint() = 0;
     virtual bool HasNextPoint() const = 0;
     // recalculate the points based on the simulator parameters.
@@ -83,7 +91,7 @@ public:
     // tells the simulator to allocate an output array of the specified dimensions
     virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
     virtual double GetDuration() = 0; 
-
+    virtual IMRISampler& GetSampler() = 0;
 };
 
 class IMRIKernel {
