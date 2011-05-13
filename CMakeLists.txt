@@ -43,7 +43,6 @@ SET( PROJECT_SOURCES
   Science/MRISim.cpp
   Science/OpenCLKernel.h
   Science/OpenCLKernel.cpp
-  Science/ReduceHelper.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
   Science/UniformSampler.h
