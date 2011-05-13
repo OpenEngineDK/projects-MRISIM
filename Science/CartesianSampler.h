@@ -11,7 +11,6 @@
 #define _MRI_CARTESIAN_SAMPLER_H_
 
 #include "MRISim.h"
-#include "CartesianFFT.h"
 #include <vector>
 
 namespace MRI {
@@ -22,15 +21,20 @@ using std::vector;
 class CartesianSampler: public IMRISampler {
 private:
     Vector<3, unsigned int> dims;
-    vector<complex<float> > samples;
-    CartesianFFT* fft;
+    vector<complex<float> > samples, images;
+    IFFT* fft;
 public:
-    CartesianSampler(Vector<3, unsigned int> dims, bool autoWindow = true);
+    CartesianSampler(Vector<3, unsigned int> dims);
     virtual ~CartesianSampler();
+
     void AddSample(Vector<3,unsigned int> location, Vector<2,float> value);
-    Vector<3,unsigned int> GetDimensions();
-    FloatTexture3DPtr Reconstruct();
     void Reset();
+
+    Vector<3,unsigned int> GetDimensions();
+    void SetDimensions(Vector<3,unsigned int> dims);
+    vector<complex<float> > GetReconstructedSamples();
+    vector<complex<float> > GetSamples();
+
 };
 
 } // NS Science

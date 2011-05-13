@@ -73,8 +73,8 @@ SET( PROJECT_SOURCES
   Science/CPUFFT.cpp
   Science/ImageFFT.h
   Science/ImageFFT.cpp
-  Science/CartesianFFT.h
-  Science/CartesianFFT.cpp
+  # Science/CartesianFFT.h
+  # Science/CartesianFFT.cpp
 
   Scene/SpinNode.h
   Scene/SpinNode.cpp

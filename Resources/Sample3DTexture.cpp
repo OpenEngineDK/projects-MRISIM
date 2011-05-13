@@ -17,15 +17,14 @@ using namespace OpenEngine::Math;
 using namespace OpenEngine::Resources;
 using namespace std;
 
-Sample3DTexture::Sample3DTexture(vector<complex<float> >& samples, Vector<3,unsigned int> dims, bool autoWindow)
+Sample3DTexture::Sample3DTexture(vector<complex<float> > samples, Vector<3,unsigned int> dims, bool autoWindow)
     : FloatTexture3D(dims[0] > 0 ? dims[0] : 1, dims[1] > 0 ? dims[1] : 1, dims[2] > 0 ? dims[2] : 1, 1)
-    , samples(samples)
     , ref(this)
     , autoWindow(autoWindow)
 {
     SetWrapping(CLAMP);
     SetFiltering(NONE);
-    Handle(SamplesChangedEventArg(0, dims[0] * dims[1] * dims[2]));
+    Handle(SamplesChangedEventArg(samples, dims, 0, dims[0] * dims[1] * dims[2]));
 }
 
 Sample3DTexture::~Sample3DTexture() {
@@ -33,9 +32,8 @@ Sample3DTexture::~Sample3DTexture() {
 }
 
 void Sample3DTexture::Handle(SamplesChangedEventArg arg) {
-    //logger.info << " samples changed: " << arg.begin << " - " << arg.end << logger.end;
     for (unsigned int i = arg.begin; i < arg.end; ++i)
-        ((float*)data)[i] = abs(samples[i]);
+        ((float*)data)[i] = abs(arg.samples[i]);
 
     if (autoWindow) {
         unsigned int sliceBegin = arg.begin / (width*height);

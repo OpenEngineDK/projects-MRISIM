@@ -51,6 +51,7 @@ void CartesianFFT::ReconstructSlice(unsigned int i) {
     res->Handle(SamplesChangedEventArg(i * w * h, i * w * h + w * h));
 }
 
+
 FloatTexture3DPtr CartesianFFT::GetResult() {
     return res;
 }

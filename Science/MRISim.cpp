@@ -64,8 +64,8 @@ void MRISim::Reset() {
         sequence->Reset(*this);
         dims = sequence->GetTargetDimensions();
     }
-    samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
-                                      complex<float>(0.0,0.0));
+    // samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
+    //                                   complex<float>(0.0,0.0));
     theSimTime = theAccTime = 0.0;
     logger.info << "Simulator Reset." << logger.end;
 }
@@ -107,12 +107,12 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             Vector<3,float> signal = kernel->GetSignal();
             sequence->GetSampler().AddSample(event.point, Vector<2,float>(signal[0], signal[1]));
             // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
-            complex<double> sample = complex<double>(signal[0], signal[1]);
-            unsigned int index = event.point[0] + 
-                event.point[1] * phantom.texr->GetWidth() + 
-                event.point[2] * phantom.texr->GetWidth() * phantom.texr->GetHeight();
-                samples.at(index) = sample;
-                samplesEvent.Notify(SamplesChangedEventArg(index, index+1));
+            // complex<double> sample = complex<double>(signal[0], signal[1]);
+            // unsigned int index = event.point[0] + 
+            //     event.point[1] * phantom.texr->GetWidth() + 
+            //     event.point[2] * phantom.texr->GetWidth() * phantom.texr->GetHeight();
+            //     samples.at(index) = sample;
+            //     samplesEvent.Notify(SamplesChangedEventArg(index, index+1));
         } 
 
         if (event.action & MRIEvent::RESET) {
@@ -133,6 +133,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         if (event.action & MRIEvent::RFPULSE) {
             // logger.info << "Time: " << theSimTime << ", RFPulse :" << event.rfSignal << logger.end;
             kernel->SetRFSignal(event.rfSignal);
+            kernelStep = event.dt;
         }
 
         theSimTime += kernelStep;
@@ -144,12 +145,12 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             kernel->Step(kernelStep);
             t.Stop();
 
-            logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
+            // logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
             // logger.info << "doing Kernel step: " << kernelStep << logger.end;
             stepEvent.Notify(StepEventArg(*this));
         }
         else {
-            logger.info << "not doing Kernel step <= 0.0: " << kernelStep << logger.end;
+            logger.warning << "not doing Kernel step <= 0.0: " << kernelStep << logger.end;
         }
 
         // stop the simulation if next event is a DONE signal
@@ -193,9 +194,9 @@ float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
 }
 
-vector<complex<float> >& MRISim::GetSamples() {
-    return samples;
-}
+// vector<complex<float> >& MRISim::GetSamples() {
+//     return samples;
+// }
 
 Vector<3,unsigned int> MRISim::GetSampleDimensions() {
     Vector<3,unsigned int> dims;

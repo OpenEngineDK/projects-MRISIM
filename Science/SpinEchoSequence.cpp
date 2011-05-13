@@ -15,16 +15,15 @@
 namespace MRI {
 namespace Science {
 
-SpinEchoSequence::SpinEchoSequence(float tr, float te)
+SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov)
     : ListSequence(seq)
     , tr(tr * 1e-3)
     , te(te * 1e-3)
-    , fov(1e-3 * 50. * 0.99) //phantom.sizeX * 1e-3 * phantom.texr->GetWidth())
+    , fov(fov) 
     , dims(Vector<3,unsigned int>(1))
     , sampler(new CartesianSampler(dims))
 {
 }
-
     
 SpinEchoSequence::~SpinEchoSequence() {
     delete sampler;
@@ -73,22 +72,21 @@ void SpinEchoSequence::Reset(MRISim& sim) {
                                   phantom.texr->GetDepth());
 
     const unsigned int hest = 1;
-    //delete sampler;
-    sampler = new CartesianSampler(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
+    sampler->SetDimensions(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
+    sampler->Reset();
 
-    // this is actually number of sample in x and y direction
-    const unsigned int width = sampler->GetDimensions()[0];//phantom.texr->GetWidth();
-    const unsigned int height = sampler->GetDimensions()[1];//phantom.texr->GetHeight(); 
+    const unsigned int width = sampler->GetDimensions()[0];
+    const unsigned int height = sampler->GetDimensions()[1];
     logger.info << "sample width: " << width << logger.end;
     logger.info << "sample height: " << height << logger.end;
 
-    const float gyMax = 20e-3; // mT/m
+    const float gyMax = 10e-3; // mT/m
     const float tau = float(height)/(GYRO_HERTZ * gyMax * fov);
     const float gyStart = -gyMax*0.5;
-    const float dGy =  (gyMax) / float(height);
+    const float dGy = gyMax / float(height);
     logger.info << "dGY: " << dGy << logger.end;
 
-    const float gx = 20e-3; // mT/m
+    const float gx = 10e-3; // mT/m
     const float samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
     const float gxDuration = samplingDT * float(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
@@ -100,12 +98,19 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     for (unsigned int j = 0; j < height; ++j) {
         time = start = double(j) * double(tr);
 
+        unsigned int scanline = height / 2;
+        if (j % 2 == 0) 
+            scanline -= j/2 + 1;
+        else
+            scanline += j/2;
+
+        // logger.info << "scanline: " << scanline << logger.end;
         //start with reset state (full relaxation cheating)
         // e.action = MRIEvent::RESET;
         // seq.push_back(make_pair(time, e));
 
         // use the 90 degree flip pulse sequence
-        logger.info << "tr start time: " << time << logger.end;
+        // logger.info << "tr start time: " << time << logger.end;
         pulseSeq->Reset(sim);
         while (pulseSeq->HasNextPoint()) {
             pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
@@ -121,9 +126,9 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         time += pulseSeq->GetDuration();
         // logger.info << "rf done at time: " << time << logger.end;
         // setup phase encoding gradient
-        time += 0.1e-3; // wait time after excitation
+        time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(-gxFirst, gyStart + float(j)*dGy, 0.0);
+        e.gradient = Vector<3,float>(-gxFirst, gyStart + float(scanline) * dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -147,7 +152,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, height-j-1, 0);
+            e.point = Vector<3,unsigned int>(i, scanline, 0);
             // logger.info << "push back record with time: " << time << logger.end;
             seq.push_back(make_pair(time, e));
             time += samplingDT;
@@ -173,7 +178,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     time += 0.1;
     seq.push_back(make_pair(time, e));
     
-    Sort();
+    //Sort();
 }
 
 ValueList SpinEchoSequence::Inspect() {

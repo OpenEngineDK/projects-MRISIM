@@ -30,7 +30,7 @@ private:
     Vector<3,unsigned int> dims;
     CartesianSampler* sampler;
 public:
-    SpinEchoSequence(float tr, float te);
+    SpinEchoSequence(float tr, float te, float fov);
     virtual ~SpinEchoSequence();
 
     Vector<3,unsigned int> GetTargetDimensions(); 

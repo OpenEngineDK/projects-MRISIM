@@ -36,9 +36,12 @@
 #include "Resources/MINCPhantomBuilder.h"
 #include "Resources/Sample3DTexture.h"
 
+#include "Science/SamplerVisualizer.h"
+
 #include "Display/OpenGL/SliceCanvas.h"
 #include "Display/OpenGL/PhantomCanvas.h"
 #include "Display/InitCanvasQueue.h"
+
 
 
 #include "Scene/SpinNode.h"
@@ -151,7 +154,7 @@ void MRIUI::SetupSim() {
     const unsigned int texHeight = 300;
 
     // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(50);
+    IPhantomBuilder* pb = new SimplePhantomBuilder(30);
     Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
@@ -176,7 +179,7 @@ void MRIUI::SetupSim() {
     else
         kern = new OpenCLKernel();
     
-    seq = new SpinEchoSequence(1500.0, 50.0);
+    seq = new SpinEchoSequence(2500.0f, 50.0f, p.sizeX * 1e-3 * float(p.texr->GetWidth()));
     sim = new MRISim(p, kern, seq);
     //sim = new MRISim(p, kern, rfTestSequence);
 
@@ -190,15 +193,22 @@ void MRIUI::SetupSim() {
     wcSim->AddTextureWithText(spinCanvas->GetTexture(), "Transverse Spins");
 
     // --- visualise the output samples ---
-    Sample3DTexture* sampleTex = new Sample3DTexture(sim->GetSamples(), sim->GetSampleDimensions(), true);
-    sim->SamplesChangedEvent().Attach(*sampleTex);
-    samplesCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(sampleTex), texWidth, texHeight);
+
+    SamplerVisualizer* sviz = new SamplerVisualizer(seq->GetSampler());
+    seq->GetSampler().SamplesChangedEvent().Attach(*sviz);
+
+    // Sample3DTexture* sampleTex = new Sample3DTexture(seq->GetSampler().GetSamples(), seq->GetSampler().GetDimensions(), true);
+    // seq->GetSampler().SamplesChangedEvent().Attach(*sampleTex);
+    // samplesCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(sampleTex), texWidth, texHeight);
+    samplesCanvas = new SliceCanvas(new TextureCopy(), sviz->GetSamplesTexture(), texWidth, texHeight);
     cq->PushCanvas(samplesCanvas);
     wcSim->AddTextureWithText(samplesCanvas->GetTexture(), "Samples");
 
     // --- reconstruct and visualize ---
     // fft = new CartesianFFT(*(new CPUFFT()), sim->GetSamples(), sim->GetSampleDimensions(), true);
-    fftCanvas = new SliceCanvas(new TextureCopy(), seq->GetSampler().Reconstruct(), texWidth, texHeight);
+    // Sample3DTexture* imageTex = new Sample3DTexture(seq->GetSampler().GetReconstructedSamples(), seq->GetSampler().GetDimensions(), true);
+    // fftCanvas = new SliceCanvas(new TextureCopy(), Sample3DTexturePtr(imageTex), texWidth, texHeight);
+    fftCanvas = new SliceCanvas(new TextureCopy(), sviz->GetImageTexture(), texWidth, texHeight);
     cq->PushCanvas(fftCanvas);
     wcSim->AddTextureWithText(fftCanvas->GetTexture(), "Reconstruction");
         
@@ -427,7 +437,7 @@ public:
 
     
     void Recon() {
-        seq->GetSampler().Reconstruct();
+        // seq->GetSampler().Reconstruct();
         //if (fft) fft->ReconstructSlice(GetSlice());
     }
 
@@ -487,8 +497,8 @@ MRIUI::MRIUI(QtEnvironment *env, bool useCPU) {
     
     Slicer slicer(spinCanvas, fft, seq);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
-    slicer.slices.push_back(samplesCanvas);
-    slicer.slices.push_back(fftCanvas);
+    // slicer.slices.push_back(samplesCanvas);
+    // slicer.slices.push_back(fftCanvas);
     ValueList vl = slicer.Inspect();
 
     ActionValue* av = new ActionValueCall<MRIUI>(*this, &MRIUI::Exit);

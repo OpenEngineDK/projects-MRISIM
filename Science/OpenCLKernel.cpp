@@ -61,6 +61,7 @@ OpenCLKernel::OpenCLKernel()
     , b0(0.5)
     , gyro(GYRO_RAD) // radians/Tesla
     , time(0.0)
+    , omega0Angle(0.0)
 {
     randomgen.SeedWithTime();
     //rn = new KernRenderNode(this);
@@ -261,7 +262,9 @@ void OpenCLKernel::Step(float dt) {
     time += dt;
     signal = Vector<3,float>();
     const double omega0 = GYRO_RAD * b0;
-    const double omega0Angle = fmod(omega0*time, double(Math::PI * 2.0));
+    omega0Angle += dt * omega0;
+    if (omega0Angle > double(Math::PI * 2.0))
+        omega0Angle = fmod(omega0Angle, double(Math::PI * 2.0));
 
     // move rf signal into reference space
     const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
@@ -410,7 +413,7 @@ void OpenCLKernel::SetRFSignal(Vector<3,float> signal) {
 void OpenCLKernel::Reset() {
     // initialize refMagnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
-    time = 0.0;
+    omega0Angle = time = 0.0;
     signal = Vector<3,float>();
     for (unsigned int i = 0; i < sz; ++i) {
         refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);

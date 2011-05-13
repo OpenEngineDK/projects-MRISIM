@@ -65,20 +65,33 @@ public:
         DONE     = 1<<5  // signal to stop the simulator
     }; 
     unsigned int action; 
+    float dt;
     MRIEvent()
-        : angleRF(0.0), slice(0), action(NONE) {}
+        : angleRF(0.0), slice(0), action(NONE), dt(0.0) {}
     virtual ~MRIEvent() {};
 };
 
 class MRISim;
+
+struct SamplesChangedEventArg {
+    SamplesChangedEventArg(const vector<complex<float> > samples, Vector<3,unsigned int> dims, unsigned int begin, unsigned int end):
+        samples(samples), dims(dims), begin(begin), end(end) {}
+    const vector<complex<float> > samples;
+    Vector<3,unsigned int> dims;
+    unsigned int begin, end;
+};
 
 class IMRISampler {
 public:
     virtual ~IMRISampler() {}
     virtual void AddSample(Vector<3,unsigned int> location, Vector<2,float> value) = 0;
     virtual Vector<3,unsigned int> GetDimensions() = 0;
-    virtual FloatTexture3DPtr Reconstruct() = 0;    
+    virtual vector<complex<float> > GetReconstructedSamples() = 0;    
+    virtual vector<complex<float> > GetSamples() = 0;
     virtual void Reset() = 0;
+    Event<SamplesChangedEventArg>& SamplesChangedEvent() { return samplesEvent; }
+protected:
+    Event<SamplesChangedEventArg> samplesEvent;
 };
 
 class IMRISequence {
@@ -117,11 +130,6 @@ public:
 };
 
 
-struct SamplesChangedEventArg {
-    SamplesChangedEventArg(unsigned int begin, unsigned int end): begin(begin), end(end) {}
-    unsigned int begin, end;
-};
-
 struct StepEventArg {
     StepEventArg(MRISim& sim): sim(sim) {}
     MRISim& sim;
@@ -137,10 +145,10 @@ private:
     float kernelStep, stepsPerSecond, theAccTime;
     double theSimTime;
     bool running;
-    vector<complex<float> > samples;
+    // vector<complex<float> > samples;
     pair<double,MRIEvent> prevEvent;
     Event<StepEventArg> stepEvent;
-    Event<SamplesChangedEventArg> samplesEvent;
+    // Event<SamplesChangedEventArg> samplesEvent;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();
@@ -154,7 +162,7 @@ public:
     void Handle(Core::ProcessEventArg arg);
     
     Event<StepEventArg>& StepEvent() { return stepEvent; }
-    Event<SamplesChangedEventArg>& SamplesChangedEvent() { return samplesEvent; }
+    // Event<SamplesChangedEventArg>& SamplesChangedEvent() { return samplesEvent; }
     
     float GetTime();
     void SetStepSize(float);
@@ -164,7 +172,7 @@ public:
     void SetB0(float);
     float GetB0();
 
-    vector<complex<float> >& GetSamples();
+    // vector<complex<float> >& GetSamples();
     Vector<3,unsigned int> GetSampleDimensions();
     
     Phantom GetPhantom();

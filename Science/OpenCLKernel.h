@@ -73,7 +73,7 @@ private:
 
     RandomGenerator randomgen;
     
-    double time;
+    double time, omega0Angle;
 
     inline float RandomAttribute(float base, float variance);
 public:

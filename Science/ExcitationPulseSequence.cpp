@@ -37,16 +37,17 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
 
     const unsigned int lobes = 6; 
     const float d = 0.001; // thickness in meters
-    const float offset = 0.00; // slice plane offset from magnetic center in meters.
+    const float offset = 0.010; // slice plane offset from magnetic center in meters.
     const float tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
     //const float flipAngle = Math::PI / 6.0;
     const float flipAngle = Math::PI * 0.5;
     const float ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
 
     const float totalTime = tauPrime * float(lobes);
-    const unsigned int steps = 50; // number of steps
+    const unsigned int steps = 200; // number of steps
     const float dt = totalTime / float(steps);
 
+    // logger.info << "rf dt: " << dt << logger.end;
     float w0 = sim.GetB0() * GYRO_RAD;
     rfcoil->SetDuration(totalTime);
     rfcoil->SetAmplitude(ampl);
@@ -59,6 +60,7 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
         seq.push_back(make_pair(time, e));
 
         e.action = MRIEvent::RFPULSE; // to remove gradient action
+        e.dt = dt;
         time += dt;
     }
 

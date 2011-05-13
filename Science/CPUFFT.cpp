@@ -103,8 +103,8 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
     in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
     out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * cols * rows);
     
-
-    int i = 0;
+    
+    unsigned int i = 0;
     for (vector<complex<double> >::iterator itr = input.begin();
          itr != input.end();
          itr++) {
@@ -113,23 +113,24 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
         // src_co = idx_to_co(idx, dim);
 
         // uint2 co;
-        unsigned int temp = i;
-        unsigned int sX = temp%w;
-        temp -= sX;
-        unsigned int sY = temp/w;
-        
-
-		//Where should this data go?
-		// T dst_co = (src_co+(dim>>1))%dim;
-        unsigned int dX = (sX+(w>>1))%w;
-        unsigned int dY = (sY+(h>>1))%h;
-        unsigned int dI = dX + dY*w;
-
+        unsigned int dI = i;
+        if (flip) {
+            unsigned int temp = i;
+            unsigned int sX = temp%w;
+            temp -= sX;
+            unsigned int sY = temp/w;
+            
+            
+            //Where should this data go?
+            // T dst_co = (src_co+(dim>>1))%dim;
+            unsigned int dX = (sX+(w>>1))%w;
+            unsigned int dY = (sY+(h>>1))%h;
+            dI = dX + dY*w;
+        }
+ 
         complex<double> c = *itr;
         in[dI][0] = real(c);
         in[dI][1] = imag(c);
-        //in[i][0] = real(c);
-        //in[i][1] = imag(c);
         ++i;
     }
 
@@ -138,17 +139,17 @@ vector<complex<double> > CPUFFT::FFT2D_Inverse(vector<complex<double> > input, u
     fftw_destroy_plan(plan);
 
     for (int n = 0; n < cols * rows; ++n) {
-        unsigned int temp = n;
-        unsigned int sX = temp%w;
-        temp -= sX;
-        unsigned int sY = temp/w;
-        unsigned int dX = (sX+(w>>1))%w;
-        // logger.info << "sX: " << sX << " dX: " << dX << logger.end;
-        unsigned int dY = sY;//(sY+(h>>1))%h;
-        unsigned int dI = dX + dY*w;
-
+        unsigned int dI = n;
+        if (flip) {
+            unsigned int temp = n;
+            unsigned int sX = temp%w;
+            temp -= sX;
+            unsigned int sY = temp/w;
+            unsigned int dX = (sX+(w>>1))%w;
+            unsigned int dY = (sY+(h>>1))%h;
+            dI = dX + dY*w; 
+        }
         output[dI] = (complex<double>(out[n][0],out[n][1]));
-        //output[n] = (complex<double>(out[n][0],out[n][1]));
     }
 
     fftw_free(in);
@@ -263,7 +264,7 @@ vector<complex<double > > CPUFFT::FFT2D(vector<complex<double > >input, unsigned
         unsigned int dI = dX + dY*w;
 
 
-        output[dI] = complex<double>(out[n][0],out[n][1]);
+        output[dI] = complex<double>(out[n][0], out[n][1]);
     }
 
     fftw_free(in);

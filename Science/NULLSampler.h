@@ -21,7 +21,8 @@ public:
     virtual ~NULLSampler() {};
     void AddSample(Vector<3,unsigned int> location, Vector<2,float> value) {}
     Vector<3,unsigned int> GetDimensions() { return Vector<3,unsigned int>(); }
-    FloatTexture3DPtr Reconstruct() { return FloatTexture3DPtr(); }
+    vector<complex<float> > GetReconstructedSamples() { return vector<complex<float> >(); }
+    vector<complex<float> > GetSamples() { return vector<complex<float> >(); }
     void Reset() {}
 };
 
