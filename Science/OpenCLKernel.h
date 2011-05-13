@@ -54,6 +54,7 @@ private:
     cl_float2* spinPacks;
 
     cl::Context context;
+    cl::Device device;
     cl::CommandQueue* queue;
     cl::Kernel* kernel;
 
@@ -95,6 +96,9 @@ public:
 
     void SetB0(float b0);
     float GetB0() const;
+
+    void Reduce() const;
+    void SetupReduce();
 
     //RenderNode *GetRenderNode();
 

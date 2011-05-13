@@ -135,6 +135,8 @@ void OpenCLKernel::Init(Phantom phantom) {
         //logger.info << "Device " << 
     }
     
+    device = devices[0];
+
     cl_int err = CL_SUCCESS;
     queue = new cl::CommandQueue(context, devices[0], 0, &err);
     if (err)
@@ -250,6 +252,8 @@ void OpenCLKernel::Init(Phantom phantom) {
     if (err)
         logger.error << "setting args = " << err << logger.end;
 
+    SetupReduce();
+
     Reset();
 
 }
@@ -298,11 +302,141 @@ void OpenCLKernel::Step(float dt) {
         logger.error << "error "  << err << logger.end;
     }
         
-    queue->enqueueReadBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3,float>), refMagnets, NULL, &event);
+    //queue->enqueueReadBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3,float>), refMagnets, NULL, &event);
     event.wait();
 
+
+    
+
+}
+
+void OpenCLKernel::Flip(unsigned int slice) {
+    RFPulse(Math::PI * 0.5, slice);
+}
+
+void OpenCLKernel::Flop(unsigned int slice) {
+    RFPulse(Math::PI, slice);
+}
+
+
+void create_reduction_pass_counts(
+    int count, 
+    int max_group_size,    
+    int max_groups,
+    int max_work_items, 
+    int *pass_count, 
+    size_t **group_counts, 
+    size_t **work_item_counts,
+    int **operation_counts,
+    int **entry_counts)
+{
+    int work_items = (count < max_work_items * 2) ? count / 2 : max_work_items;
+    if(count < 1)
+        work_items = 1;
+        
+    int groups = count / (work_items * 2);
+    groups = max_groups < groups ? max_groups : groups;
+
+    int max_levels = 1;
+    int s = groups;
+
+    while(s > 1) 
+    {
+        int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
+        s = s / (work_items*2);
+        max_levels++;
+    }
+ 
+    *group_counts = (size_t*)malloc(max_levels * sizeof(size_t));
+    *work_item_counts = (size_t*)malloc(max_levels * sizeof(size_t));
+    *operation_counts = (int*)malloc(max_levels * sizeof(int));
+    *entry_counts = (int*)malloc(max_levels * sizeof(int));
+
+    (*pass_count) = max_levels;
+    (*group_counts)[0] = groups;
+    (*work_item_counts)[0] = work_items;
+    (*operation_counts)[0] = 1;
+    (*entry_counts)[0] = count;
+    if(max_group_size < work_items)
+    {
+        (*operation_counts)[0] = work_items;
+        (*work_item_counts)[0] = max_group_size;
+    }
+    
+    s = groups;
+    int level = 1;
+   
+    while(s > 1) 
+    {
+        int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
+        int groups = s / (work_items * 2);
+        groups = (max_groups < groups) ? max_groups : groups;
+
+        (*group_counts)[level] = groups;
+        (*work_item_counts)[level] = work_items;
+        (*operation_counts)[level] = 1;
+        (*entry_counts)[level] = s;
+        if(max_group_size < work_items)
+        {
+            (*operation_counts)[level] = work_items;
+            (*work_item_counts)[level] = max_group_size;
+        }
+        
+        s = s / (work_items*2);
+        level++;
+    }
+}
+
+
+#define MAX_GROUPS      (64)
+#define MAX_WORK_ITEMS  (64)
+
+
+void OpenCLKernel::SetupReduce() {
+
+    int count = sz;
+    size_t max_workgroup_size = 0;
+
+    int pass_count = 0;
+    size_t* group_counts = 0;
+    size_t*          work_item_counts = 0;
+    int*             operation_counts = 0;
+    int*             entry_counts = 0;
+
+    max_workgroup_size = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+
+    // int err = clGetDeviceInfo(device_id,
+    //                           CL_DEVICE_MAX_WORK_GROUP_SIZE, 
+    //                           sizeof(size_t),
+    //                           &max_workgroup_size,
+    //                           &returned_size);
+    // if (err != CL_SUCCESS)
+    // {
+    //     printf("Error: Failed to retrieve device info!\n");
+    //     return EXIT_FAILURE;
+    // }
+
+    create_reduction_pass_counts(
+        count, max_workgroup_size, 
+        MAX_GROUPS, MAX_WORK_ITEMS, 
+        &pass_count, &group_counts, 
+        &work_item_counts, &operation_counts,
+        &entry_counts);
+
+    logger.error << pass_count << logger.end;
+
+}
+
+void OpenCLKernel::Reduce() const {
+    
+}
+
+Vector<3,float> OpenCLKernel::GetSignal() const {
     // reduce!
 
+    Reduce();
+
+    cl::Event event;
     int size = width*height*depth;
     int i =0;
     cl::Buffer* lastBuf;
@@ -323,6 +457,7 @@ void OpenCLKernel::Step(float dt) {
 
         size = ceil(size/2.0);
 
+
         cl_int err = queue->enqueueNDRangeKernel(*reduceKernel,
                                                  cl::NullRange,
                                                  cl::NDRange(size),
@@ -340,38 +475,10 @@ void OpenCLKernel::Step(float dt) {
     event.wait();
     //logger.warning << signal2 << logger.end;
 
-    signal = signal2;
+    //signal = signal2;
 
-    // for (unsigned int x = 0; x < width; ++x) {
-    //     for (unsigned int y = 0; y < height; ++y) {
-    //         for (unsigned int z = 0; z < depth; ++z) {
 
-    //             unsigned int i = x + y*width + z*width*height;
-    //             //if (data[i] == 0) continue;
-                
-                
-    //             // labMagnets[i] = 
-    //             //     RotateZ(omega0Angle, refMagnets[i]);
-    //             signal += refMagnets[i];
-    //         }    
-    //     }
-    // }
-    // logger.warning << signal << logger.end;
-    // //logger.error << refMagnets[500] << logger.end;
-    
-
-}
-
-void OpenCLKernel::Flip(unsigned int slice) {
-    RFPulse(Math::PI * 0.5, slice);
-}
-
-void OpenCLKernel::Flop(unsigned int slice) {
-    RFPulse(Math::PI, slice);
-}
-
-Vector<3,float> OpenCLKernel::GetSignal() const {
-    return signal;
+    return signal2;
 }
 
 void OpenCLKernel::SetB0(float b0) {

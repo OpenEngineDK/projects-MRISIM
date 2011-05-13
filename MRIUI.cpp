@@ -154,7 +154,7 @@ void MRIUI::SetupSim() {
     const unsigned int texHeight = 300;
 
     // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(30);
+    IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
     Phantom p = pb->GetPhantom();
     
     // ---- brain phantom ---
@@ -463,9 +463,10 @@ public:
     }
 };
 
-MRIUI::MRIUI(QtEnvironment *env, bool useCPU) {
+MRIUI::MRIUI(QtEnvironment *env, bool useCPU, float phantomSize) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
     this->useCPU = useCPU;
+    this->phantomSize = phantomSize;
     frame = &setup->GetFrame();
     mouse = &setup->GetMouse();
     engine = &setup->GetEngine();
@@ -607,15 +608,22 @@ void nop(MRIUI *n) {}
 int main(int argc, char* argv[]) {
 
     bool useCPU = false;
+    float phantomSize = 20;
 
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
             useCPU = true;
+        else {
+            float f = strtof(argv[i],NULL);
+            if (f > 0.0)
+                phantomSize = f;
+        }
+            
     }
 
     QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
                                            FrameOption(), argc, argv);
-    MRIUI *ui = new MRIUI(env,useCPU);
+    MRIUI *ui = new MRIUI(env,useCPU,phantomSize);
     nop(ui);
     
 }

@@ -73,6 +73,7 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
 
     bool useCPU;
+    float phantomSize;
 
     MRISim* sim;
     IMRIKernel* kern;
@@ -107,7 +108,7 @@ public slots:
     void SetSimView(bool toggle);
     void SetRFView(bool toggle);
 public:
-    MRIUI(OpenEngine::Display::QtEnvironment *env, bool);    
+    MRIUI(OpenEngine::Display::QtEnvironment *env, bool, float);    
 
 };
 
