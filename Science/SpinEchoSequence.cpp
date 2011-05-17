@@ -98,14 +98,14 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     for (unsigned int j = 0; j < height; ++j) {
         time = start = double(j) * double(tr);
 
-        unsigned int scanline = height / 2;
+        unsigned int scanline = height / 2 + (height % 2);
         if (j % 2 == 0) 
             scanline -= j/2 + 1;
         else
             scanline += j/2;
 
-        // logger.info << "scanline: " << scanline << logger.end;
-        //start with reset state (full relaxation cheating)
+        // logger.info << "j: " << j << " scanline: " << scanline << logger.end;
+        // start with reset state (full relaxation cheating)
         // e.action = MRIEvent::RESET;
         // seq.push_back(make_pair(time, e));
 

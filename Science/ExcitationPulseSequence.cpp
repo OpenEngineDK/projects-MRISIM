@@ -37,7 +37,7 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
 
     const unsigned int lobes = 6; 
     const float d = 0.001; // thickness in meters
-    const float offset = 0.010; // slice plane offset from magnetic center in meters.
+    const float offset = 0.0; // slice plane offset from magnetic center in meters.
     const float tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
     //const float flipAngle = Math::PI / 6.0;
     const float flipAngle = Math::PI * 0.5;

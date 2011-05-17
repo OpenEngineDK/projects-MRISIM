@@ -463,7 +463,7 @@ public:
     }
 };
 
-MRIUI::MRIUI(QtEnvironment *env, bool useCPU, float phantomSize) {
+MRIUI::MRIUI(QtEnvironment *env, bool useCPU, unsigned int phantomSize) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
     this->useCPU = useCPU;
     this->phantomSize = phantomSize;
@@ -608,14 +608,14 @@ void nop(MRIUI *n) {}
 int main(int argc, char* argv[]) {
 
     bool useCPU = false;
-    float phantomSize = 20;
+    unsigned int phantomSize = 20;
 
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
             useCPU = true;
         else {
-            float f = strtof(argv[i],NULL);
-            if (f > 0.0)
+            unsigned int f = strtol(argv[i], NULL, 10);
+            if (f > 0)
                 phantomSize = f;
         }
             
