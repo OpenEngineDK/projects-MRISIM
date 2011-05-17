@@ -29,26 +29,26 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     MRIEvent e;
 
     e.action = MRIEvent::RFPULSE | MRIEvent::GRADIENT;
-    float Gz = 50e-3; // slice gradient magnitude
+    double Gz = 50e-3; // slice gradient magnitude
 
     e.gradient = Vector<3,float>(0.0, 0.0, 1.0); // slice normal (gradient direction)
     e.gradient.Normalize();
     e.gradient *= Gz;
 
     const unsigned int lobes = 6; 
-    const float d = 0.001; // thickness in meters
-    const float offset = 0.0; // slice plane offset from magnetic center in meters.
-    const float tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
+    const double d = 0.001; // thickness in meters
+    const double offset = 0.0; // slice plane offset from magnetic center in meters.
+    const double tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
     //const float flipAngle = Math::PI / 6.0;
-    const float flipAngle = Math::PI * 0.5;
-    const float ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
+    const double flipAngle = Math::PI * 0.5;
+    const double ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
 
-    const float totalTime = tauPrime * float(lobes);
-    const unsigned int steps = 200; // number of steps
-    const float dt = totalTime / float(steps);
+    const double totalTime = tauPrime * double(lobes);
+    const unsigned int steps = 1000; // number of steps
+    const double dt = totalTime / double(steps);
 
     // logger.info << "rf dt: " << dt << logger.end;
-    float w0 = sim.GetB0() * GYRO_RAD;
+    double w0 = sim.GetB0() * GYRO_RAD;
     rfcoil->SetDuration(totalTime);
     rfcoil->SetAmplitude(ampl);
     rfcoil->SetChannel(w0 + offset * Gz * GYRO_RAD);
@@ -60,8 +60,11 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
         seq.push_back(make_pair(time, e));
 
         e.action = MRIEvent::RFPULSE; // to remove gradient action
-        e.dt = dt;
+    
+        //e.dt = dt;
+        double t = time;
         time += dt;
+        e.dt = time - t;
     }
 
     e.action = MRIEvent::GRADIENT | MRIEvent::RFPULSE;

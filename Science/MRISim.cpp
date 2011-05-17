@@ -106,8 +106,9 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
             Timer t;
             t.Start();
-
             Vector<3,float> signal = kernel->GetSignal();
+            t.Stop();
+            // logger.info << "Signal took " << t.GetElapsedIntervals(1) << " us" << logger.end;
 
             sequence->GetSampler().AddSample(event.point, Vector<2,float>(signal[0], signal[1]));
             // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
@@ -118,8 +119,6 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             //     samples.at(index) = sample;
             //     samplesEvent.Notify(SamplesChangedEventArg(index, index+1));
 
-            t.Stop();
-            logger.info << "Signal took " << t.GetElapsedIntervals(1) << " us" << logger.end;
         } 
 
         if (event.action & MRIEvent::RESET) {
@@ -140,7 +139,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
         if (event.action & MRIEvent::RFPULSE) {
             // logger.info << "Time: " << theSimTime << ", RFPulse :" << event.rfSignal << logger.end;
             kernel->SetRFSignal(event.rfSignal);
-            kernelStep = event.dt;
+            // kernelStep = event.dt;
         }
 
         theSimTime += kernelStep;
@@ -152,7 +151,7 @@ void MRISim::Handle(Core::ProcessEventArg arg) {
             kernel->Step(kernelStep);
             t.Stop();
 
-            logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
+            // logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
             // logger.info << "doing Kernel step: " << kernelStep << logger.end;
             stepEvent.Notify(StepEventArg(*this));
         }

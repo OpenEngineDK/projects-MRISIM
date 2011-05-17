@@ -80,17 +80,17 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     logger.info << "sample width: " << width << logger.end;
     logger.info << "sample height: " << height << logger.end;
 
-    const float gyMax = 10e-3; // mT/m
-    const float tau = float(height)/(GYRO_HERTZ * gyMax * fov);
-    const float gyStart = -gyMax*0.5;
-    const float dGy = gyMax / float(height);
+    const double gyMax = 10e-3; // mT/m
+    const double tau = double(height)/(GYRO_HERTZ * gyMax * fov);
+    const double gyStart = -gyMax*0.5;
+    const double dGy = gyMax / double(height);
     logger.info << "dGY: " << dGy << logger.end;
 
-    const float gx = 10e-3; // mT/m
-    const float samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
-    const float gxDuration = samplingDT * float(width);
+    const double gx = 10e-3; // mT/m
+    const double samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
+    const double gxDuration = samplingDT * double(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
-    const float gxFirst = (gx * gxDuration * 0.5) / tau;
+    const double gxFirst = (gx * gxDuration * 0.5) / tau;
 
 
     time = 0.0;
@@ -128,7 +128,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // setup phase encoding gradient
         time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(-gxFirst, gyStart + float(scanline) * dGy, 0.0);
+        e.gradient = Vector<3,float>(-gxFirst, gyStart + double(scanline) * dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -220,6 +220,9 @@ ValueList SpinEchoSequence::Inspect() {
         values.push_back(v);
     }
 
+    
+    ValueList values2 = ListSequence::Inspect();
+    values.merge(values2);
     return values;
 }
 

@@ -14,8 +14,12 @@
 
 #include <vector>
 
+#include <Utils/IInspector.h>
+
 namespace MRI {
 namespace Science {
+
+using namespace Utils::Inspection;
 
 using std::vector;
 
@@ -32,6 +36,12 @@ public:
     void Sort();
     void Clear();
     double GetDuration();
+
+    void LoadFromYamlFile(string file);
+    void LoadFromYamlFile();
+    void SaveToYamlFile(string file);
+    void SaveToYamlFile();
+    ValueList Inspect();
 };
 
 } // NS Science
