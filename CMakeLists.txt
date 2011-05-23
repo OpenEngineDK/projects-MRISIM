@@ -30,10 +30,6 @@ SET (MRI_SOURCES
   Science/OpenCLKernel.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
-  Science/UniformSampler.h
-  Science/UniformSampler.cpp
-  Science/FrequencyData.h
-  Science/FrequencyData.cpp
   Science/SpinEchoSequence.h
   Science/SpinEchoSequence.cpp
   Science/ListSequence.h
@@ -47,16 +43,10 @@ SET (MRI_SOURCES
 
   Science/CartesianSampler.h
   Science/CartesianSampler.cpp
-  # Science/FFTData.h
-  # Science/FFTData.cpp
 
   Science/IFFT.h
   Science/CPUFFT.h
   Science/CPUFFT.cpp
-  Science/ImageFFT.h
-  Science/ImageFFT.cpp
-  # Science/CartesianFFT.h
-  # Science/CartesianFFT.cpp
 )
 
 # Project source code list
@@ -82,6 +72,21 @@ SET( GUI_SOURCES
 
   Science/RFTester.h
   Science/RFTester.cpp
+
+  Science/UniformSampler.h
+  Science/UniformSampler.cpp
+  Science/FrequencyData.h
+  Science/FrequencyData.cpp
+
+
+  # Science/ImageFFT.h
+  # Science/ImageFFT.cpp
+  # Science/CartesianFFT.h
+  # Science/CartesianFFT.cpp
+
+  # Science/FFTData.h
+  # Science/FFTData.cpp
+
 
 #   Scene/SpinNode.h
 #   Scene/SpinNode.cpp

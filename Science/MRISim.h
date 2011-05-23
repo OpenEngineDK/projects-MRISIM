@@ -16,9 +16,7 @@
 #include <Core/IModule.h>
 #include <Core/Event.h>
 #include <Utils/IInspector.h>
-#include <Science/MathGLPlot.h>
 #include "IFFT.h"
-#include "FFTData.h"
 
 #define GYRO_HERTZ 42.576*1e6 // herz/tesla
 #define GYRO_RAD GYRO_HERTZ * 2.0 * Math::PI // (radians/s)/tesla
@@ -32,7 +30,6 @@ namespace Science {
 using OpenEngine::Resources::Phantom;
 using Scene::SpinNode;
 using namespace OpenEngine;
-using namespace OpenEngine::Science;
 
 class IMRIKernel;
 

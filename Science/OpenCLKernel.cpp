@@ -23,6 +23,7 @@ namespace Science {
 
 using namespace OpenEngine::Utils::Inspection;
 using namespace OpenEngine::Math;
+using namespace OpenEngine::Resources;
 
 inline Vector<3,float> RotateX(float angle, Vector<3,float> vec) {
     Matrix<3,3,float> m(1.0, 0.0, 0.0,
