@@ -98,8 +98,8 @@ void ListSequence::LoadFromYamlFile(string file) {
         // logger.info << "actions: " << actions->GetSize() << logger.end;
         for (unsigned int j = 0; j < actions->GetSize(); ++j) {
             PropertyTreeNode* action = actions->GetNodeIdx(j);
-            // string name = action->GetPath("name", string());
-            logger.info << "read name: " << name << logger.end;
+            string name = action->GetPath("name", string());
+            // logger.info << "read name: " << name << logger.end;
             if (name == string("RECORD")) {
 
                 e.action |= MRIEvent::RECORD;
