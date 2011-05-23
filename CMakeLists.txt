@@ -13,6 +13,13 @@ QT4_WRAP_CPP(MOC_SOURCE
 )
 
 
+INCLUDE (FindFFTW.cmake)
+IF (${FFTW_FOUND})
+  INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIR})
+ELSE (${FFTW_FOUND})
+  MESSAGE ("WARNING: Could not find fftw - depending targets will be disabled.")
+ENDIF (${FFTW_FOUND})
+
 SET (MRI_SOURCES 
 
   Resources/Phantom.h
@@ -133,7 +140,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_PropertyTree
   Extensions_OpenCL
   minc2 # ugly hack... use a find script
-  fftw3
+  ${FFTW_LIBRARIES}
 )
 
 
@@ -159,5 +166,5 @@ TARGET_LINK_LIBRARIES(${BATCH_PROJECT_NAME}
   # Extension dependencies
   Extensions_PropertyTree
   Extensions_OpenCL
-  fftw3
+  ${FFTW_LIBRARIES}
 )
