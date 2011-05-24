@@ -47,6 +47,8 @@ public:
     virtual ~Sample3DTexture();
 
     void Handle(SamplesChangedEventArg arg);
+    
+    void Save(string file);
 };
 
 typedef boost::shared_ptr<Sample3DTexture > Sample3DTexturePtr;

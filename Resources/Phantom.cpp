@@ -15,10 +15,10 @@
 
 #include <fstream>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
-using namespace Utils;
+using namespace OpenEngine::Utils;
 using namespace std;
 
 Phantom::Phantom() {

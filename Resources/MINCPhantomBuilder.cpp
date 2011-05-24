@@ -15,10 +15,10 @@
 #include <Resources/File.h>
 #include <Utils/PropertyTreeNode.h>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
-using namespace Utils;
+using namespace OpenEngine::Utils;
 
 MINCPhantomBuilder::MINCPhantomBuilder(string filename): filename(filename) {
 }

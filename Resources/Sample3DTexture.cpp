@@ -10,6 +10,8 @@
 
 #include "Sample3DTexture.h"
 
+#include <fstream>
+
 namespace MRI {
 namespace Resources {
 
@@ -57,6 +59,26 @@ void Sample3DTexture::Handle(SamplesChangedEventArg arg) {
         }
     }
     this->ChangedEvent().Notify(Texture3DChangedEventArg(ref));
+}
+
+void Sample3DTexture::Save(string filename) {
+    string indent("");
+    string yamlfile = filename + ".yaml";
+    string rawfile = filename + ".raw";
+    ofstream out(yamlfile.c_str());
+
+    out << "voxels:\n";
+    out << "  width: " << GetWidth() << "\n";
+    out << "  height: " << GetHeight() << "\n";
+    out << "  depth: " << GetDepth() << "\n";    
+    out << "  type: FLOAT\n";        
+    out << "  rawfile: " << rawfile << "\n";
+    out << "\n";
+    out.close();
+
+    ofstream out2(rawfile.c_str());
+    out2.write((char*)GetVoidDataPtr(), GetWidth()*GetHeight()*GetDepth() * sizeof(float));
+    out2.close();
 }
 
 } // NS Science

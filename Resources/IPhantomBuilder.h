@@ -12,7 +12,7 @@
 
 #include "Phantom.h"
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
 class IPhantomBuilder {

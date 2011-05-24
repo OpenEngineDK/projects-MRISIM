@@ -14,7 +14,7 @@
 
 #include <string>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
 using std::string;

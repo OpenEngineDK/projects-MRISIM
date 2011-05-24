@@ -27,7 +27,7 @@ namespace MRI {
     }
 namespace Science {
 
-using OpenEngine::Resources::Phantom;
+using Resources::Phantom;
 using Scene::SpinNode;
 using namespace OpenEngine;
 
@@ -102,6 +102,7 @@ public:
     virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
     virtual double GetDuration() = 0; 
     virtual IMRISampler& GetSampler() = 0;
+    virtual unsigned int GetNumPoints() = 0;
 };
 
 class IMRIKernel {
@@ -153,7 +154,11 @@ public:
     void Start();
     void Stop();
     void Reset();
-    
+  
+    bool IsRunning();
+
+    inline bool Step();
+    void Simulate(unsigned int steps);
     void Handle(Core::InitializeEventArg arg);
     void Handle(Core::DeinitializeEventArg arg);
     void Handle(Core::ProcessEventArg arg);

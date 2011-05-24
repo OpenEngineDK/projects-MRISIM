@@ -22,7 +22,7 @@ namespace Display {
 namespace OpenGL {
 
 using namespace OpenEngine::Display;
-using namespace OpenEngine::Resources;
+using namespace Resources;
 
 SpinCanvas::SpinCanvas(ICanvasBackend* backend, IMRIKernel& kernel, IRenderer& renderer, 
                        unsigned int width, unsigned int height)

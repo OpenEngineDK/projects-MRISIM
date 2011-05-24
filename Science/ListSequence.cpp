@@ -53,6 +53,10 @@ bool ListSequence::HasNextPoint() const {
 //     return seq;
 // }
 
+unsigned int ListSequence::GetNumPoints() {
+    return seq.size();
+}
+
 double ListSequence::GetDuration() {
     if (seq.empty()) 
         return 0.0;

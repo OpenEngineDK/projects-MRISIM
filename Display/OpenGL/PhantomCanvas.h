@@ -18,6 +18,8 @@ namespace Display {
 class ICanvasBackend;
 namespace OpenGL {
 
+using namespace MRI::Resources;
+
 class PhantomCanvas : public ICanvas {
 private:
     bool init;

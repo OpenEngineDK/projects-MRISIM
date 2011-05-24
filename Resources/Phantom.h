@@ -15,9 +15,10 @@
 #include <vector>
 #include <string>
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
+using namespace OpenEngine::Resources;
 using std::vector;
 using std::string;
 

@@ -12,7 +12,7 @@
 #include <Logging/Logger.h>
 
 
-namespace OpenEngine {
+namespace MRI {
 namespace Resources {
 
 using namespace std;

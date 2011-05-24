@@ -30,7 +30,10 @@ private:
 public:
     ListSequence(vector<pair<double, MRIEvent> >& seq);
     virtual ~ListSequence();
+    
+    
     pair<double, MRIEvent> GetNextPoint();
+    unsigned int GetNumPoints();
     virtual void Reset(MRISim& sim);
     virtual bool HasNextPoint() const;
     void Sort();
