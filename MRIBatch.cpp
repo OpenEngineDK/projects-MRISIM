@@ -16,15 +16,23 @@
 
 #include "Resources/Sample3DTexture.h"
 
+#include <Logging/Logger.h>
+#include <Logging/StreamLogger.h>
+
 #include <cstdio>
+#include <fstream>
 
 using namespace MRI::Scene;
 using namespace MRI::Science;
 using namespace MRI::Resources;
 
+using namespace OpenEngine::Logging;
+
 int main(int argc, char* argv[]) {
     DirectoryManager::AppendPath("projects/MRISIM/Science/");
     DirectoryManager::AppendPath("projects/MRISIM/data/");
+
+    Logger::AddLogger(new StreamLogger(new fstream("output.log", fstream::out | fstream::trunc)));
 
     bool useCPU = false;
     string yamlSequence;
