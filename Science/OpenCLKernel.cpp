@@ -157,12 +157,16 @@ void OpenCLKernel::Init(Phantom phantom) {
         logger.error << log << logger.end;
     }
     kernel = new cl::Kernel(program, "mri_step", &err);
-    if (err)
+    if (err) {
         logger.error << "Made kernel: " << err << logger.end;
+        throw Exception("couldn't create kernel");
+    }
 
     reduceKernel = new cl::Kernel(program, "reduce_signal", &err);
-    if (err)
+    if (err) {
         logger.error << "Made reduce kernel: " << err << logger.end;
+        throw Exception("couldn't create kernel");
+    }
 
     refMBuffer = new cl::Buffer(context,
                                 CL_MEM_READ_WRITE,
@@ -192,17 +196,21 @@ void OpenCLKernel::Init(Phantom phantom) {
                              sz*sizeof(Vector<3,float>),
                              NULL,
                              &err);
-    if (err)
+    if (err) {
         logger.error << "Create buffer a: " << err << logger.end;
+        throw Exception("couldn't create buffer");
+    }
     
     reduceB = new cl::Buffer(context,
                              CL_MEM_READ_WRITE,
                              sz*sizeof(Vector<3,float>),
                              NULL,
                              &err);    
-    if (err)
+    if (err) {
         logger.error << "Create buffer b: " << err << logger.end;
+        throw Exception("couldn't create buffer");
 
+    }
     
 
     logger.info << "Creating memory " << sz << " " << sz*sizeof(Vector<3,float>) << logger.end;
@@ -211,8 +219,10 @@ void OpenCLKernel::Init(Phantom phantom) {
                         sz*sizeof(Vector<3,float>),
                         NULL,
                         &err);
-    if (err)
+    if (err) {
         logger.error << "creating memory = " << err << logger.end;
+        throw Exception("couldn't create buffer");
+    }
 
     outbuffer = new cl::Buffer(context,
                          CL_MEM_WRITE_ONLY,
@@ -241,8 +251,10 @@ void OpenCLKernel::Init(Phantom phantom) {
     //kernel->setArg(6, sizeof(GpuPhantomInfo), &pinfo);
     err = kernel->setArg(6, sizeof(cl_float4), &pinfo.offset);
 
-    if (err)
+    if (err) {
         logger.error << "setting args = " << err << logger.end;
+        throw Exception("couldn't set args");
+    }
     
 
     err = kernel->setArg(7, sizeof(cl_float4), &pinfo.size);
@@ -250,8 +262,10 @@ void OpenCLKernel::Init(Phantom phantom) {
 
     //kernel->setArg(0, *inbuffer);
     //kernel->setArg(1, *outbuffer);
-    if (err)
+    if (err) {
         logger.error << "setting args = " << err << logger.end;
+        throw Exception("couldn't set args");
+    }
 
     SetupReduce();
 
@@ -301,6 +315,8 @@ void OpenCLKernel::Step(float dt) {
 
     if (err) {
         logger.error << "error "  << err << logger.end;
+        throw Exception("couldn't run kernel");
+
     }
         
     //queue->enqueueReadBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3,float>), refMagnets, NULL, &event);
@@ -465,9 +481,10 @@ Vector<3,float> OpenCLKernel::GetSignal() const {
                                                  cl::NullRange,
                                                  NULL,
                                                  &event);
-        if (err)
+        if (err) {
             logger.error << "error = " << err << logger.end;
-
+            throw Exception("couldn't run reduce");                    
+        }
         i++;
     }
 
