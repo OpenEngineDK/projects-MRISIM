@@ -73,12 +73,12 @@ class MRIUI : public QMainWindow {
     IMouse* mouse;
 
     bool useCPU;
-    unsigned int  phantomSize;
+    Phantom phantom;
 
     MRISim* sim;
     IMRIKernel* kern;
     SpinEchoSequence* seq;
-    MINCResourcePtr phantom;
+    // MINCResourcePtr phantom;
     SliceCanvas *samplesCanvas, *fftCanvas;
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
@@ -108,7 +108,7 @@ public slots:
     void SetSimView(bool toggle);
     void SetRFView(bool toggle);
 public:
-    MRIUI(OpenEngine::Display::QtEnvironment *env, bool, unsigned int);    
+    MRIUI(OpenEngine::Display::QtEnvironment *env, bool, Phantom);    
 
 };
 

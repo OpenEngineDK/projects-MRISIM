@@ -35,13 +35,17 @@ int main(int argc, char* argv[]) {
     Logger::AddLogger(new StreamLogger(new fstream("output.log", fstream::out | fstream::trunc)));
 
     bool useCPU = false;
-    string yamlSequence;
+    string yamlSequence, yamlPhantom;
 
     unsigned int phantomSize = 20;
 
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
             useCPU = true;
+        else if (strcmp(argv[i],"-phantom") == 0) {
+            if (i + 1 < argc)
+                yamlPhantom = string(argv[i+1]);
+        }
         else {
             unsigned int f = strtol(argv[i], NULL, 10);
             if (f > 0)
@@ -59,8 +63,14 @@ int main(int argc, char* argv[]) {
 
 
     // load phantom
-    IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
-    Phantom p = pb->GetPhantom();
+    Phantom p;
+    if (yamlPhantom.empty()) {
+        IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
+        p = pb->GetPhantom();
+    }
+    else {
+        p = Phantom(yamlPhantom);
+    }
 
     // load sequence
     IMRISequence* seq = NULL;

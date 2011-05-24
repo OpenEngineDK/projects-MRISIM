@@ -153,20 +153,8 @@ void MRIUI::SetupSim() {
     const unsigned int texWidth = 300;
     const unsigned int texHeight = 300;
 
-    // --- box phantom ---
-    IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
-    Phantom p = pb->GetPhantom();
-    
-    // ---- brain phantom ---
-    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
-    // Phantom p = pb->GetPhantom();
-    // Phantom::Save("test", p);
-
-    // -- phantom loaded from yaml file ---
-    // Phantom p = Phantom("test.yaml");
-
     // init a canvas that scrolls through the slices of the phantom
-    phantomCanvas = new PhantomCanvas(new TextureCopy(), p, texWidth, texHeight);
+    phantomCanvas = new PhantomCanvas(new TextureCopy(), phantom, texWidth, texHeight);
     // tl->Load(phantomCanvas->GetSliceCanvas()->GetSourceTexture());
     cq->PushCanvas(phantomCanvas);
     wcSim->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
@@ -179,8 +167,8 @@ void MRIUI::SetupSim() {
     else
         kern = new OpenCLKernel();
     
-    seq = new SpinEchoSequence(2500.0f, 50.0f, p.sizeX * 1e-3 * float(p.texr->GetWidth()));
-    sim = new MRISim(p, kern, seq);
+    seq = new SpinEchoSequence(2500.0f, 50.0f, phantom.sizeX * 1e-3 * float(phantom.texr->GetWidth()));
+    sim = new MRISim(phantom, kern, seq);
     //sim = new MRISim(p, kern, rfTestSequence);
 
     engine->InitializeEvent().Attach(*sim);
@@ -463,10 +451,10 @@ public:
     }
 };
 
-MRIUI::MRIUI(QtEnvironment *env, bool useCPU, unsigned int phantomSize) {
+MRIUI::MRIUI(QtEnvironment *env, bool useCPU, Phantom phantom) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
     this->useCPU = useCPU;
-    this->phantomSize = phantomSize;
+    this->phantom = phantom;
     frame = &setup->GetFrame();
     mouse = &setup->GetMouse();
     engine = &setup->GetEngine();
@@ -609,10 +597,15 @@ int main(int argc, char* argv[]) {
 
     bool useCPU = false;
     unsigned int phantomSize = 20;
+    string yamlPhantom;
 
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
             useCPU = true;
+        else if (strcmp(argv[i],"-phantom") == 0) {
+            if (i + 1 < argc)
+                yamlPhantom = string(argv[i+1]);
+        }
         else {
             unsigned int f = strtol(argv[i], NULL, 10);
             if (f > 0)
@@ -621,9 +614,31 @@ int main(int argc, char* argv[]) {
             
     }
 
+    Phantom phantom;
+    if (yamlPhantom.empty()) {
+        IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
+        phantom = pb->GetPhantom();
+    }
+    else {
+        phantom = Phantom(yamlPhantom);
+    }
+
+    // --- box phantom ---
+    //IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
+    //Phantom p = pb->GetPhantom();
+    
+    // ---- brain phantom ---
+    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
+    // Phantom p = pb->GetPhantom();
+    // Phantom::Save("test", p);
+
+    // -- phantom loaded from yaml file ---
+    // Phantom p = Phantom("test.yaml");
+    
+
     QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
                                            FrameOption(), argc, argv);
-    MRIUI *ui = new MRIUI(env,useCPU,phantomSize);
+    MRIUI *ui = new MRIUI(env,useCPU, phantom);
     nop(ui);
     
 }
