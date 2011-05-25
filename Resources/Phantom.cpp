@@ -27,6 +27,7 @@ Phantom::Phantom() {
 
 Phantom::Phantom(string filename) {
     filename = DirectoryManager::FindFileInPath(filename);
+    string dir = File::Parent(filename);
     string filedir = File::Parent(filename);
     PropertyTree tree(filename);
     tree.Reload();
@@ -48,8 +49,8 @@ Phantom::Phantom(string filename) {
         unsigned int sz = width*height*depth;
         string rawfile = voxels.GetPath("rawfile", string(""));
         unsigned char* data = new unsigned char[sz];
-        ifstream in(rawfile.c_str());
-
+        ifstream in((dir+rawfile).c_str());
+        if (in.fail()) throw Exception("could not find phantom raw file");
         if (bytesPerVoxel == 1) {
              in.read((char*)data, sz);
         }

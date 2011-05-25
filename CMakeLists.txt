@@ -27,6 +27,8 @@ SET (MRI_SOURCES
   Resources/IPhantomBuilder.h
   Resources/SimplePhantomBuilder.h
   Resources/SimplePhantomBuilder.cpp
+  Resources/SheppLoganBuilder.h
+  Resources/SheppLoganBuilder.cpp
   Resources/Sample3DTexture.h
   Resources/Sample3DTexture.cpp
 

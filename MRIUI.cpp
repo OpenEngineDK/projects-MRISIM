@@ -34,6 +34,7 @@
 #include "Resources/Phantom.h"
 #include "Resources/SimplePhantomBuilder.h"
 #include "Resources/MINCPhantomBuilder.h"
+#include "Resources/SheppLoganBuilder.h"
 #include "Resources/Sample3DTexture.h"
 
 #include "Science/SamplerVisualizer.h"
@@ -82,11 +83,7 @@ using namespace MRI::Display::OpenGL;
 ExcitationPulseSequence *rfTestSequence = NULL;
 
 void MRIUI::SetupPlugins() {
-    DirectoryManager::AppendPath("projects/MRISIM/data/");
-
-    //ResourceManager<IFontResource>::AddPlugin(new CairoFontPlugin());
     ResourceManager<IFontResource>::AddPlugin(new SDLFontPlugin());
-    ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
 }
 
 void MRIUI::SetupWall() {
@@ -453,6 +450,17 @@ public:
 
 MRIUI::MRIUI(QtEnvironment *env, bool useCPU, Phantom phantom) {
     SimpleSetup* setup = new SimpleSetup("MRISIM",env);
+
+
+    // ---- brain phantom ---
+    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/1mm/phantom.yaml");
+    // phantom = pb->GetPhantom();
+    // Phantom::Save("test1", phantom);
+
+    // IPhantomBuilder* pb = new SheppLoganBuilder("shepplogan300.dat", 300, 1.0);
+    // phantom = pb->GetPhantom();
+    // Phantom::Save("shepplogan300", phantom);
+    
     this->useCPU = useCPU;
     this->phantom = phantom;
     frame = &setup->GetFrame();
@@ -595,6 +603,11 @@ void nop(MRIUI *n) {}
 
 int main(int argc, char* argv[]) {
 
+    DirectoryManager::AppendPath("projects/MRISIM/data/");
+
+    //ResourceManager<IFontResource>::AddPlugin(new CairoFontPlugin());
+    ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
+
     bool useCPU = false;
     unsigned int phantomSize = 20;
     string yamlPhantom;
@@ -627,10 +640,6 @@ int main(int argc, char* argv[]) {
     //IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
     //Phantom p = pb->GetPhantom();
     
-    // ---- brain phantom ---
-    // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/2/phantom.yaml");
-    // Phantom p = pb->GetPhantom();
-    // Phantom::Save("test", p);
 
     // -- phantom loaded from yaml file ---
     // Phantom p = Phantom("test.yaml");
