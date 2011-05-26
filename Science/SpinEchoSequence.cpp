@@ -185,7 +185,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
 
         time += 0.1;
-        while (time < float(j) * tr + tr) {
+        while (time < start + double(tr)) {
             e.action = MRIEvent::NONE;
             seq.push_back(make_pair(time, e));
             time += 0.1;

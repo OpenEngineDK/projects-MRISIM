@@ -49,21 +49,21 @@ vector<complex<float> > CartesianSampler::GetReconstructedSamples() {
 
     // todo: only reconstruct when a slice has changed.
     // reconstruct slice by slice.
-    for (unsigned int i = 0; i < dims[2]; ++i) {
+    for (unsigned int k = 0; k < dims[2]; ++k) {
         unsigned int w = dims[0];
         unsigned int h = dims[1];
         
         // copy a slice
         vector<complex<double> > in(w * h);
-        for (unsigned int j = 0; j < w * h; ++j)
-            in[j] = samples[i * w * h + j];
+        for (unsigned int i = 0; i < w * h; ++i)
+            in[i] = samples[k * w * h + i];
         
         //do an inverse 2d fourier
         vector<complex<double> > image = fft->FFT2D_Inverse(in, dims[0], dims[1], true);
         
         //write back reconstructed slice.
-        for (unsigned int j = 0; j < w * h; ++j) {
-            images[i * w * h + j] = image[j];
+        for (unsigned int i = 0; i < w * h; ++i) {
+            images[k * w * h + i] = image[i];
         }
     }
     return images;
