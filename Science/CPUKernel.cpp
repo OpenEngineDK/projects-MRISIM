@@ -35,7 +35,7 @@ CPUKernel::CPUKernel()
     , time(0.0)
     , omega0Angle(0.0) {
     randomgen.SeedWithTime();
-    rn = new KernRenderNode(this);
+    // rn = new KernRenderNode(this);
 }
 
 CPUKernel::~CPUKernel() {
@@ -107,7 +107,7 @@ void CPUKernel::Step(float dt) {
     // logger.info << "By: " << rf.Get(1) << logger.end;
     
     //rn->magnet = rfSignal.GetNormalize();
-    rn->rf = rfSignal;
+    // rn->rf = rfSignal;
 
     // logger.info << "Ref " <<  refMagnets[0] << logger.end;
 
@@ -218,40 +218,40 @@ Phantom CPUKernel::GetPhantom() const {
   return phantom;
 }
 
-RenderNode* CPUKernel::GetRenderNode() {
-    return rn;
-}
+// RenderNode* CPUKernel::GetRenderNode() {
+//     return rn;
+// }
 
-CPUKernel::KernRenderNode::KernRenderNode(CPUKernel *k) : kern(k) {
+// CPUKernel::KernRenderNode::KernRenderNode(CPUKernel *k) : kern(k) {
 
-}
+// }
 
-void CPUKernel::KernRenderNode::Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v) {
+// void CPUKernel::KernRenderNode::Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v) {
 
-    using namespace OpenEngine::Renderers;
+//     using namespace OpenEngine::Renderers;
 
-    float scale = 10;
+//     float scale = 10;
 
-    IRenderer& rend = arg.renderer;
-    Vector<3,float> zero(0,0,0);
+//     IRenderer& rend = arg.renderer;
+//     Vector<3,float> zero(0,0,0);
     
-    Line xaxis(zero, Vector<3,float>(1,0,0)*scale);
-    Line yaxis(zero, Vector<3,float>(0,1,0)*scale);
-    Line zaxis(zero, Vector<3,float>(0,0,1)*scale);
+//     Line xaxis(zero, Vector<3,float>(1,0,0)*scale);
+//     Line yaxis(zero, Vector<3,float>(0,1,0)*scale);
+//     Line zaxis(zero, Vector<3,float>(0,0,1)*scale);
 
-    rend.DrawLine(xaxis, Vector<3,float>(1,0,0));
-    rend.DrawLine(yaxis, Vector<3,float>(0,1,0));
-    rend.DrawLine(zaxis, Vector<3,float>(0,0,1));
+//     rend.DrawLine(xaxis, Vector<3,float>(1,0,0));
+//     rend.DrawLine(yaxis, Vector<3,float>(0,1,0));
+//     rend.DrawLine(zaxis, Vector<3,float>(0,0,1));
 
-    Line l(zero, magnet*scale);
-    Line l2(magnet*scale, (magnet*scale+rf*400));
+//     Line l(zero, magnet*scale);
+//     Line l2(magnet*scale, (magnet*scale+rf*400));
     
-    rend.DrawLine(l, Vector<3,float>(1,0,0),2);
-    rend.DrawLine(l2, Vector<3,float>(0,1,0),2);
+//     rend.DrawLine(l, Vector<3,float>(1,0,0),2);
+//     rend.DrawLine(l2, Vector<3,float>(0,1,0),2);
     
 
 
-}
+// }
 
 } // NS Science
 } // NS OpenEngine

@@ -24,11 +24,11 @@ using namespace Utils::Inspection;
 using std::vector;
 
 class ListSequence: public IMRISequence {
-private:
-    vector<pair<double, MRIEvent> >& seq;
+protected:
+    vector<pair<double, MRIEvent> > seq;
     unsigned int index;
 public:
-    ListSequence(vector<pair<double, MRIEvent> >& seq);
+    ListSequence();
     virtual ~ListSequence();
     
     

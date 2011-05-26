@@ -21,25 +21,24 @@ namespace MRI {
 namespace Science {
 
 using Resources::Phantom;
-using MRI::Scene::SpinNode;
 using OpenEngine::Math::RandomGenerator;
 using OpenEngine::Scene::RenderNode;
 
 class CPUKernel: public IMRIKernel {
 private:
 
-    class KernRenderNode : public RenderNode {
-        CPUKernel *kern;
-    protected:
-        friend class CPUKernel;
-        Vector<3,float> magnet;
-        Vector<3,float> rf;
-    public:
-        KernRenderNode(CPUKernel* k);
-        void Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v);
-    };
+    // class KernRenderNode : public RenderNode {
+    //     CPUKernel *kern;
+    // protected:
+    //     friend class CPUKernel;
+    //     Vector<3,float> magnet;
+    //     Vector<3,float> rf;
+    // public:
+    //     KernRenderNode(CPUKernel* k);
+    //     void Apply(Renderers::RenderingEventArg arg, OpenEngine::Scene::ISceneNodeVisitor& v);
+    // };
 
-    KernRenderNode *rn;
+    // KernRenderNode *rn;
 
     Phantom phantom;
     Vector<3,float>* refMagnets, *labMagnets;
@@ -74,7 +73,7 @@ public:
     void SetB0(float b0);
     float GetB0() const;
 
-    RenderNode *GetRenderNode();
+    // RenderNode *GetRenderNode();
 
 };
 

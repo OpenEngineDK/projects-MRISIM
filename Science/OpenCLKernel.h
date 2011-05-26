@@ -22,7 +22,7 @@ namespace MRI {
 namespace Science {
 
 using Resources::Phantom;
-using MRI::Scene::SpinNode;
+// using MRI::Scene::SpinNode;
 using OpenEngine::Math::RandomGenerator;
 using OpenEngine::Scene::RenderNode;
 

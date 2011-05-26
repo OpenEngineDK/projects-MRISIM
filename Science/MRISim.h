@@ -22,13 +22,9 @@
 #define GYRO_RAD GYRO_HERTZ * 2.0 * Math::PI // (radians/s)/tesla
 
 namespace MRI {
-    namespace Scene {
-        class SpinNode;
-    }
 namespace Science {
 
 using Resources::Phantom;
-using Scene::SpinNode;
 using namespace OpenEngine;
 
 class IMRIKernel;
@@ -98,11 +94,11 @@ public:
     virtual bool HasNextPoint() const = 0;
     // recalculate the points based on the simulator parameters.
     virtual void Reset(MRISim& sim) = 0; 
-    // tells the simulator to allocate an output array of the specified dimensions
-    virtual Vector<3,unsigned int> GetTargetDimensions() = 0; 
     virtual double GetDuration() = 0; 
     virtual IMRISampler& GetSampler() = 0;
     virtual unsigned int GetNumPoints() = 0;
+
+    virtual Utils::Inspection::ValueList Inspect() = 0;
 };
 
 class IMRIKernel {
@@ -134,7 +130,6 @@ struct StepEventArg {
 };
 
 class MRISim : public OpenEngine::Core::IModule
-//, public IListener<TimerEventArg> 
 {
 private:
     Phantom phantom;
@@ -143,10 +138,8 @@ private:
     float kernelStep, stepsPerSecond, theAccTime;
     double theSimTime;
     bool running;
-    // vector<complex<float> > samples;
     pair<double,MRIEvent> prevEvent;
     Event<StepEventArg> stepEvent;
-    // Event<SamplesChangedEventArg> samplesEvent;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();
@@ -164,7 +157,6 @@ public:
     void Handle(Core::ProcessEventArg arg);
     
     Event<StepEventArg>& StepEvent() { return stepEvent; }
-    // Event<SamplesChangedEventArg>& SamplesChangedEvent() { return samplesEvent; }
     
     float GetTime();
     void SetStepSize(float);
@@ -173,9 +165,6 @@ public:
     float GetStepsPerSecond();
     void SetB0(float);
     float GetB0();
-
-    // vector<complex<float> >& GetSamples();
-    Vector<3,unsigned int> GetSampleDimensions();
     
     Phantom GetPhantom();
 

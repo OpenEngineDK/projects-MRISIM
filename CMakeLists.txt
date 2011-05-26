@@ -22,6 +22,9 @@ ENDIF (FFTW_FOUND)
 
 SET (MRI_SOURCES 
 
+  MRICommandLine.h
+  MRICommandLine.cpp
+
   Resources/Phantom.h
   Resources/Phantom.cpp
   Resources/IPhantomBuilder.h

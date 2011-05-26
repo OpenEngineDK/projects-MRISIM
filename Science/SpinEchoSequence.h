@@ -17,23 +17,30 @@
 
 #include <Utils/IInspector.h>
 
+namespace OpenEngine {
+    namespace Utils {
+        class PropertyTreeNode;
+    }
+}
+
 namespace MRI {
 namespace Science {
 
-using namespace Utils::Inspection;
+using namespace OpenEngine::Utils;
+using namespace OpenEngine::Utils::Inspection;
 
 class SpinEchoSequence: public ListSequence {
 private:
     float tr, te, fov;
     // Phantom phantom;
-    vector<pair<double, MRIEvent> > seq;
-    Vector<3,unsigned int> dims;
     CartesianSampler* sampler;
+    vector<IMRISequence*> excitations;
 public:
-    SpinEchoSequence(float tr, float te, float fov);
+    SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims);
+    SpinEchoSequence(PropertyTreeNode* node);
     virtual ~SpinEchoSequence();
 
-    Vector<3,unsigned int> GetTargetDimensions(); 
+    // Vector<3,unsigned int> GetTargetDimensions(); 
 
     void SetFOV(float fov);
     void SetTR(float tr);

@@ -30,6 +30,7 @@
 
 #include "Display/CanvasSwitch.h"
 
+#include <Utils/SimpleSetup.h>
 
 namespace Ui { class MRIUI; }
 
@@ -72,12 +73,11 @@ class MRIUI : public QMainWindow {
     IEngine* engine;
     IMouse* mouse;
 
-    bool useCPU;
     Phantom phantom;
 
     MRISim* sim;
     IMRIKernel* kern;
-    SpinEchoSequence* seq;
+    IMRISequence* seq;
     // MINCResourcePtr phantom;
     SliceCanvas *samplesCanvas, *fftCanvas;
     PhantomCanvas *phantomCanvas;
@@ -108,8 +108,7 @@ public slots:
     void SetSimView(bool toggle);
     void SetRFView(bool toggle);
 public:
-    MRIUI(OpenEngine::Display::QtEnvironment *env, bool, Phantom);    
-
+    MRIUI(OpenEngine::Display::QtEnvironment *env, IMRISequence*, IMRIKernel*, Phantom, SimpleSetup*);    
 };
 
 

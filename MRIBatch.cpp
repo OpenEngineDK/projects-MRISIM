@@ -3,26 +3,19 @@
 
 //MRI stuff
 #include "Resources/Phantom.h"
-#include "Resources/SimplePhantomBuilder.h"
 #include "Resources/Sample3DTexture.h"
 
-#include "Science/SpinEchoSequence.h"
-#include "Science/ExcitationPulseSequence.h"
-#include "Science/TestRFCoil.h"
-
 #include "Science/MRISim.h"
-#include "Science/CPUKernel.h"
-#include "Science/OpenCLKernel.h"
-
 #include "Resources/Sample3DTexture.h"
 
 #include <Logging/Logger.h>
 #include <Logging/StreamLogger.h>
 
+#include "MRICommandLine.h"
+
 #include <cstdio>
 #include <fstream>
 
-using namespace MRI::Scene;
 using namespace MRI::Science;
 using namespace MRI::Resources;
 
@@ -34,54 +27,12 @@ int main(int argc, char* argv[]) {
 
     Logger::AddLogger(new StreamLogger(new fstream("output.log", fstream::out | fstream::trunc)));
 
-    bool useCPU = false;
-    string yamlSequence, yamlPhantom;
-
-    unsigned int phantomSize = 20;
-
-    for (int i=1;i<argc;i++) {
-        if (strcmp(argv[i],"-cpu") == 0)
-            useCPU = true;
-        else if (strcmp(argv[i],"-phantom") == 0) {
-            if (i + 1 < argc)
-                yamlPhantom = string(argv[i+1]);
-        }
-        else {
-            unsigned int f = strtol(argv[i], NULL, 10);
-            if (f > 0)
-                phantomSize = f;
-        }
-    }
-
     printf("Initializing ...\n");
-    // load kernel
-    IMRIKernel* kern;
-    if (useCPU)
-        kern = new CPUKernel();
-    else
-        kern = new OpenCLKernel();
 
-
-    // load phantom
-    Phantom p;
-    if (yamlPhantom.empty()) {
-        IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
-        p = pb->GetPhantom();
-    }
-    else {
-        p = Phantom(yamlPhantom);
-    }
-
-    // load sequence
-    IMRISequence* seq = NULL;
-    vector<pair<double, MRIEvent> > l;
-    if (yamlSequence.empty()) {
-        seq = new SpinEchoSequence(2500.0f, 50.0f, p.sizeX * 1e-3 * float(p.texr->GetWidth()));
-    }
-    else {
-        // seq = new ListSequence(l);
-        // seq->LoadFromYamlFile(yamlSequence);
-    }
+    MRICommandLine cmdl(argc, argv);
+    IMRISequence* seq = cmdl.GetSequence();
+    Phantom p = cmdl.GetPhantom();
+    IMRIKernel* kern = cmdl.GetKernel();
 
     MRISim* sim = new MRISim(p, kern, seq);
     sim->Start();
@@ -102,7 +53,6 @@ int main(int argc, char* argv[]) {
     printf("\nReconstructing Samples ...");
     fflush(stdout);
     printf(" done\n");
-
 
     vector<complex<float> > samples = seq->GetSampler().GetSamples();    
     vector<complex<float> > image = seq->GetSampler().GetReconstructedSamples();    

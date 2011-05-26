@@ -12,25 +12,49 @@
 #include "TestRFCoil.h"
 #include "ExcitationPulseSequence.h"
 
+#include <Utils/PropertyTreeNode.h>
+
 namespace MRI {
 namespace Science {
 
-SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov)
-    : ListSequence(seq)
-    , tr(tr * 1e-3)
+using namespace OpenEngine::Utils;
+
+SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims)
+    : tr(tr * 1e-3)
     , te(te * 1e-3)
     , fov(fov) 
-    , dims(Vector<3,unsigned int>(1))
     , sampler(new CartesianSampler(dims))
 {
-}
-    
-SpinEchoSequence::~SpinEchoSequence() {
-    delete sampler;
+    excitations = vector<IMRISequence*>(1);
+    TestRFCoil* rfcoil = new TestRFCoil(1.0);
+    excitations[0] = new ExcitationPulseSequence(rfcoil);
 }
 
-Vector<3,unsigned int> SpinEchoSequence::GetTargetDimensions() {
-    return dims;
+SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node) 
+    : tr(node->GetPath("tr", 0.0f))
+    , te(node->GetPath("te", 0.0f))
+    , fov(node->GetPath("fov", 0.0f))
+{
+    unsigned int width  = node->GetPath("samples-x", 0);
+    unsigned int height = node->GetPath("samples-y", 0);
+
+    if (!node->HaveNode("slices"))
+        throw Exception("No slices in SpinEchoSequence");
+
+    PropertyTreeNode* slices = node->GetNodePath("slices");
+    unsigned int size = slices->GetSize();
+
+    sampler = new CartesianSampler(Vector<3,unsigned int>(width, height, size));
+
+    excitations = vector<IMRISequence*>(size);            
+    for (unsigned int i = 0; i < size; ++i) {
+        PropertyTreeNode* slice = slices->GetNodeIdx(i);
+        excitations[i] = new ExcitationPulseSequence(new TestRFCoil(1.0), slice);
+    }
+}    
+
+SpinEchoSequence::~SpinEchoSequence() {
+    delete sampler;
 }
 
 void SpinEchoSequence::SetFOV(float fov) {
@@ -60,19 +84,12 @@ float SpinEchoSequence::GetTE() {
 void SpinEchoSequence::Reset(MRISim& sim) {
     ListSequence::Clear();
     
-    TestRFCoil* rfcoil = new TestRFCoil(1.0);
-    ExcitationPulseSequence* pulseSeq = new ExcitationPulseSequence(rfcoil);
-
     double time;
     MRIEvent e;
 
-    Phantom phantom = sim.GetPhantom();
-    dims = Vector<3,unsigned int>(phantom.texr->GetWidth(),
-                                  phantom.texr->GetHeight(),
-                                  phantom.texr->GetDepth());
-
-    const unsigned int hest = 1;
-    sampler->SetDimensions(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
+    // Phantom phantom = sim.GetPhantom();
+    // const unsigned int hest = 1;
+    // sampler->SetDimensions(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
     sampler->Reset();
 
     const unsigned int width = sampler->GetDimensions()[0];
@@ -95,8 +112,10 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
     time = 0.0;
     double start = 0.0;
+    for (unsigned int k = 0; k < excitations.size(); ++k) {
     for (unsigned int j = 0; j < height; ++j) {
-        time = start = double(j) * double(tr);
+        // time is line * tr + slice * lines * tr
+        time = start = double(j) * double(tr) +  double(k) * double(height) * double(tr); 
 
         unsigned int scanline = height / 2 + (height % 2);
         if (j % 2 == 0) 
@@ -111,6 +130,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
         // use the 90 degree flip pulse sequence
         // logger.info << "tr start time: " << time << logger.end;
+        IMRISequence* pulseSeq = excitations[k];
         pulseSeq->Reset(sim);
         while (pulseSeq->HasNextPoint()) {
             pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
@@ -152,7 +172,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // record width sample points
         for (unsigned int i = 0; i < width; ++i) {
             e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, scanline, 0);
+            e.point = Vector<3,unsigned int>(i, scanline, k);
             // logger.info << "push back record with time: " << time << logger.end;
             seq.push_back(make_pair(time, e));
             time += samplingDT;
@@ -173,7 +193,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
         // start = time + 10.0 * samplingDT;
     }
-
+    }
     e.action = MRIEvent::DONE;
     time += 0.1;
     seq.push_back(make_pair(time, e));

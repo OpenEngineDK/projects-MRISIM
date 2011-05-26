@@ -26,7 +26,6 @@
 #include <Renderers/OpenGL/Renderer.h>
 #include <Renderers/OpenGL/RenderingView.h>
 
-#include <Utils/SimpleSetup.h>
 #include <Utils/IInspector.h>
 
 // Local
@@ -60,6 +59,8 @@
 
 #include "Display/OpenGL/SpinCanvas.h"
 #include "Display/OpenGL/WindowCanvas.h"
+
+#include "MRICommandLine.h"
 
 #undef main // Evil hack :/
 
@@ -157,16 +158,9 @@ void MRIUI::SetupSim() {
     wcSim->AddTextureWithText(phantomCanvas->GetTexture(), "phantom");
 
     // --- init the simulator and kernel ---    
-
     DirectoryManager::AppendPath("projects/MRISIM/Science/");
-    if (useCPU)
-        kern = new CPUKernel();
-    else
-        kern = new OpenCLKernel();
     
-    seq = new SpinEchoSequence(2500.0f, 50.0f, phantom.sizeX * 1e-3 * float(phantom.texr->GetWidth()));
     sim = new MRISim(phantom, kern, seq);
-    //sim = new MRISim(p, kern, rfTestSequence);
 
     engine->InitializeEvent().Attach(*sim);
     engine->ProcessEvent().Attach(*sim);
@@ -394,10 +388,9 @@ class Slicer {
 private:
     SpinCanvas* spins;
     CartesianFFT* fft;
-    SpinEchoSequence* seq;
 public:
     vector<SliceCanvas*> slices;
-    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL, SpinEchoSequence* seq = NULL): spins(spins), fft(fft), seq(seq) {}
+    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL): spins(spins), fft(fft) {}
     virtual ~Slicer() {}
 
     void SetSlice(unsigned int slice) {
@@ -406,7 +399,6 @@ public:
         }
         if (spins)
             spins->SetSlice(slice);
-        // if (seq) seq->SetSlice(slice);
 
     };
 
@@ -448,10 +440,7 @@ public:
     }
 };
 
-MRIUI::MRIUI(QtEnvironment *env, bool useCPU, Phantom phantom) {
-    SimpleSetup* setup = new SimpleSetup("MRISIM",env);
-
-
+MRIUI::MRIUI(QtEnvironment *env, IMRISequence* sequence, IMRIKernel* kernel, Phantom phantom, SimpleSetup* setup) {
     // ---- brain phantom ---
     // IPhantomBuilder* pb = new MINCPhantomBuilder("brain/1mm/phantom.yaml");
     // phantom = pb->GetPhantom();
@@ -461,8 +450,10 @@ MRIUI::MRIUI(QtEnvironment *env, bool useCPU, Phantom phantom) {
     // phantom = pb->GetPhantom();
     // Phantom::Save("shepplogan300", phantom);
     
-    this->useCPU = useCPU;
     this->phantom = phantom;
+    this->kern = kernel;
+    this->seq = sequence;
+
     frame = &setup->GetFrame();
     mouse = &setup->GetMouse();
     engine = &setup->GetEngine();
@@ -492,7 +483,7 @@ MRIUI::MRIUI(QtEnvironment *env, bool useCPU, Phantom phantom) {
     QObject::connect(ui->radioRF, SIGNAL(toggled(bool)),
                      this, SLOT(SetRFView(bool)));
     
-    Slicer slicer(spinCanvas, fft, seq);
+    Slicer slicer(spinCanvas, fft);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
     // slicer.slices.push_back(samplesCanvas);
     // slicer.slices.push_back(fftCanvas);
@@ -602,52 +593,28 @@ void MRIUI::SetRFView(bool toggle) {
 void nop(MRIUI *n) {}
 
 int main(int argc, char* argv[]) {
+    
+    QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
+                                           FrameOption(), argc, argv);
+    SimpleSetup* setup = new SimpleSetup("MRISIM", env); // placed here to enable logging
+
 
     DirectoryManager::AppendPath("projects/MRISIM/data/");
-
     //ResourceManager<IFontResource>::AddPlugin(new CairoFontPlugin());
     ResourceManager<MINCResource>::AddPlugin(new MINCPlugin());
 
-    bool useCPU = false;
-    unsigned int phantomSize = 20;
-    string yamlPhantom;
 
-    for (int i=1;i<argc;i++) {
-        if (strcmp(argv[i],"-cpu") == 0)
-            useCPU = true;
-        else if (strcmp(argv[i],"-phantom") == 0) {
-            if (i + 1 < argc)
-                yamlPhantom = string(argv[i+1]);
-        }
-        else {
-            unsigned int f = strtol(argv[i], NULL, 10);
-            if (f > 0)
-                phantomSize = f;
-        }
-            
-    }
-
-    Phantom phantom;
-    if (yamlPhantom.empty()) {
-        IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
-        phantom = pb->GetPhantom();
-    }
-    else {
-        phantom = Phantom(yamlPhantom);
-    }
+    MRICommandLine cmdl(argc, argv);
+    IMRISequence* sequence = cmdl.GetSequence();
+    Phantom phantom = cmdl.GetPhantom();
+    IMRIKernel* kernel = cmdl.GetKernel();
 
     // --- box phantom ---
     //IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
     //Phantom p = pb->GetPhantom();
-    
-
     // -- phantom loaded from yaml file ---
     // Phantom p = Phantom("test.yaml");
     
-
-    QtEnvironment* env = new QtEnvironment(false, 650, 700, 32, 
-                                           FrameOption(), argc, argv);
-    MRIUI *ui = new MRIUI(env,useCPU, phantom);
-    nop(ui);
-    
+    MRIUI *ui = new MRIUI(env, sequence, kernel, phantom, setup);
+    nop(ui);   
 }

@@ -17,8 +17,16 @@
 #include "MRISim.h"
 #include "TestRFCoil.h"
 
+namespace OpenEngine {
+    namespace Utils {
+        class PropertyTreeNode;
+    }
+}
+
 namespace MRI {
 namespace Science {
+
+using namespace OpenEngine::Utils;
 
 /**
  * Short description.
@@ -27,15 +35,21 @@ namespace Science {
  */
 class ExcitationPulseSequence: public ListSequence {
 private:
-    vector<pair<double, MRIEvent> > seq;
     TestRFCoil* rfcoil;
     NULLSampler sampler;
+
+    unsigned int lobes;
+    double width;
+    double offset;
+    double flipAngle;
+    unsigned int points;
+    Vector<3,float> normal;
+    double Gz;
 public:
     ExcitationPulseSequence(TestRFCoil* rfcoil);
+    ExcitationPulseSequence(TestRFCoil* rfcoil, PropertyTreeNode* node);
 
     virtual ~ExcitationPulseSequence(); 
-
-    Vector<3,unsigned int> GetTargetDimensions(); 
     
     IMRISampler& GetSampler();
     void Reset(MRISim& sim);

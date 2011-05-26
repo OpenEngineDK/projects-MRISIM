@@ -9,53 +9,63 @@
 
 #include "ExcitationPulseSequence.h"
 
+#include <Utils/PropertyTreeNode.h>
+
 namespace MRI {
 namespace Science {
 
+using namespace OpenEngine::Utils;
+
 ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil)
-    : ListSequence(seq)
-    , rfcoil(rfcoil)
+    : rfcoil(rfcoil)
+    , lobes(6)
+    , width(0.001)
+    , offset(0.0)
+    , flipAngle(Math::PI * 0.5)
+    , points(256)
+    , normal(Vector<3,float>(0.0, 0.0, 1.0))
+    , Gz(50e-3)
 {
 }
 
-ExcitationPulseSequence::~ExcitationPulseSequence() {}
+ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil, PropertyTreeNode* node) 
+    : rfcoil(rfcoil)
+    , lobes(node->GetPath("lobes", 0))
+    , width(node->GetPath("width", 0))
+    , offset(node->GetPath("offset", 0.0f))
+    , flipAngle((node->GetPath("flip-angle", 0.0f) * Math::PI) / 180.0f)
+    , points(node->GetPath("points", 0))
+    , normal(node->GetPath("gradient-direction", Vector<3,float>()))
+    , Gz(node->GetPath("gradient-magnitude", 0.0f))
+{
+    normal.Normalize();
+}    
 
-Vector<3,unsigned int> ExcitationPulseSequence::GetTargetDimensions() {
-    return Vector<3,unsigned int>(1);
-}
+ExcitationPulseSequence::~ExcitationPulseSequence() {}
 
 void ExcitationPulseSequence::Reset(MRISim& sim) {
     Clear();
     MRIEvent e;
 
     e.action = MRIEvent::RFPULSE | MRIEvent::GRADIENT;
-    double Gz = 50e-3; // slice gradient magnitude
-
-    e.gradient = Vector<3,float>(0.0, 0.0, 1.0); // slice normal (gradient direction)
-    e.gradient.Normalize();
+    e.gradient = normal;
     e.gradient *= Gz;
 
-    const unsigned int lobes = 6; 
-    const double d = 0.001; // thickness in meters
-    const double offset = 0.0; // slice plane offset from magnetic center in meters.
-    const double tauPrime = 1.0 / (GYRO_HERTZ * Gz * d); // half main lobe width
-    //const float flipAngle = Math::PI / 6.0;
-    const double flipAngle = Math::PI * 0.5;
-    const double ampl = flipAngle / (tauPrime * GYRO_RAD); // amplitude giving 90 degree pulse
+    const double tauPrime = 1.0 / (GYRO_HERTZ * Gz * width); // half main lobe width
+    const double ampl = flipAngle / (tauPrime * GYRO_RAD);
 
     const double totalTime = tauPrime * double(lobes);
-    const unsigned int steps = 1000; // number of steps
-    const double dt = totalTime / double(steps);
+    const double dt = totalTime / double(points);
 
-    // logger.info << "rf dt: " << dt << logger.end;
-    double w0 = sim.GetB0() * GYRO_RAD;
+    const double w0 = sim.GetB0() * GYRO_RAD;
+
     rfcoil->SetDuration(totalTime);
     rfcoil->SetAmplitude(ampl);
     rfcoil->SetChannel(w0 + offset * Gz * GYRO_RAD);
-    rfcoil->SetBandwidth(d * Gz * GYRO_RAD);
+    rfcoil->SetBandwidth(width * Gz * GYRO_RAD);
     
     double time = 0.0;
-    for (unsigned int i = 0; i < steps; ++i) {
+    for (unsigned int i = 0; i < points; ++i) {
         e.rfSignal = rfcoil->GetSignal(time);
         seq.push_back(make_pair(time, e));
 

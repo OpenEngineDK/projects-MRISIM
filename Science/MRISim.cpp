@@ -59,13 +59,9 @@ void MRISim::Stop() {
 void MRISim::Reset() {
     Stop();
     kernel->Reset();
-    Vector<3,unsigned int> dims; 
     if(sequence) {
         sequence->Reset(*this);
-        dims = sequence->GetTargetDimensions();
     }
-    // samples = vector<complex<float> >(dims[0]*dims[1]*dims[2],
-    //                                   complex<float>(0.0,0.0));
     theSimTime = theAccTime = 0.0;
     logger.info << "Simulator Reset." << logger.end;
 }
@@ -215,17 +211,6 @@ void MRISim::SetStepsPerSecond(float steps) {
 
 float MRISim::GetStepsPerSecond() {
     return stepsPerSecond;
-}
-
-// vector<complex<float> >& MRISim::GetSamples() {
-//     return samples;
-// }
-
-Vector<3,unsigned int> MRISim::GetSampleDimensions() {
-    Vector<3,unsigned int> dims;
-    if (sequence) 
-        dims = sequence->GetTargetDimensions();
-    return dims;
 }
 
 ValueList MRISim::Inspect() {

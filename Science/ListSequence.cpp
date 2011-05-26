@@ -20,8 +20,8 @@ namespace Science {
 
 using namespace OpenEngine::Utils;
 
-ListSequence::ListSequence(vector<pair<double, MRIEvent> >& seq)
-    : seq(seq), index(0)
+ListSequence::ListSequence()
+    : index(0)
 {
         
 }
