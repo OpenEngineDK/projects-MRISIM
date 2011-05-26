@@ -63,3 +63,4 @@ any /projects/MRISIM/data/Fonts  http://openengine.dk/data/fonts/freefont-ttf-20
 any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/brain.tar.gz
 any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/brain-yaml.tar.gz
 any /projects/MRISIM/data        http://openengine.dk/data/projects/MRISIM/magnet.png
+any /                            http://openengine.dk/data/projects/MRISIM/shepplogan.tar.gz
