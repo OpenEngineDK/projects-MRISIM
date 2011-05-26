@@ -31,7 +31,7 @@ ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil)
 ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil, PropertyTreeNode* node) 
     : rfcoil(rfcoil)
     , lobes(node->GetPath("lobes", 0))
-    , width(node->GetPath("width", 0))
+    , width(node->GetPath("width", 0.0f))
     , offset(node->GetPath("offset", 0.0f))
     , flipAngle((node->GetPath("flip-angle", 0.0f) * Math::PI) / 180.0f)
     , points(node->GetPath("points", 0))
@@ -44,6 +44,17 @@ ExcitationPulseSequence::ExcitationPulseSequence(TestRFCoil* rfcoil, PropertyTre
 ExcitationPulseSequence::~ExcitationPulseSequence() {}
 
 void ExcitationPulseSequence::Reset(MRISim& sim) {
+
+    logger.info << "Reset ExcitationSequence with values" << logger.end;
+    logger.info << "  lobes: " << lobes << logger.end;
+    logger.info << "  slice width: " << width << logger.end;
+    logger.info << "  slice offset: " << offset << logger.end;
+    logger.info << "  flip angle: " << flipAngle << logger.end;
+    logger.info << "  points: " << points << logger.end;
+    logger.info << "  slice normal: " << normal << logger.end;
+    logger.info << "  slice magnitude: " << Gz << logger.end;
+    
+
     Clear();
     MRIEvent e;
 
@@ -52,12 +63,19 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
     e.gradient *= Gz;
 
     const double tauPrime = 1.0 / (GYRO_HERTZ * Gz * width); // half main lobe width
+    logger.info << "  tauPrime: " << tauPrime << logger.end;
     const double ampl = flipAngle / (tauPrime * GYRO_RAD);
+    logger.info << "  amplitude: " << ampl << logger.end;
 
     const double totalTime = tauPrime * double(lobes);
+    logger.info << "  time: " << totalTime << logger.end;
+
     const double dt = totalTime / double(points);
+    logger.info << "  dt: " << dt << logger.end;
 
     const double w0 = sim.GetB0() * GYRO_RAD;
+    logger.info << "  w0: " << w0 << logger.end;
+
 
     rfcoil->SetDuration(totalTime);
     rfcoil->SetAmplitude(ampl);
