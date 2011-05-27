@@ -130,8 +130,11 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
         // use the 90 degree flip pulse sequence
         // logger.info << "tr start time: " << time << logger.end;
+
+        // grab and reset the rf sequence for k'th slice
         IMRISequence* pulseSeq = excitations[k];
         pulseSeq->Reset(sim);
+
         while (pulseSeq->HasNextPoint()) {
             pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
             // printf("rf point time before: %e\n", point.first);
@@ -184,18 +187,17 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         seq.push_back(make_pair(time, e));
 
 
-        time += 0.1;
-        while (time < start + double(tr)) {
-            e.action = MRIEvent::NONE;
-            seq.push_back(make_pair(time, e));
-            time += 0.1;
-        }
+        // time += 0.1;
+        // while (time < start + double(tr)) {
+        //     e.action = MRIEvent::NONE;
+        //     seq.push_back(make_pair(time, e));
+        //     time += 0.1;
+        // }
 
         // start = time + 10.0 * samplingDT;
     }
     }
     e.action = MRIEvent::DONE;
-    time += 0.1;
     seq.push_back(make_pair(time, e));
     
     //Sort();

@@ -50,7 +50,6 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
     }
 
     // load kernel
-    kernel;
     if (useCPU)
         kernel = new CPUKernel();
     else

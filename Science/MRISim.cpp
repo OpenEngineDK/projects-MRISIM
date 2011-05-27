@@ -140,12 +140,20 @@ bool MRISim::Step() {
     theSimTime += kernelStep;
 
 
-    if (kernelStep > 0.0) {
+    double ks = kernelStep;
+    const double maxStep = 0.1;
+    while (ks > maxStep) {
         Timer t;
         t.Start();
-        kernel->Step(kernelStep);
+        kernel->Step(maxStep);            
         t.Stop();
-
+        ks -= maxStep;
+    }
+    if (ks > 0.0) {
+        Timer t;
+        t.Start();
+        kernel->Step(ks);            
+        t.Stop();
         // logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
         // logger.info << "doing Kernel step: " << kernelStep << logger.end;
         stepEvent.Notify(StepEventArg(*this));
