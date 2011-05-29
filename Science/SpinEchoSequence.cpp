@@ -14,10 +14,13 @@
 
 #include <Utils/PropertyTreeNode.h>
 
+#include <Math/Quaternion.h>
+
 namespace MRI {
 namespace Science {
 
 using namespace OpenEngine::Utils;
+using namespace OpenEngine::Math;
 
 SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims)
     : tr(tr * 1e-3)
@@ -25,9 +28,11 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov, Vector<3,unsig
     , fov(fov) 
     , sampler(new CartesianSampler(dims))
 {
-    excitations = vector<IMRISequence*>(1);
+    slices = vector<Slice>(1);
     TestRFCoil* rfcoil = new TestRFCoil(1.0);
-    excitations[0] = new ExcitationPulseSequence(rfcoil);
+    slices[0].readout = Vector<3,float>(1.0, 0.0, 0.0);
+    slices[0].phase = Vector<3,float>(0.0, 1.0, 0.0);
+    slices[0].excitation = new ExcitationPulseSequence(rfcoil);
 }
 
 SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node) 
@@ -41,15 +46,28 @@ SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node)
     if (!node->HaveNode("slices"))
         throw Exception("No slices in SpinEchoSequence");
 
-    PropertyTreeNode* slices = node->GetNodePath("slices");
-    unsigned int size = slices->GetSize();
+    PropertyTreeNode* slicesNode = node->GetNodePath("slices");
+    unsigned int size = slicesNode->GetSize();
 
     sampler = new CartesianSampler(Vector<3,unsigned int>(width, height, size));
 
-    excitations = vector<IMRISequence*>(size);            
+    slices = vector<Slice>(size);            
     for (unsigned int i = 0; i < size; ++i) {
-        PropertyTreeNode* slice = slices->GetNodeIdx(i);
-        excitations[i] = new ExcitationPulseSequence(new TestRFCoil(1.0), slice);
+        PropertyTreeNode* slice = slicesNode->GetNodeIdx(i);
+        
+        slices[i].readout = slice->GetPath("readout-direction", Vector<3,float>());
+        slices[i].readout.Normalize();
+        Vector<3,float> sliceNorm = slice->GetPath("gradient-direction", Vector<3,float>());
+        sliceNorm.Normalize();
+        slices[i].phase = slices[i].readout % sliceNorm;
+
+        Quaternion<float> rot(Math::PI * slice->GetPath("rotation-angle", 0.0f) / 180.0f,
+                              slice->GetPath("rotation-axis", Vector<3,float>(1.0, 0.0, 0.0)));
+
+        slices[i].readout = rot.RotateVector(slices[i].readout);
+        slices[i].phase = rot.RotateVector(slices[i].phase);
+
+        slices[i].excitation = new ExcitationPulseSequence(new TestRFCoil(1.0), slice);
     }
 }    
 
@@ -110,7 +128,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
     time = 0.0;
     double start = 0.0;
-    for (unsigned int k = 0; k < excitations.size(); ++k) {
+    for (unsigned int k = 0; k < slices.size(); ++k) {
     for (unsigned int j = 0; j < height; ++j) {
         // time is line * tr + slice * lines * tr
         time = start = double(j) * double(tr) +  double(k) * double(height) * double(tr); 
@@ -131,7 +149,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // logger.info << "tr start time: " << time << logger.end;
 
         // grab and reset the rf sequence for k'th slice
-        IMRISequence* pulseSeq = excitations[k];
+        IMRISequence* pulseSeq = slices[k].excitation;
         pulseSeq->Reset(sim);
 
         while (pulseSeq->HasNextPoint()) {
@@ -150,7 +168,9 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // setup phase encoding gradient
         time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(gxFirst, gyStart - double(scanline) * dGy, 0.0);
+        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart - double(scanline) * dGy));
+            
+            // Vector<3,float>(gxFirst, gyStart - double(scanline) * dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -167,7 +187,8 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         
         // frequency encoding gradient on
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
+        e.gradient = slices[k].readout * (-gx);
+            //Vector<3,float>(-gx, 0.0, 0.0);
         time = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
         

@@ -34,7 +34,12 @@ private:
     float tr, te, fov;
     // Phantom phantom;
     CartesianSampler* sampler;
-    vector<IMRISequence*> excitations;
+    struct Slice {
+        Vector<3,float> readout, phase;
+        IMRISequence* excitation;
+    };
+    vector<Slice> slices;
+    
 public:
     SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims);
     SpinEchoSequence(PropertyTreeNode* node);
