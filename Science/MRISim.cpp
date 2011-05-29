@@ -141,14 +141,14 @@ bool MRISim::Step() {
 
 
     double ks = kernelStep;
-    const double maxStep = 0.1;
-    while (ks > maxStep) {
-        Timer t;
-        t.Start();
-        kernel->Step(maxStep);            
-        t.Stop();
-        ks -= maxStep;
-    }
+    // const double maxStep = 1e-2;
+    // while (ks > maxStep) {
+    //     Timer t;
+    //     t.Start();
+    //     kernel->Step(maxStep);            
+    //     t.Stop();
+    //     ks -= maxStep;
+    // }
     if (ks > 0.0) {
         Timer t;
         t.Start();

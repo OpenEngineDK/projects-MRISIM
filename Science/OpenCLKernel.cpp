@@ -286,7 +286,8 @@ void OpenCLKernel::Step(float dt) {
         omega0Angle = fmod(omega0Angle, double(Math::PI * 2.0));
 
     // move rf signal into reference space
-    const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    //    const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    const Vector<3,float> rf = rfSignal;
 
     cl::Event event;
 

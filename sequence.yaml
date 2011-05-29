@@ -1,17 +1,17 @@
 sequence:
   name: SpinEchoSequence
-  tr: 1.600
-  te: 0.050
-  fov: 0.500
+  tr: 1.540
+  te: 0.500
+  fov: 0.600
   samples-x: 64
   samples-y: 64
 
   slices:
     - lobes: 6
-      width:  0.010
+      width:  0.006
       offset: 0.0
       flip-angle: 90.0
-      points: 256
+      points: 512
       gradient-direction: [0.0, 0.0, 1.0]
       gradient-magnitude: 50e-3
   

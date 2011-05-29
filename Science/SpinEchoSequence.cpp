@@ -125,6 +125,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
         // logger.info << "j: " << j << " scanline: " << scanline << logger.end;
         // start with reset state (full relaxation cheating)
+
         // e.action = MRIEvent::RESET;
         // seq.push_back(make_pair(time, e));
 
@@ -151,7 +152,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // setup phase encoding gradient
         time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(-gxFirst, gyStart + double(scanline) * dGy, 0.0);
+        e.gradient = Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -161,14 +162,14 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         seq.push_back(make_pair(time, e));
 
         //180 degree pulse
-        // e.action = MRIEvent::EXCITE;
+        // e.action = MRIE vent::EXCITE;
         // e.angleRF = Math::PI;
         // time = start + te * 0.5;
         // seq.push_back(make_pair(time, e));
         
         // frequency encoding gradient on
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(gx, 0.0, 0.0);
+        e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
         time = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
         
@@ -181,8 +182,23 @@ void SpinEchoSequence::Reset(MRISim& sim) {
             time += samplingDT;
         }
 
-        // frequency encoding gradient off
+        time -= samplingDT;
+
+        //phase correction
         e.action = MRIEvent::GRADIENT;
+        e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
+        seq.push_back(make_pair(time, e));
+
+        // turn off phase and turn on freq correction
+        // e.action = MRIEvent::GRADIENT;
+        // e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
+        // time += tau;
+        // seq.push_back(make_pair(time, e));
+
+         // frequency encoding gradient off
+        e.action = MRIEvent::GRADIENT; 
+        time += tau;
+        // time += gxDuration * 0.5;
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
 

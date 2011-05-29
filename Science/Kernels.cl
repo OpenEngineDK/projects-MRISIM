@@ -77,10 +77,27 @@ __kernel void mri_step(float dt,                     // 0
         float dtt2 = dt/packs[type].t2;
 
 
-        refMagnet += (float4)(-refMagnet.x*dtt2,
-                              -refMagnet.y*dtt2,
-                              (eq[i]-refMagnet.z)*dtt1,
-                              0);
+        //refMagnet += (float4)(-refMagnet.x*dtt2,
+        //                      -refMagnet.y*dtt2,
+        //                      (eq[i]-refMagnet.z)*dtt1,
+        //                      0);
+
+
+        refMagnet = RotateX(rf.x * GYRO_RAD * dt, refMagnet);
+        refMagnet = RotateY(rf.y * GYRO_RAD * dt, refMagnet);
+
+
+	float e1 = exp(-dtt1);
+	float e2 = exp(-dtt2);
+        refMagnet = (float4)(e2 * refMagnet.x,
+                             e2 * refMagnet.y,
+                             e1 * refMagnet.z + eq[i] * (1.0 - e1),
+                             0);
+
+        // refMagnet = (float4)(refMagnet.x - (refMagnet.x * dt) / packs[type].t2,
+	//            	     refMagnet.y - (refMagnet.y * dt) / packs[type].t2,
+	// 		     refMagnet.z - (refMagnet.z - eq[i]) * dt / (packs[type].t1),
+        //                      0);
 
         
         float4 v = (float4)((x + phantomOffset.x) * (phantomSize.x*1e-3),
@@ -94,9 +111,6 @@ __kernel void mri_step(float dt,                     // 0
         float deltaB0 = 0.0;
 
         refMagnet = RotateZ(GYRO_RAD * (deltaB0 + dG) * dt, refMagnet);
-
-        refMagnet = RotateX(rf.x * GYRO_RAD * dt, refMagnet);
-        refMagnet = RotateY(rf.y * GYRO_RAD * dt, refMagnet);
 
 
     } else {

@@ -79,7 +79,7 @@ void ExcitationPulseSequence::Reset(MRISim& sim) {
 
     rfcoil->SetDuration(totalTime);
     rfcoil->SetAmplitude(ampl);
-    rfcoil->SetChannel(w0 + offset * Gz * GYRO_RAD);
+    rfcoil->SetChannel(offset * Gz * GYRO_RAD);
     rfcoil->SetBandwidth(width * Gz * GYRO_RAD);
     
     double time = 0.0;
