@@ -87,13 +87,11 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     double time;
     MRIEvent e;
 
-    // Phantom phantom = sim.GetPhantom();
-    // const unsigned int hest = 1;
-    // sampler->SetDimensions(Vector<3,unsigned int>(dims[0] / hest, dims[1] / hest, 1));
     sampler->Reset();
 
     const unsigned int width = sampler->GetDimensions()[0];
     const unsigned int height = sampler->GetDimensions()[1];
+
     logger.info << "sample width: " << width << logger.end;
     logger.info << "sample height: " << height << logger.end;
 
@@ -152,7 +150,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // setup phase encoding gradient
         time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
+        e.gradient = Vector<3,float>(gxFirst, gyStart - double(scanline) * dGy, 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -186,7 +184,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
         //phase correction
         e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
+        // e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and turn on freq correction
@@ -197,17 +195,17 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
          // frequency encoding gradient off
         e.action = MRIEvent::GRADIENT; 
-        time += tau;
+        // time += tau;
         // time += gxDuration * 0.5;
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
 
 
-        // time += 0.1;
+        // time += 1e-2;
         // while (time < start + double(tr)) {
         //     e.action = MRIEvent::NONE;
         //     seq.push_back(make_pair(time, e));
-        //     time += 0.1;
+        //     time += 1e-2;
         // }
 
         // start = time + 10.0 * samplingDT;
