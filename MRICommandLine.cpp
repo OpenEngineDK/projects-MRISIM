@@ -13,6 +13,7 @@
 #include "Science/CPUKernel.h"
 #include "Science/OpenCLKernel.h"
 #include "Science/SpinEchoSequence.h"
+#include "Science/EchoPlanarSequence.h"
 #include "Science/ExcitationPulseSequence.h"
 #include "Science/TestRFCoil.h"
 #include "Resources/SimplePhantomBuilder.h"
@@ -67,7 +68,8 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
     // load sequence
     if (yamlSequence.empty()) {
         sequence = new SpinEchoSequence(2500.0f, 50.0f, phantom.sizeX * 1e-3 * float(phantom.texr->GetWidth()), 
-                                   Vector<3,unsigned int>(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1));
+                                        Vector<3,unsigned int>(phantom.texr->GetWidth(), phantom.texr->GetHeight(), 1));
+                
     }
     else {
         PropertyTree tree(yamlSequence);
@@ -76,6 +78,8 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
         string name = seq->GetPath("name", string());
         if (name == string("SpinEchoSequence"))
             sequence = new SpinEchoSequence(seq);
+        else if (name == string("EchoPlanarSequence"))
+            sequence = new EchoPlanarSequence(seq);
         else throw Exception(string("Unknown sequence name: ") + name + string(". In file: " + yamlSequence));
     }
 }

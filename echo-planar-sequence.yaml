@@ -1,5 +1,5 @@
 sequence:
-  name: SpinEchoSequence
+  name: EchoPlanarSequence
   tr: 1.540
   te: 0.010
   fov: 0.600

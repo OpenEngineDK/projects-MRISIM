@@ -44,6 +44,8 @@ SET (MRI_SOURCES
   Science/CPUKernel.cpp
   Science/SpinEchoSequence.h
   Science/SpinEchoSequence.cpp
+  Science/EchoPlanarSequence.h
+  Science/EchoPlanarSequence.cpp
   Science/ListSequence.h
   Science/ListSequence.cpp
   Science/IRFCoil.h

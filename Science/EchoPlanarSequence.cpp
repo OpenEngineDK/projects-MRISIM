@@ -1,4 +1,4 @@
-// MRI simple spin echo sequence
+// MRI simple echo planar echo sequence
 // -------------------------------------------------------------------
 // Copyright (C) 2007 OpenEngine.dk (See AUTHORS) 
 // 
@@ -7,7 +7,7 @@
 // See the GNU General Public License for more details (see LICENSE). 
 //--------------------------------------------------------------------
 
-#include "SpinEchoSequence.h"
+#include "EchoPlanarSequence.h"
 
 #include "TestRFCoil.h"
 #include "ExcitationPulseSequence.h"
@@ -22,7 +22,7 @@ namespace Science {
 using namespace OpenEngine::Utils;
 using namespace OpenEngine::Math;
 
-SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims)
+EchoPlanarSequence::EchoPlanarSequence(float tr, float te, float fov, Vector<3,unsigned int> dims)
     : tr(tr * 1e-3)
     , te(te * 1e-3)
     , fov(fov) 
@@ -35,7 +35,7 @@ SpinEchoSequence::SpinEchoSequence(float tr, float te, float fov, Vector<3,unsig
     slices[0].excitation = new ExcitationPulseSequence(rfcoil);
 }
 
-SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node) 
+EchoPlanarSequence::EchoPlanarSequence(PropertyTreeNode* node) 
     : tr(node->GetPath("tr", 0.0f))
     , te(node->GetPath("te", 0.0f))
     , fov(node->GetPath("fov", 0.0f))
@@ -47,7 +47,7 @@ SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node)
     gyMax = node->GetPath("max-gy", double(0.0));
 
     if (!node->HaveNode("slices"))
-        throw Exception("No slices in SpinEchoSequence");
+        throw Exception("No slices in EchoPlanarSequence");
 
     PropertyTreeNode* slicesNode = node->GetNodePath("slices");
     unsigned int size = slicesNode->GetSize();
@@ -71,41 +71,41 @@ SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node)
         
         slices[i].readout = rot.RotateVector(slices[i].readout);
         slices[i].phase = rot.RotateVector(slices[i].phase);
-        
+
         slice->SetPath("gradient-direction", rot.RotateVector(sliceNorm));
         slices[i].excitation = new ExcitationPulseSequence(new TestRFCoil(1.0), slice);
     }
 }    
 
-SpinEchoSequence::~SpinEchoSequence() {
+EchoPlanarSequence::~EchoPlanarSequence() {
     delete sampler;
 }
 
-void SpinEchoSequence::SetFOV(float fov) {
+void EchoPlanarSequence::SetFOV(float fov) {
         this->fov = fov;
 }
 
-void SpinEchoSequence::SetTR(float tr) {
+void EchoPlanarSequence::SetTR(float tr) {
         this->tr = 1e-3*tr;
 }
 
-void SpinEchoSequence::SetTE(float te) {
+void EchoPlanarSequence::SetTE(float te) {
         this->te = 1e-3*te;
 }
 
-float SpinEchoSequence::GetFOV() {
+float EchoPlanarSequence::GetFOV() {
         return fov;
 }
 
-float SpinEchoSequence::GetTR() {
+float EchoPlanarSequence::GetTR() {
         return tr*1e3;
 }
     
-float SpinEchoSequence::GetTE() {
+float EchoPlanarSequence::GetTE() {
         return te*1e3;
 }
 
-void SpinEchoSequence::Reset(MRISim& sim) {
+void EchoPlanarSequence::Reset(MRISim& sim) {
     ListSequence::Clear();
     
     double time;
@@ -119,13 +119,13 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     logger.info << "sample width: " << width << logger.end;
     logger.info << "sample height: " << height << logger.end;
 
-    // gyMax = 10e-3; // mT/m
+    // const double gyMax = 10e-3; // mT/m
     const double tau = double(height)/(GYRO_HERTZ * gyMax * fov);
     const double gyStart = -gyMax*0.5;
     const double dGy = gyMax / double(height);
     logger.info << "dGY: " << dGy << logger.end;
 
-    // gx = 10e-3; // mT/m
+    // const double gx = 10e-3; // mT/m
     const double samplingDT = 1.0 / (fov * GYRO_HERTZ * gx);              
     const double gxDuration = samplingDT * double(width);
     logger.info << "sampling dt: " << samplingDT << logger.end;
@@ -135,24 +135,8 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     time = 0.0;
     double start = 0.0;
     for (unsigned int k = 0; k < slices.size(); ++k) {
-    for (unsigned int j = 0; j < height; ++j) {
-        // time is line * tr + slice * lines * tr
-        time = start = double(j) * double(tr) +  double(k) * double(height) * double(tr); 
 
-        unsigned int scanline = height / 2 + (height % 2);
-        if (j % 2 == 0) 
-            scanline -= j/2 + 1;
-        else
-            scanline += j/2;
-
-        // logger.info << "j: " << j << " scanline: " << scanline << logger.end;
-        // start with reset state (full relaxation cheating)
-
-        // e.action = MRIEvent::RESET;
-        // seq.push_back(make_pair(time, e));
-
-        // use the 90 degree flip pulse sequence
-        // logger.info << "tr start time: " << time << logger.end;
+        time = start = double(k) * double(tr); 
 
         // grab and reset the rf sequence for k'th slice
         IMRISequence* pulseSeq = slices[k].excitation;
@@ -170,13 +154,10 @@ void SpinEchoSequence::Reset(MRISim& sim) {
             seq.push_back(point);
         }
         time += pulseSeq->GetDuration();
-        // logger.info << "rf done at time: " << time << logger.end;
-        // setup phase encoding gradient
-        time += 1e-4; // wait time after excitation
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart + double(scanline) * dGy));
-        //Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
 
+        // setup initial phase encoding gradient
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase * gyStart);
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -185,58 +166,36 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         time += tau;
         seq.push_back(make_pair(time, e));
 
-        //180 degree pulse
-        // e.action = MRIE vent::EXCITE;
-        // e.angleRF = Math::PI;
-        // time = start + te * 0.5;
-        // seq.push_back(make_pair(time, e));
-        
-        // frequency encoding gradient on
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = slices[k].readout * (-gx);
-        //Vector<3,float>(-gx, 0.0, 0.0);
-        time = start + te - gxDuration * 0.5;
-        seq.push_back(make_pair(time, e));
-        
-        // record width sample points
-        for (unsigned int i = 0; i < width; ++i) {
-            e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, scanline, k);
-            // logger.info << "push back record with time: " << time << logger.end;
+        for (unsigned int j = 0; j < height; ++j) {
+
+            e.action = MRIEvent::GRADIENT; 
+            e.gradient = slices[k].phase * dGy;
+            time += tau;
             seq.push_back(make_pair(time, e));
-            time += samplingDT;
+            
+            // frequency encoding gradient on
+            e.action = MRIEvent::GRADIENT;
+            e.gradient = slices[k].readout *  ((j % 2 == 0)? -gx : gx); // move back and forth in x
+            //Vector<3,float>(-gx, 0.0, 0.0);
+            time += tau;
+            seq.push_back(make_pair(time, e));
+            
+            // record width sample points
+            for (unsigned int i = 0; i < width; ++i) {
+                e.action = MRIEvent::RECORD;
+                e.point = Vector<3,unsigned int>(((j % 2 == 0)? i : width - i - 1), j, k);
+                seq.push_back(make_pair(time, e));
+                time += samplingDT;
+            }
+            
+            time -= samplingDT;
+            
+            // frequency encoding gradient off
+            e.action = MRIEvent::GRADIENT; 
+            e.gradient = Vector<3,float>(0.0);
+            seq.push_back(make_pair(time, e));
+                        
         }
-
-        time -= samplingDT;
-
-        //phase correction
-        e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
-        seq.push_back(make_pair(time, e));
-
-        // turn off phase and turn on freq correction
-        // e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
-        // time += tau;
-        // seq.push_back(make_pair(time, e));
-
-         // frequency encoding gradient off
-        e.action = MRIEvent::GRADIENT; 
-        // time += tau;
-        // time += gxDuration * 0.5;
-        e.gradient = Vector<3,float>(0.0);
-        seq.push_back(make_pair(time, e));
-
-
-        // time += 1e-2;
-        // while (time < start + double(tr)) {
-        //     e.action = MRIEvent::NONE;
-        //     seq.push_back(make_pair(time, e));
-        //     time += 1e-2;
-        // }
-
-        // start = time + 10.0 * samplingDT;
-    }
     }
     e.action = MRIEvent::DONE;
     seq.push_back(make_pair(time, e));
@@ -244,14 +203,14 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     //Sort();
 }
 
-ValueList SpinEchoSequence::Inspect() {
+ValueList EchoPlanarSequence::Inspect() {
     ValueList values;
     
     {
-        RWValueCall<SpinEchoSequence, float > *v
-            = new RWValueCall<SpinEchoSequence, float >(*this,
-                                              &SpinEchoSequence::GetTR,
-                                              &SpinEchoSequence::SetTR);
+        RWValueCall<EchoPlanarSequence, float > *v
+            = new RWValueCall<EchoPlanarSequence, float >(*this,
+                                              &EchoPlanarSequence::GetTR,
+                                              &EchoPlanarSequence::SetTR);
         v->name = "TR(ms)";
         v->properties[STEP] = 1.0;
         v->properties[MIN]  = 50.0;
@@ -260,10 +219,10 @@ ValueList SpinEchoSequence::Inspect() {
     }
 
     {
-        RWValueCall<SpinEchoSequence, float > *v
-            = new RWValueCall<SpinEchoSequence, float >(*this,
-                                              &SpinEchoSequence::GetTE,
-                                              &SpinEchoSequence::SetTE);
+        RWValueCall<EchoPlanarSequence, float > *v
+            = new RWValueCall<EchoPlanarSequence, float >(*this,
+                                              &EchoPlanarSequence::GetTE,
+                                              &EchoPlanarSequence::SetTE);
         v->name = "TE(ms)";
         v->properties[STEP] = 1.0;
         v->properties[MIN]  = 0.0;
@@ -272,10 +231,10 @@ ValueList SpinEchoSequence::Inspect() {
     }
 
     {
-        RWValueCall<SpinEchoSequence, float > *v
-            = new RWValueCall<SpinEchoSequence, float >(*this,
-                                              &SpinEchoSequence::GetFOV,
-                                              &SpinEchoSequence::SetFOV);
+        RWValueCall<EchoPlanarSequence, float > *v
+            = new RWValueCall<EchoPlanarSequence, float >(*this,
+                                              &EchoPlanarSequence::GetFOV,
+                                              &EchoPlanarSequence::SetFOV);
         v->name = "FOV(m)";
         v->properties[STEP] = 0.01;
         v->properties[MIN]  = 0.0;
@@ -289,7 +248,7 @@ ValueList SpinEchoSequence::Inspect() {
     return values;
 }
 
-IMRISampler& SpinEchoSequence::GetSampler() {
+IMRISampler& EchoPlanarSequence::GetSampler() {
     return *sampler;
 }
 

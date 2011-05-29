@@ -7,8 +7,8 @@
 // See the GNU General Public License for more details (see LICENSE). 
 //--------------------------------------------------------------------
 
-#ifndef _MRI_ECHO_PLANAR_SEQUENCE_
-#define _MRI_ECHO_PLANAR_SEQUENCE_
+#ifndef _MRI_ECHO_PLANAR_SEQUENCE_H_
+#define _MRI_ECHO_PLANAR_SEQUENCE_H_
 
 #include "ListSequence.h"
 #include "CartesianSampler.h"
@@ -29,7 +29,7 @@ namespace Science {
 using namespace OpenEngine::Utils;
 using namespace OpenEngine::Utils::Inspection;
 
-class SpinEchoSequence: public ListSequence {
+class EchoPlanarSequence: public ListSequence {
 private:
     float tr, te, fov;
     double gyMax, gx;
@@ -42,9 +42,9 @@ private:
     vector<Slice> slices;
     
 public:
-    SpinEchoSequence(float tr, float te, float fov, Vector<3,unsigned int> dims);
-    SpinEchoSequence(PropertyTreeNode* node);
-    virtual ~SpinEchoSequence();
+    EchoPlanarSequence(float tr, float te, float fov, Vector<3,unsigned int> dims);
+    EchoPlanarSequence(PropertyTreeNode* node);
+    virtual ~EchoPlanarSequence();
 
     // Vector<3,unsigned int> GetTargetDimensions(); 
 
@@ -65,4 +65,4 @@ public:
 } // NS Science
 } // NS MRI
 
-#endif // _MRI_SPIN_ECHO_SEQUENCE_
+#endif // _MRI_ECHO_PLANAR_SEQUENCE_
