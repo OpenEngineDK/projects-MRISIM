@@ -12,6 +12,10 @@ sequence:
       offset: 0.0
       flip-angle: 90.0
       points: 256
+
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 0.0
+
       gradient-direction: [0.0, 0.0, 1.0]
       gradient-magnitude: 50e-3
   
