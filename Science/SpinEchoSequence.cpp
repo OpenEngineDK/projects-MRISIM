@@ -60,10 +60,11 @@ SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node)
         Vector<3,float> sliceNorm = slice->GetPath("gradient-direction", Vector<3,float>());
         sliceNorm.Normalize();
         slices[i].phase = slices[i].readout % sliceNorm;
+        slices[i].phase.Normalize();
 
         Quaternion<float> rot(Math::PI * slice->GetPath("rotation-angle", 0.0f) / 180.0f,
                               slice->GetPath("rotation-axis", Vector<3,float>(1.0, 0.0, 0.0)));
-        
+        rot.Normalize();
         
         slices[i].readout = rot.RotateVector(slices[i].readout);
         slices[i].phase = rot.RotateVector(slices[i].phase);
@@ -170,9 +171,9 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // setup phase encoding gradient
         time += 1e-4; // wait time after excitation
         e.action = MRIEvent::GRADIENT;
-        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart - double(scanline) * dGy));
-            
-            // Vector<3,float>(gxFirst, gyStart - double(scanline) * dGy, 0.0);
+        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart + double(scanline) * dGy));
+        //Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
+
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -190,7 +191,7 @@ void SpinEchoSequence::Reset(MRISim& sim) {
         // frequency encoding gradient on
         e.action = MRIEvent::GRADIENT;
         e.gradient = slices[k].readout * (-gx);
-            //Vector<3,float>(-gx, 0.0, 0.0);
+        //Vector<3,float>(-gx, 0.0, 0.0);
         time = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
         
