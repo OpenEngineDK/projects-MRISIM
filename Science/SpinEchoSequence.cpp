@@ -63,10 +63,12 @@ SpinEchoSequence::SpinEchoSequence(PropertyTreeNode* node)
 
         Quaternion<float> rot(Math::PI * slice->GetPath("rotation-angle", 0.0f) / 180.0f,
                               slice->GetPath("rotation-axis", Vector<3,float>(1.0, 0.0, 0.0)));
-
+        
+        
         slices[i].readout = rot.RotateVector(slices[i].readout);
         slices[i].phase = rot.RotateVector(slices[i].phase);
 
+        slice->SetPath("gradient-direction", rot.RotateVector(sliceNorm));
         slices[i].excitation = new ExcitationPulseSequence(new TestRFCoil(1.0), slice);
     }
 }    
