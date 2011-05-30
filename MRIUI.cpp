@@ -282,12 +282,13 @@ public:
     virtual ~Flipper() {}
     void Flip() {
         logger.info << "flip slice: " << spinCanvas->GetSlice() << " 90 deg." << logger.end;
-        kern->RFPulse(Math::PI*0.5, spinCanvas->GetSlice());
+        // kern->RFPulse(Math::PI*0.5, spinCanvas->GetSlice());
     }
 
     void Flop() {
         logger.info << "flip slice: " << spinCanvas->GetSlice() << " 180 deg." << logger.end;
-        kern->RFPulse(Math::PI, spinCanvas->GetSlice());
+        kern->InvertSpins();
+        // kern->RFPulse(Math::PI, spinCanvas->GetSlice());
     }
 
 

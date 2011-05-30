@@ -40,6 +40,14 @@ float4 RotateY(float angle, float4 vec) {
      return v;
 }
 
+
+__kernel void invert_kernel(__global float* refM) {
+    int x = get_global_id(0) * 3;
+    refM[x+0] = -refM[x+0];
+    refM[x+1] = -refM[x+1];
+    refM[x+2] = -refM[x+2];
+}
+
 __kernel void mri_step(float dt,                     // 0
                        __global float* refM,         // 1
                        __global unsigned char* data, // 2

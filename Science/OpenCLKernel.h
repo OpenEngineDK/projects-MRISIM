@@ -60,6 +60,8 @@ private:
 
     cl::Kernel* reduceKernel;
 
+    cl::Kernel* invertKernel;
+
     cl::Buffer* inbuffer;
     cl::Buffer* outbuffer;
 
@@ -85,7 +87,8 @@ public:
     void Step(float dt);    
     Vector<3,float>* GetMagnets() const;
     Phantom GetPhantom() const;
-    void RFPulse(float angle, unsigned int slice);
+    // void RFPulse(float angle, unsigned int slice);
+    void InvertSpins();
     void Reset();
     void SetGradient(Vector<3,float> gradient);
     void SetRFSignal(Vector<3,float> signal);

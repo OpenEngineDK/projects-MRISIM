@@ -121,9 +121,9 @@ bool MRISim::Step() {
         kernel->Reset();
     }
 
-    if (event.action & MRIEvent::EXCITE) {
-        logger.info << "Time: " << theSimTime << ", Instant excitation: " << event.angleRF * (180.0 / Math::PI) <<  " deg." << logger.end;
-        kernel->RFPulse(event.angleRF, event.slice);
+    if (event.action & MRIEvent::INVERT) {
+        logger.info << "Time: " << theSimTime << ", invert spins (180 degree pulse sim)" << logger.end;
+        kernel->InvertSpins();
     }
 
     if (event.action & MRIEvent::GRADIENT) {

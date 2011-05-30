@@ -41,17 +41,17 @@ public:
 class MRIEvent {
 public:
     Vector<3,float> gradient, rfSignal;  // gradient and rf magnetization
-    float angleRF;             // pulse angle (only valid when
-                               // Action::EXCITE is set)
-    unsigned int slice;        // slice to be excited. (only valid when
-                               // Action::EXCITE is set) 
+    // float angleRF;             // pulse angle (only valid when
+    //                            // Action::EXCITE is set)
+    // unsigned int slice;        // slice to be excited. (only valid when
+    //                            // Action::EXCITE is set) 
     Vector<3,unsigned int> point; // position of the recorded sample in
                                   // k-space (only valid when
                                   // Action::RECORD is set)
     enum Action {
         NONE     =    0, // no action
         RESET    = 1<<0, // reset magnets to equilibrium
-        EXCITE   = 1<<1, // simulate rf pulse by flipping magnets instantly
+        INVERT   = 1<<1, // simulate (cheating) 180 rf pulse by inverting spins on all magnets
         RECORD   = 1<<2, // record a sample
         GRADIENT = 1<<3, // set the gradient vector
         RFPULSE  = 1<<4, // set the rf pulse magnetization vector
@@ -60,7 +60,7 @@ public:
     unsigned int action; 
     float dt;
     MRIEvent()
-        : angleRF(0.0), slice(0), action(NONE), dt(0.0) {}
+        : /*angleRF(0.0), slice(0), */ action(NONE), dt(0.0) {}
     virtual ~MRIEvent() {};
 };
 
@@ -112,7 +112,7 @@ public:
     virtual Vector<3,float> GetSignal() const = 0;     // get the current total magnetization (sum of all spins)
     virtual Vector<3,float>* GetMagnets() const = 0;   // get all the spin states (for debugging only).
 
-    virtual void RFPulse(float angle, unsigned int slice) = 0;       // instantly rotate the vectors in a slice around the y' axis. (cheap way of simulating rf pulse).
+    //    virtual void RFPulse(float angle, unsigned int slice) = 0;       // instantly rotate the vectors in a slice around the y' axis. (cheap way of simulating rf pulse).
     virtual void SetGradient(Vector<3,float> gradient) = 0; // apply a gradient vector
     virtual Vector<3,float> GetGradient() const = 0; // get the current gradient vector
 
@@ -120,6 +120,8 @@ public:
     virtual float GetB0() const = 0;
 
     virtual void SetRFSignal(Vector<3,float> signal) = 0;   // apply an rf vector. (Slower than RFPulse, but much more precise).
+
+    virtual void InvertSpins() = 0;
     virtual void Reset() = 0;                    // reset spin states to equilibrium. (Quick an dirty way to force spin relaxation).
 };
 

@@ -135,108 +135,73 @@ void SpinEchoSequence::Reset(MRISim& sim) {
     time = 0.0;
     double start = 0.0;
     for (unsigned int k = 0; k < slices.size(); ++k) {
-    for (unsigned int j = 0; j < height; ++j) {
-        // time is line * tr + slice * lines * tr
-        time = start = double(j) * double(tr) +  double(k) * double(height) * double(tr); 
+        for (unsigned int j = 0; j < height; ++j) {
+            // time is line * tr + slice * lines * tr
+            time = start = double(j) * double(tr) +  double(k) * double(height) * double(tr); 
 
-        unsigned int scanline = height / 2 + (height % 2);
-        if (j % 2 == 0) 
-            scanline -= j/2 + 1;
-        else
-            scanline += j/2;
+            unsigned int scanline = height / 2 + (height % 2);
+            if (j % 2 == 0) 
+                scanline -= j/2 + 1;
+            else
+                scanline += j/2;
 
-        // logger.info << "j: " << j << " scanline: " << scanline << logger.end;
-        // start with reset state (full relaxation cheating)
+            // e.action = MRIEvent::RESET;
+            // seq.push_back(make_pair(time, e));
 
-        // e.action = MRIEvent::RESET;
-        // seq.push_back(make_pair(time, e));
+            // grab and reset the rf sequence for k'th slice
+            IMRISequence* pulseSeq = slices[k].excitation;
+            pulseSeq->Reset(sim);
 
-        // use the 90 degree flip pulse sequence
-        // logger.info << "tr start time: " << time << logger.end;
+            while (pulseSeq->HasNextPoint()) {
+                pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
+                // printf("rf point time before: %e\n", point.first);
+                // logger.info << "rf point time before: " << point.first << logger.end;
+                point.first += time;
 
-        // grab and reset the rf sequence for k'th slice
-        IMRISequence* pulseSeq = slices[k].excitation;
-        pulseSeq->Reset(sim);
-
-        while (pulseSeq->HasNextPoint()) {
-            pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
-            // printf("rf point time before: %e\n", point.first);
-            // logger.info << "rf point time before: " << point.first << logger.end;
-            point.first += time;
-
-            // printf("rf point time after: %e\n", point.first);
-            // logger.info << "rf point time after: " << point.first << logger.end;
+                // printf("rf point time after: %e\n", point.first);
+                // logger.info << "rf point time after: " << point.first << logger.end;
             
-            seq.push_back(point);
-        }
-        time += pulseSeq->GetDuration();
-        // logger.info << "rf done at time: " << time << logger.end;
-        // setup phase encoding gradient
-        time += 1e-4; // wait time after excitation
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart + double(scanline) * dGy));
-        //Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
-
-        seq.push_back(make_pair(time, e));
-
-        // turn off phase and freq encoding gradients
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
-        time += tau;
-        seq.push_back(make_pair(time, e));
-
-        //180 degree pulse
-        // e.action = MRIE vent::EXCITE;
-        // e.angleRF = Math::PI;
-        // time = start + te * 0.5;
-        // seq.push_back(make_pair(time, e));
-        
-        // frequency encoding gradient on
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = slices[k].readout * (-gx);
-        //Vector<3,float>(-gx, 0.0, 0.0);
-        time = start + te - gxDuration * 0.5;
-        seq.push_back(make_pair(time, e));
-        
-        // record width sample points
-        for (unsigned int i = 0; i < width; ++i) {
-            e.action = MRIEvent::RECORD;
-            e.point = Vector<3,unsigned int>(i, scanline, k);
-            // logger.info << "push back record with time: " << time << logger.end;
+                seq.push_back(point);
+            }
+            time += pulseSeq->GetDuration();
+            // logger.info << "rf done at time: " << time << logger.end;
+            // setup phase encoding gradient
+            e.action = MRIEvent::GRADIENT;
+            e.gradient = (slices[k].readout * gxFirst) - (slices[k].phase* (gyStart + double(scanline) * dGy));
             seq.push_back(make_pair(time, e));
-            time += samplingDT;
-        }
 
-        time -= samplingDT;
+            // turn off phase and freq encoding gradients
+            e.action = MRIEvent::GRADIENT;
+            e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
+            time += tau;
+            seq.push_back(make_pair(time, e));
 
-        //phase correction
-        e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
-        seq.push_back(make_pair(time, e));
+            //180 degree pulse (cheating!)
+            e.action = MRIEvent::INVERT;
+            time = start + te * 0.5;
+            seq.push_back(make_pair(time, e));
+        
+            // frequency encoding gradient on
+            e.action = MRIEvent::GRADIENT;
+            e.gradient = slices[k].readout * gx;
+            time = start + te - gxDuration * 0.5;
+            seq.push_back(make_pair(time, e));
+        
+            // record width sample points
+            for (unsigned int i = 0; i < width; ++i) {
+                e.action = MRIEvent::RECORD;
+                e.point = Vector<3,unsigned int>(i, scanline, k);
+                seq.push_back(make_pair(time, e));
+                time += samplingDT;
+            }
 
-        // turn off phase and turn on freq correction
-        // e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
-        // time += tau;
-        // seq.push_back(make_pair(time, e));
+            time -= samplingDT;
 
-         // frequency encoding gradient off
-        e.action = MRIEvent::GRADIENT; 
-        // time += tau;
-        // time += gxDuration * 0.5;
-        e.gradient = Vector<3,float>(0.0);
-        seq.push_back(make_pair(time, e));
-
-
-        // time += 1e-2;
-        // while (time < start + double(tr)) {
-        //     e.action = MRIEvent::NONE;
-        //     seq.push_back(make_pair(time, e));
-        //     time += 1e-2;
-        // }
-
-        // start = time + 10.0 * samplingDT;
-    }
+            // frequency encoding gradient off
+            e.action = MRIEvent::GRADIENT; 
+            e.gradient = Vector<3,float>(0.0);
+            seq.push_back(make_pair(time, e));
+	    }
     }
     e.action = MRIEvent::DONE;
     seq.push_back(make_pair(time, e));

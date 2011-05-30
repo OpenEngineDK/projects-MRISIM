@@ -13,6 +13,7 @@
 #include "Science/CPUKernel.h"
 #include "Science/OpenCLKernel.h"
 #include "Science/SpinEchoSequence.h"
+#include "Science/GradientEchoSequence.h"
 #include "Science/EchoPlanarSequence.h"
 #include "Science/ExcitationPulseSequence.h"
 #include "Science/TestRFCoil.h"
@@ -78,7 +79,9 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
         string name = seq->GetPath("name", string());
         if (name == string("SpinEchoSequence"))
             sequence = new SpinEchoSequence(seq);
-        else if (name == string("EchoPlanarSequence"))
+        else if (name == string("GradientEchoSequence"))
+            sequence = new GradientEchoSequence(seq);
+        else if (name == string("EchoPlanarSequence")) 
             sequence = new EchoPlanarSequence(seq);
         else throw Exception(string("Unknown sequence name: ") + name + string(". In file: " + yamlSequence));
     }

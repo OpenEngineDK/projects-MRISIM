@@ -168,6 +168,12 @@ void OpenCLKernel::Init(Phantom phantom) {
         throw Exception("couldn't create kernel");
     }
 
+    invertKernel = new cl::Kernel(program, "invert_kernel", &err);
+    if (err) {
+        logger.error << "Made invert kernel: " << err << logger.end;
+        throw Exception("couldn't create kernel");
+    }
+
     refMBuffer = new cl::Buffer(context,
                                 CL_MEM_READ_WRITE,
                                 sz*sizeof(Vector<3,float>),
@@ -234,6 +240,8 @@ void OpenCLKernel::Init(Phantom phantom) {
     kernel->setArg(2, *dataBuffer);
     kernel->setArg(3, *spinPackBuffer);
     kernel->setArg(4, *eqBuffer);
+
+    invertKernel->setArg(1, *refMBuffer);
 
     GpuPhantomInfo pinfo;
     
@@ -329,11 +337,11 @@ void OpenCLKernel::Step(float dt) {
 }
 
 void OpenCLKernel::Flip(unsigned int slice) {
-    RFPulse(Math::PI * 0.5, slice);
+    // RFPulse(Math::PI * 0.5, slice);
 }
 
 void OpenCLKernel::Flop(unsigned int slice) {
-    RFPulse(Math::PI, slice);
+    // RFPulse(Math::PI, slice);
 }
 
 
@@ -508,20 +516,38 @@ float OpenCLKernel::GetB0() const {
     return b0;
 }
 
-void OpenCLKernel::RFPulse(float angle, unsigned int slice) {
-    Matrix<3,3,float> rot(
-                          1.0, 0.0, 0.0,
-                          0.0, cos(angle), sin(angle),
-                          0.0,-sin(angle), cos(angle)
-                          );
-    // hack to only excite slice 0
-    unsigned int z = slice;
-    for (unsigned int i = 0; i < width; ++i) {
-        for (unsigned int j = 0; j < height; ++j) {
-            if (data[i + j*width  + z*width*height] == 0) continue;
-            refMagnets[i + j*width + z*width*height] = rot*refMagnets[i + j*width + z*width*height];
-        }
+// void OpenCLKernel::RFPulse(float angle, unsigned int slice) {
+//     Matrix<3,3,float> rot(
+//                           1.0, 0.0, 0.0,
+//                           0.0, cos(angle), sin(angle),
+//                           0.0,-sin(angle), cos(angle)
+//                           );
+//     // hack to only excite slice 0
+//     unsigned int z = slice;
+//     for (unsigned int i = 0; i < width; ++i) {
+//         for (unsigned int j = 0; j < height; ++j) {
+//             if (data[i + j*width  + z*width*height] == 0) continue;
+//             refMagnets[i + j*width + z*width*height] = rot*refMagnets[i + j*width + z*width*height];
+//         }
+//     }
+// }
+
+void OpenCLKernel::InvertSpins() {
+    cl::Event event;
+    cl_int err = queue->enqueueNDRangeKernel(*invertKernel, 
+                                             cl::NullRange,
+                                             cl::NDRange(sz),
+                                             cl::NullRange,
+                                             NULL,                                             
+                                             &event);
+
+    if (err) {
+        logger.error << "error "  << err << logger.end;
+        throw Exception("couldn't run kernel");
+        
     }
+    
+    event.wait();
 }
 
 void OpenCLKernel::SetGradient(Vector<3,float> gradient) {
@@ -555,8 +581,8 @@ void OpenCLKernel::Reset() {
 }
 
 Vector<3,float>* OpenCLKernel::GetMagnets() const {
-    //return refMagnets;
-    return labMagnets;
+    return refMagnets;
+    //return labMagnets;
 }
 
 Phantom OpenCLKernel::GetPhantom() const {

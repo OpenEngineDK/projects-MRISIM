@@ -116,10 +116,8 @@ void ListSequence::LoadFromYamlFile(string file) {
                 e.action |= MRIEvent::RESET;
             }
 
-            if (name == string("EXCITE")) {
-                e.action |= MRIEvent::EXCITE;
-                e.angleRF = action->GetPath("angleRF", float(0.0));
-                e.slice = action->GetPath("slice", (unsigned int)(0));
+            if (name == string("INVERT")) {
+                e.action |= MRIEvent::INVERT;
             }
 
             if (name == string("GRADIENT")) {
@@ -184,11 +182,9 @@ void ListSequence::SaveToYamlFile(string file) {
             ++j;
         }
         
-        if (e.action & MRIEvent::EXCITE) {
+        if (e.action & MRIEvent::INVERT) {
             PropertyTreeNode* action = actions->GetNodeIdx(j);
-            action->SetPath("name", "EXCITE");
-            action->SetPath("angleRF", e.angleRF);
-            action->SetPath("slice", e.slice);
+            action->SetPath("name", "INVERT");
             ++j;
         }
 

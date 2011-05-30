@@ -1,5 +1,5 @@
 sequence:
-  name: EchoPlanarSequence
+  name: GradientEchoSequence
   tr: 1.540
   te: 0.010
   fov: 0.600
@@ -10,15 +10,15 @@ sequence:
 
   slices:
     - lobes: 6
-      width:  0.500
+      width:  0.010
       offset: 0.0
-      flip-angle: 30.0
+      flip-angle: 90.0
       points: 256
 
       rotation-axis: [0.0, 1.0, 0.0]
       rotation-angle: 0.0
 
       gradient-direction: [0.0, 0.0, 1.0]
-      readout-direction: [1.0, 1.0, 0.0]
+      readout-direction: [1.0, 0.0, 0.0]
       gradient-magnitude: 50e-3
   

@@ -92,15 +92,16 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
 void CPUKernel::Step(float dt) {
     time += dt;
     signal = Vector<3,float>();
-    const double omega0 = GYRO_RAD * b0;
+    //const double omega0 = GYRO_RAD * b0;
     // const double omega0Angle = fmod(omega0*time, double(Math::PI * 2.0));
 
-    omega0Angle += dt * omega0;
-    if (omega0Angle > double(Math::PI * 2.0))
-        omega0Angle = fmod(omega0Angle, double(Math::PI * 2.0));
+    // omega0Angle += dt * omega0;
+    // if (omega0Angle > double(Math::PI * 2.0))
+    //     omega0Angle = fmod(omega0Angle, double(Math::PI * 2.0));
 
     // move rf signal into reference space
-    const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    // const Vector<3,float> rf = RotateZ(-omega0Angle, rfSignal);
+    const Vector<3,float> rf = rfSignal;
     // const Vector<3,float> rf = rfSignal;
     // logger.info << "RFSIGNAL: " << rf << logger.end; 
     // logger.info << "Bx: " << rf.Get(0) << logger.end;
@@ -117,14 +118,24 @@ void CPUKernel::Step(float dt) {
 
                 unsigned int i = x + y*width + z*width*height;
                 if (data[i] == 0) continue;
+
+                // apply rf
+                refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
+                refMagnets[i] = RotateY(rf.Get(1) * GYRO_RAD * dt, refMagnets[i]);
                 
 
                 float dtt1 = dt/phantom.spinPackets[data[i]].t1;
                 float dtt2 = dt/phantom.spinPackets[data[i]].t2;
 
-                refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
-                                                 -refMagnets[i][1]*dtt2, 
-                                                 (eq[i]-refMagnets[i][2])*dtt1);
+                float e1 = exp(-dtt1);
+                float e2 = exp(-dtt2);
+                refMagnets[i] = Vector<3,float>(e2 * refMagnets[i][0],
+                                                e2 * refMagnets[i][1],
+                                                e1 * refMagnets[i][2] + eq[i] * (1.0 - e1));
+
+                // refMagnets[i] += Vector<3,float>(-refMagnets[i][0]*dtt2, 
+                //                                  -refMagnets[i][1]*dtt2, 
+                //                                  (eq[i]-refMagnets[i][2])*dtt1);
 
                 float dG = gradient * Vector<3,float>(float(int(x) + phantom.offsetX) * (phantom.sizeX*1e-3),
                                                       float(int(y) + phantom.offsetY) * (phantom.sizeY*1e-3),
@@ -134,11 +145,8 @@ void CPUKernel::Step(float dt) {
 
                 refMagnets[i] = RotateZ(GYRO_RAD * (deltaB0[i] + dG) * dt, refMagnets[i]);
 
-                refMagnets[i] = RotateX(rf.Get(0) * GYRO_RAD * dt, refMagnets[i]);
-                refMagnets[i] = RotateY(rf.Get(1) * GYRO_RAD * dt, refMagnets[i]);
-                
-                labMagnets[i] = 
-                    RotateZ(omega0Angle, refMagnets[i]);
+                // labMagnets[i] = 
+                //     RotateZ(omega0Angle, refMagnets[i]);
                 signal += refMagnets[i];
             }    
         }
@@ -149,11 +157,11 @@ void CPUKernel::Step(float dt) {
 }
 
 void CPUKernel::Flip(unsigned int slice) {
-    RFPulse(Math::PI * 0.5, slice);
+    // RFPulse(Math::PI * 0.5, slice);
 }
 
 void CPUKernel::Flop(unsigned int slice) {
-    RFPulse(Math::PI, slice);
+    // RFPulse(Math::PI, slice);
 }
 
 Vector<3,float> CPUKernel::GetSignal() const {
@@ -168,19 +176,26 @@ float CPUKernel::GetB0() const {
     return b0;
 }
 
-void CPUKernel::RFPulse(float angle, unsigned int slice) {
-    Matrix<3,3,float> rot(
-                          1.0, 0.0, 0.0,
-                          0.0, cos(angle), sin(angle),
-                          0.0,-sin(angle), cos(angle)
-                          );
-    // hack to only excite slice 0
-    unsigned int z = slice;
-    for (unsigned int i = 0; i < width; ++i) {
-        for (unsigned int j = 0; j < height; ++j) {
-            if (data[i + j*width  + z*width*height] == 0) continue;
-            refMagnets[i + j*width + z*width*height] = rot*refMagnets[i + j*width + z*width*height];
-        }
+// void CPUKernel::RFPulse(float angle, unsigned int slice) {
+//     Matrix<3,3,float> rot(
+//                           1.0, 0.0, 0.0,
+//                           0.0, cos(angle), sin(angle),
+//                           0.0,-sin(angle), cos(angle)
+//                           );
+//     // hack to only excite slice 0
+//     unsigned int z = slice;
+//     for (unsigned int i = 0; i < width; ++i) {
+//         for (unsigned int j = 0; j < height; ++j) {
+//             if (data[i + j*width  + z*width*height] == 0) continue;
+//             refMagnets[i + j*width + z*width*height] = rot*refMagnets[i + j*width + z*width*height];
+//         }
+//     }
+// }
+
+void CPUKernel::InvertSpins() {
+    for (unsigned int i = 0; i < width * height * depth; ++i) {
+        if (data[i] == 0) continue;
+        refMagnets[i] = -refMagnets[i];
     }
 }
 
@@ -210,8 +225,8 @@ void CPUKernel::Reset() {
 }
 
 Vector<3,float>* CPUKernel::GetMagnets() const {
-    //return refMagnets;
-    return labMagnets;
+    return refMagnets;
+    //return labMagnets;
 }
 
 Phantom CPUKernel::GetPhantom() const {
