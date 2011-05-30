@@ -20,6 +20,29 @@ ELSE (FFTW_FOUND)
   MESSAGE ("WARNING: Could not find fftw - depending targets will be disabled.")
 ENDIF (FFTW_FOUND)
 
+
+SET (ENABLE_CUDA 1)
+
+IF (ENABLE_CUDA)
+  
+  CUDA_ADD_LIBRARY("CUDA_KERNELS"
+    #    Science/Kernels.cu
+    Science/CUDAKernel.cu
+    )
+  
+  # TARGET_LINK_LIBRARIES("CUDA_KERNELS"
+  #   ${CUDA_CUT_LIBRARIES} #cutil
+  #   )  
+
+  #SET(CUDAKERNEL Science/CUDAKernel.h Science/CUDAKernel.cpp)
+  
+  ADD_DEFINITIONS(-DENABLE_CUDA)
+  
+ SET (CUDA_KERNEL_LINK "CUDA_KERNELS")
+
+ENDIF(ENABLE_CUDA)
+
+
 SET (MRI_SOURCES 
 
   MRICommandLine.h
@@ -38,6 +61,9 @@ SET (MRI_SOURCES
   Science/Science.cpp
   Science/MRISim.h
   Science/MRISim.cpp
+
+  ${CUDAKERNEL}
+
   Science/OpenCLKernel.h
   Science/OpenCLKernel.cpp
   Science/CPUKernel.h
@@ -150,6 +176,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_OpenCL
   minc2 # ugly hack... use a find script
   ${FFTW_LIBRARIES}
+  ${CUDA_KERNEL_LINK}
 )
 
 
@@ -176,4 +203,5 @@ TARGET_LINK_LIBRARIES(${BATCH_PROJECT_NAME}
   Extensions_PropertyTree
   Extensions_OpenCL
   ${FFTW_LIBRARIES}
+  ${CUDA_KERNEL_LINK}
 )

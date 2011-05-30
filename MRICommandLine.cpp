@@ -12,6 +12,9 @@
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
 #include "Science/OpenCLKernel.h"
+#if ENABLE_CUDA
+#include "Science/CUDAKernel.h"
+#endif
 #include "Science/SpinEchoSequence.h"
 #include "Science/GradientEchoSequence.h"
 #include "Science/EchoPlanarSequence.h"
@@ -30,12 +33,20 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
     , kernel(NULL)
 {
     bool useCPU = false;
+#if ENABLE_CUDA
+    bool useCUDA = false;
+#endif
     string yamlSequence, yamlPhantom;
     unsigned int phantomSize = 20;
     
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
             useCPU = true;
+#if ENABLE_CUDA
+        else if (strcmp(argv[i],"-cuda") == 0) {
+            useCUDA = true;
+        }
+#endif
         else if (strcmp(argv[i],"-phantom") == 0) {
             if (i + 1 < argc)
                 yamlPhantom = string(argv[i+1]);
@@ -54,6 +65,10 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
     // load kernel
     if (useCPU)
         kernel = new CPUKernel();
+#if ENABLE_CUDA
+    else if (useCUDA)
+        kernel = new CUDAKernel();
+#endif
     else
         kernel = new OpenCLKernel();
 
