@@ -52,7 +52,7 @@ float CUDAKernel::RandomAttribute(float base, float variance) {
 inline int powTwo(int n) {
     if (n < 2) return n;
     n = n >> 2;
-    int res = 2;
+    int res = 1;
     while (n > 0) {
         n = n >> 2;
         res = res << 2;
@@ -214,7 +214,7 @@ Vector<3,float> CUDAKernel::GetSignal() {
     }
 
     Vector<3,float> signal;
-    cudaMemcpy((void*)refMagnets, (void*)d_odata, n * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
+    cudaMemcpy((void*)refMagnets, (void*)d_idata, n * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
     for (unsigned int i = 0; i < n; ++i) {
         signal += refMagnets[i];
     }
