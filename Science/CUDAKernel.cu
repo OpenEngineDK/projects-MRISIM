@@ -15,6 +15,7 @@
 #include <Meta/CUDA.h>
 
 #include "Kernels.cu"
+
 namespace MRI {
 namespace Science {
 
@@ -56,52 +57,87 @@ void CUDAKernel::Init(Phantom phantom) {
 
     for (unsigned int i = 0; i < sz; ++i) {
         deltaB0[i] = 0.0;
-        eq[i] = phantom.spinPackets[data[i]].ro*b0;
+        eq[i] = phantom.spinPackets[data[i]].ro * b0;
     }
 
     // initialize gpu memory
 
-    float vsize[3] = {phantom.sizeX * 1e-3, phantom.sizeY* 1e-3, phantom.sizeZ* 1e-3};
-    int offs[3] = {phantom.offsetX, phantom.offsetY, phantom.offsetZ};
+    float _voxelSize[3] = {phantom.sizeX * 1e-3, phantom.sizeY * 1e-3, phantom.sizeZ * 1e-3};
+    int _offset[3] = {phantom.offsetX, phantom.offsetY, phantom.offsetZ};
     unsigned int _dims[3] = {width, height, depth};
 
     /* cudaMemcpyToSymbol(b0, &b0, sizeof(float)); */
     /* CHECK_FOR_CUDA_ERROR(); */
-    cudaMemcpyToSymbol(voxelSize, vsize, 3*sizeof(float));
+    cudaMemcpyToSymbol(voxelSize, &_voxelSize[0], 3 * sizeof(float));
     CHECK_FOR_CUDA_ERROR();
-    cudaMemcpyToSymbol(offset, offs, 3*sizeof(int));
+    cudaMemcpyToSymbol(offset, _offset, 3 * sizeof(int));
     CHECK_FOR_CUDA_ERROR();
-
-    cudaMemcpyToSymbol(dims, _dims, 3*sizeof(int));
-    CHECK_FOR_CUDA_ERROR();
-
-    cudaMemcpyToSymbol(maxSize, &sz, sizeof(int));
+    cudaMemcpyToSymbol(dims, _dims, 3 * sizeof(int));
     CHECK_FOR_CUDA_ERROR();
 
+    // voxel data
+    unsigned int sps = phantom.spinPackets.size();
+    SpinPack* sp = new SpinPack[sps];
+    for (int i = 0; i < sps; ++i) {
+        sp[i].t1 = phantom.spinPackets[i].t1;
+        sp[i].t2 = phantom.spinPackets[i].t2;
+    }
+
+    cudaMalloc((void**)&spinPackBuffer, sps * sizeof(SpinPack));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)spinPackBuffer, (void*)sp, sps * sizeof(SpinPack), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+    delete sp;
+
+    cudaMalloc((void**)&eqBuffer, sz * sizeof(float));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)eqBuffer, (void*)eq, sz * sizeof(float), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+
+    cudaMalloc((void**)&dataBuffer, sz * sizeof(char)); 
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)dataBuffer, (void*)data, sz * sizeof(char), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+
+    // copy magnets in reset
+    cudaMalloc((void**)&magnetsBuffer, sz * sizeof(Vector<3,float>));
+    CHECK_FOR_CUDA_ERROR();
+
+    // for now set deltab0 to all zero
+    cudaMalloc((void**)&deltaBuffer, sz * sizeof(float)); 
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemset(deltaBuffer, 0, sz * sizeof(float));
+    CHECK_FOR_CUDA_ERROR();
 
     Reset();
 }
 
-void CUDAKernel::Step(float dt) {
-    float _rf[3];
-    float _grad[3];
-    rfSignal.ToArray(_rf);
-    gradient.ToArray(_grad);
-
-    cudaMemcpyToSymbol(rf, _rf, 3*sizeof(float));
+void CUDAKernel::Step(float _dt) {
+    cudaMemcpyToSymbol(rf, &rfSignal, sizeof(Vector<3,float>));
     CHECK_FOR_CUDA_ERROR();
-    cudaMemcpyToSymbol(grad, _grad, 3*sizeof(float));
+    cudaMemcpyToSymbol(grad, &gradient, sizeof(Vector<3,float>));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpyToSymbol(dt, &_dt, sizeof(float));
     CHECK_FOR_CUDA_ERROR();
 
-    const dim3 blockSize(32, 1, 1);
-    const dim3 gridSize(sz / blockSize.x, 1);
+    const dim3 blockSize(256, 1, 1);
+    /* const dim3 gridSize((int)ceil((double(sz) / double(blockSize.x))), 1, 1); */
+    const dim3 gridSize(sz / blockSize.x, 1, 1);
 
     // start timer
     /* cutResetTimer(timer); */
 	/* cutStartTimer(timer); */
 
     // cuda kernel call
-    stepKernel<<< gridSize, blockSize >>>(dt, magnetsBuffer, dataBuffer, spinPackBuffer, eqBuffer, deltaBuffer);
+    stepKernel<<< gridSize, blockSize >>>(magnetsBuffer,
+                                          dataBuffer,
+                                          spinPackBuffer,
+                                          eqBuffer,
+                                          deltaBuffer);
+
+    /* float* tmp = out; */
+    /* out = magnetsBuffer; */
+    /* magnetsBuffer = tmp; */
 
 	// Report timing
 	/* cudaThreadSynchronize(); */
@@ -113,8 +149,13 @@ void CUDAKernel::Step(float dt) {
 }
 
 Vector<3,float> CUDAKernel::GetSignal() const {
-    // cuda map reduce
-    return Vector<3,float>();
+    //todo: cuda map reduce
+    Vector<3,float> signal;
+    cudaMemcpy((void*)refMagnets, (void*)magnetsBuffer, sz * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
+    for (unsigned int i = 0; i < sz; ++i) {
+        signal += refMagnets[i];
+    }
+    return signal;
 }
 
 void CUDAKernel::SetB0(float b0) {
@@ -127,6 +168,10 @@ float CUDAKernel::GetB0() const {
 
 void CUDAKernel::InvertSpins() {
     // cuda kernel invert
+    const dim3 blockSize(512, 1, 1);
+    const dim3 gridSize(sz / blockSize.x, 1, 1);
+
+    invertKernel<<< gridSize, blockSize >>>(magnetsBuffer);
 }
 
 void CUDAKernel::SetGradient(Vector<3,float> gradient) {
@@ -143,12 +188,16 @@ void CUDAKernel::SetRFSignal(Vector<3,float> signal) {
 
 void CUDAKernel::Reset() {
     for (unsigned int i = 0; i < sz; ++i) {
-        refMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
+        refMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);        
     }
+    cudaMemcpy((void*)magnetsBuffer, (void*)refMagnets, sz * sizeof(Vector<3,float>), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
 }
 
 Vector<3,float>* CUDAKernel::GetMagnets() const {
     // copy refmagnets from gpu
+    cudaMemcpy((void*)refMagnets, (void*)magnetsBuffer, sz * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
+    CHECK_FOR_CUDA_ERROR();
     return refMagnets;
 }
 
