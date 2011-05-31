@@ -89,6 +89,9 @@ SET (MRI_SOURCES
   Science/IFFT.h
   Science/CPUFFT.h
   Science/CPUFFT.cpp
+
+  Science/TimeLogger.h
+  Science/TimeLogger.cpp
 )
 
 # Project source code list

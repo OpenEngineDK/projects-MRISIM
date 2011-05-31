@@ -17,6 +17,8 @@
 #include <Core/Event.h>
 #include <Utils/IInspector.h>
 #include "IFFT.h"
+#include "TimeLogger.h"
+
 
 #define GYRO_HERTZ 42.576*1e6 // herz/tesla
 #define GYRO_RAD GYRO_HERTZ * 2.0 * Math::PI // (radians/s)/tesla
@@ -109,7 +111,7 @@ public:
     virtual void Step(float dt) = 0; // take a simulation step
 
     virtual Phantom GetPhantom() const = 0;            // get the current phantom
-    virtual Vector<3,float> GetSignal() const = 0;     // get the current total magnetization (sum of all spins)
+    virtual Vector<3,float> GetSignal() = 0;     // get the current total magnetization (sum of all spins)
     virtual Vector<3,float>* GetMagnets() const = 0;   // get all the spin states (for debugging only).
 
     //    virtual void RFPulse(float angle, unsigned int slice) = 0;       // instantly rotate the vectors in a slice around the y' axis. (cheap way of simulating rf pulse).
@@ -142,6 +144,8 @@ private:
     bool running;
     pair<double,MRIEvent> prevEvent;
     Event<StepEventArg> stepEvent;
+    TimeLogger* stepTime;
+    TimeLogger* reduceTime;
 public:
     MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence = NULL);
     virtual ~MRISim();

@@ -41,6 +41,13 @@ float4 RotateY(float angle, float4 vec) {
 }
 
 
+__kernel void invert_kernel4(__global float4* refM) {
+    int x = get_global_id(0) ;
+    refM[x] = -refM[x];
+}
+
+
+
 __kernel void invert_kernel(__global float* refM) {
     int x = get_global_id(0) * 3;
     refM[x+0] = -refM[x+0];
@@ -130,6 +137,96 @@ __kernel void mri_step(float dt,                     // 0
      
 }
 
+__kernel void test4(__global float4* td) {
+    int i = get_global_id(0);
+    float4 v;
+    v.x = 1.0;
+    v.y = 2.0;
+    v.z = 3.0;
+    v.w = 4.0;
+    
+    td[i] = v;
+}
+
+__kernel void mri_step4(float dt,                     // 0
+                       __global float4* refM,         // 1
+                       __global unsigned char* data, // 2
+                       __global SpinPack* packs,     // 3 
+                       __global float* eq,           // 4
+                       float4 gradient4,             // 5
+                       float4 phantomOffset,         // 6
+                       float4 phantomSize,           // 7
+                       float2 rf                     // 8
+                       ) {           
+    
+    
+    int width = get_global_size(0);
+    int height = get_global_size(1);
+    int depth = get_global_size(2);
+    
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+    int z = get_global_id(2);
+    
+    int i = x + y*width + z*width*height;
+    
+    int type = data[i];
+    
+    
+    float4 refMagnet = refM[i];
+    
+    
+    if (type != 0) {
+        float dtt1 = dt/packs[type].t1;
+        float dtt2 = dt/packs[type].t2;
+        
+        
+        //refMagnet += (float4)(-refMagnet.x*dtt2,
+        //                      -refMagnet.y*dtt2,
+        //                      (eq[i]-refMagnet.z)*dtt1,
+        //                      0);
+        
+        
+        refMagnet = RotateX(rf.x * GYRO_RAD * dt, refMagnet);
+        refMagnet = RotateY(rf.y * GYRO_RAD * dt, refMagnet);
+        
+        
+        float e1 = exp(-dtt1);
+        float e2 = exp(-dtt2);
+        refMagnet = (float4)(e2 * refMagnet.x,
+                             e2 * refMagnet.y,
+                             e1 * refMagnet.z + eq[i] * (1.0 - e1),
+                             0);
+        
+        // refMagnet = (float4)(refMagnet.x - (refMagnet.x * dt) / packs[type].t2,
+        //            	     refMagnet.y - (refMagnet.y * dt) / packs[type].t2,
+        // 		     refMagnet.z - (refMagnet.z - eq[i]) * dt / (packs[type].t1),
+        //                      0);
+        
+        
+        float4 v = (float4)((x + phantomOffset.x) * (phantomSize.x*1e-3),
+                            (y + phantomOffset.y) * (phantomSize.y*1e-3),
+                            (z + phantomOffset.z) * (phantomSize.z*1e-3),
+                            0.0);
+        
+        
+        float dG = dot(gradient4, v);
+        
+        float deltaB0 = 0.0;
+        
+        refMagnet = RotateZ(GYRO_RAD * (deltaB0 + dG) * dt, refMagnet);
+        
+        
+    } else {
+        refMagnet = (float4)(0.0, 0.0, 0.0, 0.0);
+    }
+    refM[i] = refMagnet;
+    
+}
+
+// naive Reducer
+
+
 __kernel void reduce_signal(__global float* input, __global float* output) {
 
     int size = get_global_size(0);
@@ -141,22 +238,29 @@ __kernel void reduce_signal(__global float* input, __global float* output) {
     int vi = idx*3;
     int vi2 = (idx+1)*3;
     
-    /* float4 refMagnet; */
-    /* refMagnet.x = input[vi+0]; */
-    /* refMagnet.y = input[vi+1]; */
-    /* refMagnet.z = input[vi+2]; */
-
-    /* float4 refMagnet2; */
-    /* refMagnet2.x = input[vi2+0]; */
-    /* refMagnet2.y = input[vi2+1]; */
-    /* refMagnet2.z = input[vi2+2]; */
-
     int ov = x*3;
     output[ov+0] = input[vi+0] + input[vi2+0];
     output[ov+1] = input[vi+1] + input[vi2+1];
     output[ov+2] = input[vi+2] + input[vi2+2];
-
    
 }
+
+__kernel void reduce_signal4(__global float4* input, __global float4* output) {
+
+    int size = get_global_size(0);
+    int x = get_global_id(0);
+    
+    
+    int idx = x*2;
+    
+    int vi = idx;
+    int vi2 = (idx+1);
+    
+    int ov = x;
+    output[ov] = input[vi] + input[vi2];
+
+    
+}
+
 
 

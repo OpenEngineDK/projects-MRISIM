@@ -68,7 +68,7 @@ public:
     void SetRFSignal(Vector<3,float> signal);
     void Flip(unsigned int slice);
     void Flop(unsigned int slice);
-    Vector<3,float> GetSignal() const;
+    Vector<3,float> GetSignal();
     Vector<3,float> GetGradient() const;
 
     void SetB0(float b0);

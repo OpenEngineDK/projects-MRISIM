@@ -17,7 +17,6 @@
 #include <iostream>
 #include <iterator>
 
-
 namespace MRI {
 namespace Science {
 
@@ -76,9 +75,106 @@ float OpenCLKernel::RandomAttribute(float base, float variance) {
 }
 
 struct GpuPhantomInfo {
-    cl_float4 offset;
-    cl_float4 size;
+    float4 offset;
+    float4 size;
 };
+
+void CLErrorCheck(cl_int e, string msg) {
+    if (e != CL_SUCCESS) {
+        logger.error << "[OpenCL] " << msg << logger.end;
+        throw Exception(msg);
+    }
+}
+
+void context_err_callback (const char *errinfo, 
+                           const void *private_info, 
+                           size_t cb, 
+                           void *user_data) {
+    logger.error << "[OpenCL] callback: " << errinfo << logger.end;
+}
+                  
+
+void OpenCLKernel::InitOpenCL() {
+    cl_int err;
+
+    // Fidn platforms
+    vector<cl::Platform> platforms;
+    err = cl::Platform::get(&platforms);
+    if (platforms.size() == 0) {
+        logger.error << "No OpenCL platforms found" << logger.end;
+        throw Exception("No OpenCL platforms found"); 
+    }
+    logger.info << "[OpenCL] found " << platforms.size() << " platforms" << logger.end;
+    cl::Platform plat = platforms[0];
+    
+    // Find devices
+    vector<cl::Device> devices;
+    err = plat.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    CLErrorCheck(err, "Unable to get devices");
+    if (devices.size() == 0) {
+        logger.error << "[OpenCL] No devices found" << logger.end;
+        throw Exception("no opencl devices");
+    }
+    logger.info << "[OpenCL] found " << devices.size() << " devices" << logger.end;
+    device = devices[0];
+
+    // Create context
+    context = cl::Context(devices, NULL, NULL, NULL, &err);
+    CLErrorCheck(err, "Unable to create context");
+
+    
+    // Create queue
+    queue = cl::CommandQueue(context, device, 0, &err);
+    CLErrorCheck(err, "Unable to create command queue");
+        
+    // Load kernel source
+    string kpath = DirectoryManager::FindFileInPath("Kernels.cl");
+    ifstream file(kpath.c_str());
+    string kernelString(istreambuf_iterator<char>(file),
+                        (istreambuf_iterator<char>()));
+    const char *kernelStr = kernelString.c_str();
+    cl::Program::Sources source(1, std::make_pair(kernelStr, strlen(kernelStr)));
+    
+    // Create program
+    program = cl::Program(context, source, &err);
+    CLErrorCheck(err, "Unable to create program");
+    
+    // Compile!
+    const char *options = "";
+    
+    err = program.build(devices, options);
+    if (err != CL_SUCCESS) {
+        string log = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+        logger.error << "[OpenCL] Compile failed: " << log << logger.end;
+        throw Exception("Compile error");
+    }
+
+    // Find kernels
+    cl_int kerr;
+    
+#if USE_FLOAT_4
+    stepKernel = cl::Kernel(program, "mri_step4", &kerr); err |= kerr;    
+    reduceKernel = cl::Kernel(program, "reduce_signal4", &kerr); err |= kerr;
+    invertKernel = cl::Kernel(program, "invert_kernel4", &kerr); err |= kerr;
+#else
+    stepKernel = cl::Kernel(program, "mri_step", &kerr); err |= kerr;
+    reduceKernel = cl::Kernel(program, "reduce_signal", &kerr); err |= kerr;
+    invertKernel = cl::Kernel(program, "invert_kernel", &kerr); err |= kerr;
+#endif
+
+        
+    CLErrorCheck(err, "Unable to get kernels");
+    
+    // Extra kernels setup
+    
+    SetupStepKernel();
+    SetupReduceKernel();
+    
+    // setup invert kernel
+    invertKernel.setArg(0, refMBuffer);
+
+
+}
 
 void OpenCLKernel::Init(Phantom phantom) {
     this->phantom = phantom;
@@ -86,7 +182,12 @@ void OpenCLKernel::Init(Phantom phantom) {
     height = phantom.texr->GetHeight();
     depth  = phantom.texr->GetDepth();
     sz = width*height*depth;
+#if USE_FLOAT_4
+    refMagnets = new Vector<4,float>[sz]; 
+#else
     refMagnets = new Vector<3,float>[sz]; 
+#endif
+
     labMagnets = new Vector<3,float>[sz]; 
     eq = new float[sz];
     deltaB0 = new float[sz];
@@ -101,193 +202,31 @@ void OpenCLKernel::Init(Phantom phantom) {
     }
 
     int sps = phantom.spinPackets.size();
-    spinPacks = new cl_float2[sps];
+    spinPacks = new float2[sps];
     for (int i=0;i<sps;i++) {
         ((cl_float*)&spinPacks[i])[0] = phantom.spinPackets[i].t1;
         ((cl_float*)&spinPacks[i])[1] = phantom.spinPackets[i].t2;
     }
 
 
-    string kpath = DirectoryManager::FindFileInPath("Kernels.cl");
-    
-    
-    ifstream file(kpath.c_str());
-    string kernelString(istreambuf_iterator<char>(file),
-                        (istreambuf_iterator<char>()));
 
-    
+    InitOpenCL();
 
-    // OpenCL setup, refactor out?
-    vector<cl::Platform> platforms;
-    cl::Platform::get(&platforms);
-    logger.warning << "Found " << platforms.size() << " OpenCL platforms!" << logger.end;
-
-    // Let's find a GPU device!
-    cl_context_properties properties[] =
-        {CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(), 0};
-    context = cl::Context(CL_DEVICE_TYPE_GPU, properties);
-    
-    std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
-    logger.warning << "Found " << devices.size() << " OpenCL devices!" << logger.end;
-    
-    for (std::vector<cl::Device>::iterator itr = devices.begin();
-         itr != devices.end();
-         itr++) {
-        //logger.info << "Device " << 
-    }
-    
-    device = devices[0];
-
-    cl_int err = CL_SUCCESS;
-    queue = new cl::CommandQueue(context, devices[0], 0, &err);
-    if (err)
-        logger.error << "Created queue: "  << err << logger.end;
-    
-    const char *kernelStr = kernelString.c_str();
-
-    cl::Program::Sources source(1, std::make_pair(kernelStr, strlen(kernelStr)));
-    cl::Program program(context, source);
-    //const char *options = "-cl-opt-disable";
-    const char *options = NULL;
-    err = program.build(devices,options);
-    if (err)
-        logger.error << "Made program: " << err << logger.end;
-    if (err) {
-        string log =  program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
-        logger.error << log << logger.end;
-    }
-    kernel = new cl::Kernel(program, "mri_step", &err);
-    if (err) {
-        logger.error << "Made kernel: " << err << logger.end;
-        throw Exception("couldn't create kernel");
-    }
-
-    reduceKernel = new cl::Kernel(program, "reduce_signal", &err);
-    if (err) {
-        logger.error << "Made reduce kernel: " << err << logger.end;
-        throw Exception("couldn't create kernel");
-    }
-
-    invertKernel = new cl::Kernel(program, "invert_kernel", &err);
-    if (err) {
-        logger.error << "Made invert kernel: " << err << logger.end;
-        throw Exception("couldn't create kernel");
-    }
-
-    refMBuffer = new cl::Buffer(context,
-                                CL_MEM_READ_WRITE,
-                                sz*sizeof(Vector<3,float>),
-                                NULL,
-                                &err);
-
-    dataBuffer = new cl::Buffer(context,
-                                CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                sz*sizeof(unsigned char),
-                                data,
-                                &err);
-
-    spinPackBuffer = new cl::Buffer(context,
-                                    CL_MEM_READ_ONLY| CL_MEM_COPY_HOST_PTR,
-                                    sps*sizeof(cl_float2),
-                                    spinPacks,
-                                    &err);
-    eqBuffer = new cl::Buffer(context,
-                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                              sz*sizeof(float),
-                              eq,
-                              &err);
-    
-    reduceA = new cl::Buffer(context,
-                             CL_MEM_READ_WRITE,
-                             sz*sizeof(Vector<3,float>),
-                             NULL,
-                             &err);
-    if (err) {
-        logger.error << "Create buffer a: " << err << logger.end;
-        throw Exception("couldn't create buffer");
-    }
-    
-    reduceB = new cl::Buffer(context,
-                             CL_MEM_READ_WRITE,
-                             sz*sizeof(Vector<3,float>),
-                             NULL,
-                             &err);    
-    if (err) {
-        logger.error << "Create buffer b: " << err << logger.end;
-        throw Exception("couldn't create buffer");
-
-    }
-    
-
-    logger.info << "Creating memory " << sz << " " << sz*sizeof(Vector<3,float>) << logger.end;
-    inbuffer = new cl::Buffer(context, 
-                        CL_MEM_READ_ONLY, 
-                        sz*sizeof(Vector<3,float>),
-                        NULL,
-                        &err);
-    if (err) {
-        logger.error << "creating memory = " << err << logger.end;
-        throw Exception("couldn't create buffer");
-    }
-
-    outbuffer = new cl::Buffer(context,
-                         CL_MEM_WRITE_ONLY,
-                         sz*sizeof(Vector<3,float>),
-                         NULL,
-                         &err);
-    
-    kernel->setArg(1, *refMBuffer);
-    kernel->setArg(2, *dataBuffer);
-    kernel->setArg(3, *spinPackBuffer);
-    kernel->setArg(4, *eqBuffer);
-
-    invertKernel->setArg(1, *refMBuffer);
-
-    GpuPhantomInfo pinfo;
-    
-
-    ((cl_float*)&pinfo.offset)[0] = phantom.offsetX;;
-    ((cl_float*)&pinfo.offset)[1] = phantom.offsetY;;
-    ((cl_float*)&pinfo.offset)[2] = phantom.offsetZ;;
-    ((cl_float*)&pinfo.offset)[3] = 0;
-
-    ((cl_float*)&pinfo.size)[0] = phantom.sizeX;
-    ((cl_float*)&pinfo.size)[1] = phantom.sizeY;
-    ((cl_float*)&pinfo.size)[2] = phantom.sizeZ;
-    ((cl_float*)&pinfo.size)[3] = 0.0;
-
-    //kernel->setArg(6, sizeof(GpuPhantomInfo), &pinfo);
-    err = kernel->setArg(6, sizeof(cl_float4), &pinfo.offset);
-
-    if (err) {
-        logger.error << "setting args = " << err << logger.end;
-        throw Exception("couldn't set args");
-    }
-    
-
-    err = kernel->setArg(7, sizeof(cl_float4), &pinfo.size);
-
-
-    //kernel->setArg(0, *inbuffer);
-    //kernel->setArg(1, *outbuffer);
-    if (err) {
-        logger.error << "setting args = " << err << logger.end;
-        throw Exception("couldn't set args");
-    }
-
-    SetupReduce();
 
     Reset();
+
 
 }
 
 
 
 void OpenCLKernel::Step(float dt) {
-    
-
     time += dt;
+#if USE_FLOAT_4
+    signal = Vector<4,float>();
+#else
     signal = Vector<3,float>();
+#endif
     const double omega0 = GYRO_RAD * b0;
     omega0Angle += dt * omega0;
     if (omega0Angle > double(Math::PI * 2.0))
@@ -303,21 +242,22 @@ void OpenCLKernel::Step(float dt) {
     ((cl_float*)&rf_cl)[0] = rf.Get(0);
     ((cl_float*)&rf_cl)[1] = rf.Get(1);
 
-    kernel->setArg(8, sizeof(cl_float2), &rf_cl);
+    stepKernel.setArg(8, sizeof(cl_float2), &rf_cl);
 
     cl_float4 vec;
     gradient.ToArray(((cl_float*)&vec));
     
-    kernel->setArg(5, 4*sizeof(float), ((cl_float*)&vec));
+    stepKernel.setArg(5, 4*sizeof(float), ((cl_float*)&vec));
 
-    kernel->setArg(0,dt);
-    cl_int err = queue->enqueueNDRangeKernel(*kernel, 
-                                             cl::NullRange,
-                                             cl::NDRange(width,height,depth),
-                                             cl::NullRange,
-                                             //cl::NDRange(1,1,1),
-                                             NULL,                                             
-                                             &event);
+    stepKernel.setArg(0,dt);
+    cl_int err = queue.enqueueNDRangeKernel(stepKernel, 
+                                            cl::NullRange,
+                                            //cl::NDRange(sz),
+                                            cl::NDRange(width,height,depth),
+                                            cl::NullRange,
+                                            //cl::NDRange(1,1,1),
+                                            NULL,                                             
+                                            &event);
 
 
     
@@ -327,12 +267,8 @@ void OpenCLKernel::Step(float dt) {
         throw Exception("couldn't run kernel");
 
     }
-        
-    //queue->enqueueReadBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3,float>), refMagnets, NULL, &event);
-    event.wait();
 
-
-    
+    event.wait();        
 
 }
 
@@ -345,73 +281,6 @@ void OpenCLKernel::Flop(unsigned int slice) {
 }
 
 
-void create_reduction_pass_counts(
-    int count, 
-    int max_group_size,    
-    int max_groups,
-    int max_work_items, 
-    int *pass_count, 
-    size_t **group_counts, 
-    size_t **work_item_counts,
-    int **operation_counts,
-    int **entry_counts)
-{
-    int work_items = (count < max_work_items * 2) ? count / 2 : max_work_items;
-    if(count < 1)
-        work_items = 1;
-        
-    int groups = count / (work_items * 2);
-    groups = max_groups < groups ? max_groups : groups;
-
-    int max_levels = 1;
-    int s = groups;
-
-    while(s > 1) 
-    {
-        int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
-        s = s / (work_items*2);
-        max_levels++;
-    }
- 
-    *group_counts = (size_t*)malloc(max_levels * sizeof(size_t));
-    *work_item_counts = (size_t*)malloc(max_levels * sizeof(size_t));
-    *operation_counts = (int*)malloc(max_levels * sizeof(int));
-    *entry_counts = (int*)malloc(max_levels * sizeof(int));
-
-    (*pass_count) = max_levels;
-    (*group_counts)[0] = groups;
-    (*work_item_counts)[0] = work_items;
-    (*operation_counts)[0] = 1;
-    (*entry_counts)[0] = count;
-    if(max_group_size < work_items)
-    {
-        (*operation_counts)[0] = work_items;
-        (*work_item_counts)[0] = max_group_size;
-    }
-    
-    s = groups;
-    int level = 1;
-   
-    while(s > 1) 
-    {
-        int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
-        int groups = s / (work_items * 2);
-        groups = (max_groups < groups) ? max_groups : groups;
-
-        (*group_counts)[level] = groups;
-        (*work_item_counts)[level] = work_items;
-        (*operation_counts)[level] = 1;
-        (*entry_counts)[level] = s;
-        if(max_group_size < work_items)
-        {
-            (*operation_counts)[level] = work_items;
-            (*work_item_counts)[level] = max_group_size;
-        }
-        
-        s = s / (work_items*2);
-        level++;
-    }
-}
 
 
 #define MAX_GROUPS      (64)
@@ -419,17 +288,11 @@ void create_reduction_pass_counts(
 
 
 void OpenCLKernel::SetupReduce() {
+    /*
+    unsigned int count = sz;
+    size_t max_group_size = 0;
 
-    int count = sz;
-    size_t max_workgroup_size = 0;
-
-    int pass_count = 0;
-    size_t* group_counts = 0;
-    size_t*          work_item_counts = 0;
-    int*             operation_counts = 0;
-    int*             entry_counts = 0;
-
-    max_workgroup_size = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+    max_group_size = device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
 
     // int err = clGetDeviceInfo(device_id,
     //                           CL_DEVICE_MAX_WORK_GROUP_SIZE, 
@@ -442,25 +305,237 @@ void OpenCLKernel::SetupReduce() {
     //     return EXIT_FAILURE;
     // }
 
-    create_reduction_pass_counts(
-        count, max_workgroup_size, 
-        MAX_GROUPS, MAX_WORK_ITEMS, 
-        &pass_count, &group_counts, 
-        &work_item_counts, &operation_counts,
-        &entry_counts);
+    string kpath = DirectoryManager::FindFileInPath("reduce_float4_kernel.cl");    
+    
+    ifstream file(kpath.c_str());
+    string kernelString(istreambuf_iterator<char>(file),
+                        (istreambuf_iterator<char>()));
+    const char* source = kernelString.c_str();
 
-    logger.error << pass_count << logger.end;
+    // create_reduction_pass_counts(
+    //     count, max_workgroup_size, 
+    //     MAX_GROUPS, MAX_WORK_ITEMS, 
+    //     &reduce_count, &group_counts, 
+    //     &work_item_counts, &operation_counts,
+    //     &entry_counts);
 
+
+    unsigned int max_work_items = MAX_WORK_ITEMS;
+    unsigned int max_groups = MAX_GROUPS;
+
+    /// Create reduction pass counts
+    unsigned int work_items = (count < max_work_items * 2) ? count / 2 : max_work_items;
+    if(count < 1)
+        work_items = 1;
+        
+    unsigned int groups = count / (work_items * 2);
+    groups = max_groups < groups ? max_groups : groups;
+
+    unsigned int max_levels = 1;
+    unsigned int s = groups;
+
+    while(s > 1) 
+    {
+        int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
+        s = s / (work_items*2);
+        max_levels++;
+    }
+ 
+    reduce_group_counts = (size_t*)malloc(max_levels * sizeof(size_t));
+    reduce_item_counts = (size_t*)malloc(max_levels * sizeof(size_t));
+    reduce_operation_counts = (int*)malloc(max_levels * sizeof(int));
+    reduce_entry_counts = (int*)malloc(max_levels * sizeof(int));
+
+    reduce_count = max_levels;
+    (reduce_group_counts)[0] = groups;
+    (reduce_item_counts)[0] = work_items;
+    (reduce_operation_counts)[0] = 1;
+    (reduce_entry_counts)[0] = count;
+    if(max_group_size < work_items)
+    {
+        (reduce_operation_counts)[0] = work_items;
+        (reduce_item_counts)[0] = max_group_size;
+    }
+    
+    s = groups;
+    int level = 1;
+   
+    while(s > 1) 
+    {
+        unsigned int work_items = (s < max_work_items * 2) ? s / 2 : max_work_items;
+        unsigned int groups = s / (work_items * 2);
+        groups = (max_groups < groups) ? max_groups : groups;
+
+        (reduce_group_counts)[level] = groups;
+        (reduce_item_counts)[level] = work_items;
+        (reduce_operation_counts)[level] = 1;
+        (reduce_entry_counts)[level] = s;
+        if(max_group_size < work_items)
+        {
+            (reduce_operation_counts)[level] = work_items;
+            (reduce_item_counts)[level] = max_group_size;
+        }
+        
+        s = s / (work_items*2);
+        level++;
+    }
+
+
+    // done
+
+
+    cl::Program programs[reduce_count];
+    
+    reduce_kernels = new cl::Kernel*[reduce_count];
+
+    std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
+
+    cl_int err;
+
+    for (int i=0; i<reduce_count; i++) {
+        char *block_source = (char*)malloc(strlen(source) + 1024);
+        size_t source_length = strlen(source) + 1024;
+        memset(block_source, 0, source_length);
+        
+        // Insert macro definitions to specialize the kernel to a particular group size
+        //
+        const char group_size_macro[] = "#define GROUP_SIZE";
+        const char operations_macro[] = "#define OPERATIONS";
+        sprintf(block_source, "%s (%d) \n%s (%d)\n\n%s\n", 
+            group_size_macro, (int)reduce_group_counts[i], 
+            operations_macro, (int)reduce_operation_counts[i], 
+                source);
+
+        cl::Program::Sources source(1, std::make_pair(block_source, strlen(block_source)));
+        programs[i] = cl::Program(context, source);
+        //const char *options = "-cl-opt-disable";
+        const char *options = NULL;
+        err = programs[i].build(devices,options);
+        if (err)
+            logger.error << "Made program: " << err << logger.end;
+        if (err) {
+            string log =  programs[i].getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
+            logger.error << log << logger.end;
+        }
+        reduce_kernels[i] = new cl::Kernel(programs[i], "reduce", &err);
+        if (err) {
+            logger.error << "Made kernel: " << err << logger.end;
+            throw Exception("couldn't create kernel");
+        }
+
+    }
+    */
 }
 
-void OpenCLKernel::Reduce() const {
+void OpenCLKernel::Reduce() {
+
+    logger.error << "reducing..." << logger.end;
+    size_t typesize = sizeof(float) ; // more to static?
+    int channels = 4;
+
+    cl::Buffer* pass_swap;
+    cl::Buffer* pass_input = &reduceB;
+    cl::Buffer* pass_output = &reduceA;
+
+    for (int i=0; i<reduce_count; i++) {        
+        size_t global = reduce_group_counts[i] * reduce_item_counts[i];        
+        size_t local = reduce_item_counts[i];
+        unsigned int operations = reduce_operation_counts[i];
+        unsigned int entries = reduce_entry_counts[i];
+        size_t shared_size = typesize * channels * local * operations;
+
+        printf("Pass[%4d] Global[%4d] Local[%4d] Groups[%4d] WorkItems[%4d] Operations[%d] Entries[%d]\n",  i, 
+               (int)global, (int)local, (int)reduce_group_counts[i], (int)reduce_item_counts[i], operations, entries);
+
+        pass_swap = pass_input;
+        pass_input = pass_output;
+        pass_output = pass_swap;
+
+
+        cl::Kernel* kern = reduce_kernels[i];
+        kern->setArg(0, *pass_output);
+        kern->setArg(1, *pass_input);
+        kern->setArg(2, shared_size);
+        kern->setArg(3, entries);
+    }
+}
+void OpenCLKernel::SetupReduceKernel() {
+    cl_int err = 0,berr;
+#if USE_FLOAT_4
+    size_t size = sz*sizeof(float4);
+#else
+    size_t size = sz*sizeof(Vector<3,float>);
+#endif
+    reduceA = cl::Buffer(context,
+                         CL_MEM_READ_WRITE,
+                         size,
+                         NULL,
+                         &berr);    
+    err |= berr;
+    reduceB = cl::Buffer(context,
+                         CL_MEM_READ_WRITE,
+                         size,
+                         NULL,
+                         &err);    
+    err |= berr;
+    CLErrorCheck(err, "Unable to create reduce buffers");
+}
+    
+void OpenCLKernel::SetupStepKernel() {
+    
+    cl_int err = 0, berr;
+#if USE_FLOAT_4
+    refMBuffer = cl::Buffer(context, CL_MEM_READ_WRITE, 
+                            sz*sizeof(float4),NULL,&berr); err |= berr;
+#else
+    refMBuffer = cl::Buffer(context, CL_MEM_READ_WRITE,
+                            sz*sizeof(Vector<3, float>),NULL,&berr); err |= berr;
+#endif
+    dataBuffer = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                            sz*sizeof(unsigned char), data, &berr); err |= berr;
+    int sps = phantom.spinPackets.size();
+    
+    
+    spinPackBuffer = cl::Buffer(context,
+                                    CL_MEM_READ_ONLY| CL_MEM_COPY_HOST_PTR, sps*sizeof(cl_float2),
+                                    spinPacks, &berr); err |= berr;
+    eqBuffer = cl::Buffer(context,
+                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sz*sizeof(float),
+                              eq, &berr); err |= berr;
+  
+    CLErrorCheck(err, "Unable to create buffers");
+    
+    err |= stepKernel.setArg(1, refMBuffer);
+    err |= stepKernel.setArg(2, dataBuffer);
+    err |= stepKernel.setArg(3, spinPackBuffer);
+    err |= stepKernel.setArg(4, eqBuffer);
+  
+    GpuPhantomInfo pinfo;
+    
+    
+    pinfo.offset[0] = phantom.offsetX;;
+    pinfo.offset[1] = phantom.offsetY;;
+    pinfo.offset[2] = phantom.offsetZ;;
+    pinfo.offset[3] = 0;
+    
+    pinfo.size[0] = phantom.sizeX;
+    pinfo.size[1] = phantom.sizeY;
+    pinfo.size[2] = phantom.sizeZ;
+    pinfo.size[3] = 0.0;
+    
+    
+    err |= stepKernel.setArg(6, sizeof(cl_float4), &pinfo.offset);
+    err |= stepKernel.setArg(7, sizeof(cl_float4), &pinfo.size);
+
+    CLErrorCheck(err, "Unable to set args");
     
 }
 
-Vector<3,float> OpenCLKernel::GetSignal() const {
+Vector<3,float> OpenCLKernel::GetSignal() {
+    
     // reduce!
 
-    Reduce();
+    //Reduce();
 
     cl::Event event;
     int size = width*height*depth;
@@ -468,44 +543,57 @@ Vector<3,float> OpenCLKernel::GetSignal() const {
     cl::Buffer* lastBuf;
     while (size > 1) {
         if (i % 2) {
-            reduceKernel->setArg(0, *reduceA);
-            reduceKernel->setArg(1, *reduceB);
-            lastBuf = reduceB;
+            reduceKernel.setArg(0, reduceA);
+            reduceKernel.setArg(1, reduceB);
+            lastBuf = &reduceB;
         } else {
-            reduceKernel->setArg(0, *reduceB);
-            reduceKernel->setArg(1, *reduceA);
-            lastBuf = reduceA;
+            reduceKernel.setArg(0, reduceB);
+            reduceKernel.setArg(1, reduceA);
+            lastBuf = &reduceA;
         }        
 
         if (i == 0) {
-            reduceKernel->setArg(0, *refMBuffer);
+            reduceKernel.setArg(0, refMBuffer);
         }
 
         size = ceil(size/2.0);
-
-
-        cl_int err = queue->enqueueNDRangeKernel(*reduceKernel,
-                                                 cl::NullRange,
-                                                 cl::NDRange(size),
-                                                 cl::NullRange,
-                                                 NULL,
-                                                 &event);
+        
+        
+        cl_int err = queue.enqueueNDRangeKernel(reduceKernel,
+                                                cl::NullRange,
+                                                cl::NDRange(size),
+                                                cl::NullRange,
+                                                NULL,
+                                                &event);
         if (err) {
             logger.error << "error = " << err << logger.end;
             throw Exception("couldn't run reduce");                    
         }
         i++;
     }
-
-    Vector<3,float> signal2;
-    queue->enqueueReadBuffer(*lastBuf, CL_TRUE, 0, sizeof(Vector<3,float>), &signal2, NULL, &event);
+#if USE_FLOAT_4
+    Vector<3,float> signal3;
+    Vector<4,float> signal4;
+    queue.enqueueReadBuffer(*lastBuf, CL_TRUE, 0,
+                             sizeof(float4), &signal4, NULL, &event);
     event.wait();
-    //logger.warning << signal2 << logger.end;
+
+    signal3[0] = signal4[0];
+    signal3[1] = signal4[1];
+    signal3[2] = signal4[2];
+#else
+    Vector<3,float> signal3;
+    queue.enqueueReadBuffer(*lastBuf, CL_TRUE, 0, sizeof(Vector<3,float>), &signal3, NULL, &event);
+    event.wait();
+#endif
+
+    //logger.warning << signal3 << logger.end;
 
     //signal = signal2;
 
+    return signal3;
 
-    return signal2;
+    
 }
 
 void OpenCLKernel::SetB0(float b0) {
@@ -532,21 +620,21 @@ float OpenCLKernel::GetB0() const {
 //     }
 // }
 
-void OpenCLKernel::InvertSpins() {
-    cl::Event event;
-    cl_int err = queue->enqueueNDRangeKernel(*invertKernel, 
-                                             cl::NullRange,
-                                             cl::NDRange(sz),
-                                             cl::NullRange,
-                                             NULL,                                             
-                                             &event);
+void OpenCLKernel::InvertSpins() {    
+    return;
+    cl::Event event;    
+    cl_int err = queue.enqueueNDRangeKernel(invertKernel, 
+                                            cl::NullRange,
+                                            cl::NDRange(sz),
+                                            cl::NullRange,
+                                            NULL,                                             
+                                            &event);
 
     if (err) {
         logger.error << "error "  << err << logger.end;
         throw Exception("couldn't run kernel");
         
-    }
-    
+    }    
     event.wait();
 }
 
@@ -563,26 +651,42 @@ void OpenCLKernel::SetRFSignal(Vector<3,float> signal) {
 }
 
 void OpenCLKernel::Reset() {
+    /*
     // initialize refMagnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
     omega0Angle = time = 0.0;
+#if USE_FLOAT_4
+    signal = Vector<4,float>();
+#else
     signal = Vector<3,float>();
+#endif
+
+
     for (unsigned int i = 0; i < sz; ++i) {
-        refMagnets[i] = labMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
-        signal += labMagnets[i];
-        //signal += refMagnets[i];
+#if USE_FLOAT_4
+        refMagnets[i] = Vector<4,float>(0.0, 0.0, eq[i], 0.0);
+#else
+        refMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);
+#endif
+        //signal += labMagnets[i];
+        signal += refMagnets[i];
     }
     cl::Event event;
+#if USE_FLOAT_4
+    queue->enqueueWriteBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(cl_float4), refMagnets, NULL, &event);
+#else
     queue->enqueueWriteBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3, float>), refMagnets, NULL, &event);
+#endif
     event.wait();
 
 
     logger.info << "Signal: " << signal << logger.end;
+    */
 }
 
 Vector<3,float>* OpenCLKernel::GetMagnets() const {
-    return refMagnets;
-    //return labMagnets;
+    //return refMagnets;
+    return labMagnets;
 }
 
 Phantom OpenCLKernel::GetPhantom() const {

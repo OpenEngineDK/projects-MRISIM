@@ -29,6 +29,8 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
+    , stepTime(new TimeLogger("step.dat"))
+    , reduceTime(new TimeLogger("reduce.dat"))
 {
     kernel->Init(phantom);
     Reset();
@@ -94,15 +96,14 @@ bool MRISim::Step() {
         prevTime = prevEvent.first;
         event = prevEvent.second;
         prevEvent = nextEvent;
-        kernelStep = nextTime - prevTime;
+        kernelStep = nextTime - prevTime;        
     }
 
     if (event.action & MRIEvent::RECORD) {
         // logger.info << "Time: " << theSimTime << ", Record magnetization into grid point: " << event.point << logger.end;
-        Timer t;
-        t.Start();
+        reduceTime->Start();
         Vector<3,float> signal = kernel->GetSignal();
-        t.Stop();
+        reduceTime->Stop();
         // logger.info << "Signal took " << t.GetElapsedIntervals(1) << " us" << logger.end;
 
         sequence->GetSampler().AddSample(event.point, Vector<2,float>(signal[0], signal[1]));
@@ -141,19 +142,10 @@ bool MRISim::Step() {
 
 
     double ks = kernelStep;
-    // const double maxStep = 1e-2;
-    // while (ks > maxStep) {
-    //     Timer t;
-    //     t.Start();
-    //     kernel->Step(maxStep);            
-    //     t.Stop();
-    //     ks -= maxStep;
-    // }
     if (ks > 0.0) {
-        Timer t;
-        t.Start();
+        stepTime->Start();
         kernel->Step(ks);            
-        t.Stop();
+        stepTime->Stop();
         // logger.info << "Step took " << t.GetElapsedIntervals(1) << " us" << logger.end;
         // logger.info << "doing Kernel step: " << kernelStep << logger.end;
         stepEvent.Notify(StepEventArg(*this));

@@ -164,7 +164,7 @@ void CPUKernel::Flop(unsigned int slice) {
     // RFPulse(Math::PI, slice);
 }
 
-Vector<3,float> CPUKernel::GetSignal() const {
+Vector<3,float> CPUKernel::GetSignal() {
     return signal;
 }
 
