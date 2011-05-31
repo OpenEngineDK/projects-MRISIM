@@ -60,7 +60,7 @@ public:
     void Reset();
     void SetGradient(Vector<3,float> gradient);
     void SetRFSignal(Vector<3,float> signal);
-    Vector<3,float> GetSignal() const;
+    Vector<3,float> GetSignal();
     Vector<3,float> GetGradient() const;
     void SetB0(float b0);
     float GetB0() const;

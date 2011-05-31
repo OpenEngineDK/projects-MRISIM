@@ -148,7 +148,7 @@ void CUDAKernel::Step(float _dt) {
     CHECK_FOR_CUDA_ERROR();
 }
 
-Vector<3,float> CUDAKernel::GetSignal() const {
+Vector<3,float> CUDAKernel::GetSignal() {
     //todo: cuda map reduce
     Vector<3,float> signal;
     cudaMemcpy((void*)refMagnets, (void*)magnetsBuffer, sz * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
