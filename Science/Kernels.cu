@@ -83,3 +83,43 @@ __global__ void invertKernel(float* magnets) {
     magnets[3*idx+1] = -magnets[3*idx+1];
     magnets[3*idx+2] = -magnets[3*idx+2];
 }
+
+
+/*
+    This version is completely unrolled.  It uses a template parameter to achieve 
+    optimal code for any (power of 2) number of threads.  This requires a switch 
+    statement in the host code to handle all the different thread block sizes at 
+    compile time.
+*/
+template <unsigned int blockSize>
+__global__ void
+reduce(float3 *g_idata, float3 *g_odata)
+{
+    extern __shared__ float3 sdata[];
+
+    // perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x*(blockSize*2) + threadIdx.x;
+    sdata[tid] = g_idata[i] + g_idata[i+blockSize];
+    __syncthreads();
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid] += sdata[tid +  64]; } __syncthreads(); }
+    
+    if (tid < 32)
+    {
+        if (blockSize >=  64) { sdata[tid] += sdata[tid + 32]; }
+        if (blockSize >=  32) { sdata[tid] += sdata[tid + 16]; }
+        if (blockSize >=  16) { sdata[tid] += sdata[tid +  8]; }
+        if (blockSize >=   8) { sdata[tid] += sdata[tid +  4]; }
+        if (blockSize >=   4) { sdata[tid] += sdata[tid +  2]; }
+        if (blockSize >=   2) { sdata[tid] += sdata[tid +  1]; }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+}
+
