@@ -36,7 +36,7 @@ private:
     float *eq, *deltaB0;
     Vector<3,float> gradient, rfSignal;
     unsigned char* data;
-    unsigned int width, height, depth, sz;
+    unsigned int width, height, depth, sz, szPowTwo;
     float b0;
     RandomGenerator randomgen;
 
@@ -46,6 +46,7 @@ private:
     SpinPack* spinPackBuffer;
     float* eqBuffer;
     float* deltaBuffer;
+    float *d_odata;
 
     inline float RandomAttribute(float base, float variance);
 public:

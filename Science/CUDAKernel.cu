@@ -16,6 +16,10 @@
 
 #include "Kernels.cu"
 
+#define REDUCE_BLOCK_SIZE 512    // must be power of two for algorithm to work!!!
+#define CPU_THRESHOLD     32     // minimum number of vectors to reduce below this we simply use cpu reduction.
+#define STEP_BLOCK_SIZE   256    // block size for the step kernel
+
 namespace MRI {
 namespace Science {
 
@@ -33,6 +37,7 @@ CUDAKernel::CUDAKernel()
     , height(0)
     , depth(0)
     , sz(0)
+    , szPowTwo(0)
     , b0(0.5) {
     randomgen.SeedWithTime();
 }
@@ -44,13 +49,25 @@ float CUDAKernel::RandomAttribute(float base, float variance) {
     return base + randomgen.UniformFloat(-1.0,1.0) * variance;
 }
 
+inline int powTwo(int n) {
+    if (n < 2) return n;
+    n = n >> 2;
+    int res = 2;
+    while (n > 0) {
+        n = n >> 2;
+        res = res << 2;
+    }
+    return res;
+} 
+
 void CUDAKernel::Init(Phantom phantom) {
     this->phantom = phantom;
     width  = phantom.texr->GetWidth();
     height = phantom.texr->GetHeight();
     depth  = phantom.texr->GetDepth();
     sz = width*height*depth;
-    refMagnets = new Vector<3,float>[sz]; 
+    szPowTwo = powTwo(sz);
+    refMagnets = new Vector<3,float>[szPowTwo]; 
     eq = new float[sz];
     deltaB0 = new float[sz];
     data = phantom.texr->GetData();
@@ -100,7 +117,9 @@ void CUDAKernel::Init(Phantom phantom) {
     CHECK_FOR_CUDA_ERROR();
 
     // copy magnets in reset
-    cudaMalloc((void**)&magnetsBuffer, sz * sizeof(Vector<3,float>));
+    cudaMalloc((void**)&magnetsBuffer,  szPowTwo * sizeof(Vector<3,float>));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMalloc((void**)&d_odata, (szPowTwo / REDUCE_BLOCK_SIZE * 2) * sizeof(Vector<3,float>));
     CHECK_FOR_CUDA_ERROR();
 
     // for now set deltab0 to all zero
@@ -120,7 +139,7 @@ void CUDAKernel::Step(float _dt) {
     cudaMemcpyToSymbol(dt, &_dt, sizeof(float));
     CHECK_FOR_CUDA_ERROR();
 
-    const dim3 blockSize(256, 1, 1);
+    const dim3 blockSize(STEP_BLOCK_SIZE, 1, 1);
     /* const dim3 gridSize((int)ceil((double(sz) / double(blockSize.x))), 1, 1); */
     const dim3 gridSize(sz / blockSize.x, 1, 1);
 
@@ -150,9 +169,53 @@ void CUDAKernel::Step(float _dt) {
 
 Vector<3,float> CUDAKernel::GetSignal() {
     //todo: cuda map reduce
+
+    int n = szPowTwo;
+
+    float *d_idata = magnetsBuffer;
+    
+    while (n > CPU_THRESHOLD) {
+        int threads;
+        if (n == 1) 
+            threads = 1;
+        else
+            threads = (n < REDUCE_BLOCK_SIZE*2) ? n / 2 : REDUCE_BLOCK_SIZE;
+        int blocks = n / (threads * 2);
+
+        dim3 dimBlock(threads, 1, 1);
+        dim3 dimGrid(blocks, 1, 1);        
+        int smemSize = threads * sizeof(float3);
+
+        switch (threads)
+            {
+            case 512:
+                reduce<512><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case 256:
+                reduce<256><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case 128:
+                reduce<128><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case 64:
+                reduce< 64><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case 32:
+                reduce< 32><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case 16:
+            reduce< 16><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case  8:
+                reduce<  8><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case  4:
+                reduce<  4><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case  2:
+                reduce<  2><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            case  1:
+                reduce<  1><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+            }
+        d_idata = d_odata;
+        n = blocks;
+    }
+
     Vector<3,float> signal;
-    cudaMemcpy((void*)refMagnets, (void*)magnetsBuffer, sz * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
-    for (unsigned int i = 0; i < sz; ++i) {
+    cudaMemcpy((void*)refMagnets, (void*)d_odata, n * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);
+    for (unsigned int i = 0; i < n; ++i) {
         signal += refMagnets[i];
     }
     return signal;
@@ -190,7 +253,7 @@ void CUDAKernel::Reset() {
     for (unsigned int i = 0; i < sz; ++i) {
         refMagnets[i] = Vector<3,float>(0.0, 0.0, eq[i]);        
     }
-    cudaMemcpy((void*)magnetsBuffer, (void*)refMagnets, sz * sizeof(Vector<3,float>), cudaMemcpyHostToDevice);
+    cudaMemcpy((void*)magnetsBuffer, (void*)refMagnets, szPowTwo * sizeof(Vector<3,float>), cudaMemcpyHostToDevice);
     CHECK_FOR_CUDA_ERROR();
 }
 
