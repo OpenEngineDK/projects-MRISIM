@@ -111,12 +111,12 @@ reduce(float3 *g_idata, float3 *g_odata)
     
     if (tid < 32)
     {
-        if (blockSize >=  64) { sdata[tid] += sdata[tid + 32]; }
-        if (blockSize >=  32) { sdata[tid] += sdata[tid + 16]; }
-        if (blockSize >=  16) { sdata[tid] += sdata[tid +  8]; }
-        if (blockSize >=   8) { sdata[tid] += sdata[tid +  4]; }
-        if (blockSize >=   4) { sdata[tid] += sdata[tid +  2]; }
-        if (blockSize >=   2) { sdata[tid] += sdata[tid +  1]; }
+        if (blockSize >=  64) { sdata[tid] += sdata[tid + 32]; __syncthreads();}
+        if (blockSize >=  32) { sdata[tid] += sdata[tid + 16]; __syncthreads();}
+        if (blockSize >=  16) { sdata[tid] += sdata[tid +  8]; __syncthreads();}
+        if (blockSize >=   8) { sdata[tid] += sdata[tid +  4]; __syncthreads();}
+        if (blockSize >=   4) { sdata[tid] += sdata[tid +  2]; __syncthreads();}
+        if (blockSize >=   2) { sdata[tid] += sdata[tid +  1]; __syncthreads();}
     }
     
     // write result for this block to global mem 
