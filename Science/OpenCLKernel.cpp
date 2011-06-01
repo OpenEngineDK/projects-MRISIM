@@ -651,7 +651,7 @@ void OpenCLKernel::SetRFSignal(Vector<3,float> signal) {
 }
 
 void OpenCLKernel::Reset() {
-    /*
+    
     // initialize refMagnets to b0 * spin density 
     // Signal should at all times be the sum of the spins (or not?)
     omega0Angle = time = 0.0;
@@ -673,15 +673,15 @@ void OpenCLKernel::Reset() {
     }
     cl::Event event;
 #if USE_FLOAT_4
-    queue->enqueueWriteBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(cl_float4), refMagnets, NULL, &event);
+    queue.enqueueWriteBuffer(refMBuffer, CL_TRUE, 0, sz*sizeof(cl_float4), refMagnets, NULL, &event);
 #else
-    queue->enqueueWriteBuffer(*refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3, float>), refMagnets, NULL, &event);
+    queue.enqueueWriteBuffer(refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3, float>), refMagnets, NULL, &event);
 #endif
     event.wait();
 
 
-    logger.info << "Signal: " << signal << logger.end;
-    */
+    //logger.info << "Signal: " << signal << logger.end;
+    
 }
 
 Vector<3,float>* OpenCLKernel::GetMagnets() const {
