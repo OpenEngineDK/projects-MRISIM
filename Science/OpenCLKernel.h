@@ -21,6 +21,7 @@
 // config
 #define USE_FLOAT_4 1
 #define USE_FAST_REDUCE 1
+#define USE_WAIT 0
 
 
 namespace MRI {

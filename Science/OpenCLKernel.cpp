@@ -274,7 +274,9 @@ void OpenCLKernel::Step(float dt) {
 
     }
 
-    event.wait();        
+#if USE_WAIT
+    event.wait();
+#endif
 
 }
 
@@ -608,15 +610,19 @@ Vector<3,float> OpenCLKernel::GetSignal() {
     Vector<4,float> signal4;
     queue.enqueueReadBuffer(*lastBuf, CL_TRUE, 0,
                              sizeof(float4), &signal4, NULL, &event);
+#if USE_WAIT
     event.wait();
-
+#endif
     signal3[0] = signal4[0];
     signal3[1] = signal4[1];
     signal3[2] = signal4[2];
 #else
     Vector<3,float> signal3;
     queue.enqueueReadBuffer(*lastBuf, CL_TRUE, 0, sizeof(Vector<3,float>), &signal3, NULL, &event);
+#if USE_WAIT
     event.wait();
+#endif
+
 #endif
 
     //logger.warning << signal3 << logger.end;
@@ -667,7 +673,9 @@ void OpenCLKernel::InvertSpins() {
         throw Exception("couldn't run kernel");
         
     }    
+#if USE_WAIT
     event.wait();
+#endif
 }
 
 void OpenCLKernel::SetGradient(Vector<3,float> gradient) {
@@ -709,7 +717,9 @@ void OpenCLKernel::Reset() {
 #else
     queue.enqueueWriteBuffer(refMBuffer, CL_TRUE, 0, sz*sizeof(Vector<3, float>), refMagnets, NULL, &event);
 #endif
+#if USE_WAIT
     event.wait();
+#endif
 
 
     //logger.info << "Signal: " << signal << logger.end;
