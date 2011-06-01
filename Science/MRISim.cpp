@@ -29,8 +29,8 @@ MRISim::MRISim(Phantom phantom, IMRIKernel* kernel, IMRISequence* sequence)
     , theAccTime(0.0)
     , theSimTime(0.0)
     , running(false)
-    , stepTime(new TimeLogger("step.dat"))
-    , reduceTime(new TimeLogger("reduce.dat"))
+    , stepTime(new TimeLogger("time-step.dat"))
+    , reduceTime(new TimeLogger("time-reduce.dat"))
 {
     kernel->Init(phantom);
     Reset();
