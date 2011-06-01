@@ -49,16 +49,14 @@ float CUDAKernel::RandomAttribute(float base, float variance) {
     return base + randomgen.UniformFloat(-1.0,1.0) * variance;
 }
 
-inline int powTwo(int n) {
-    if (n < 2) return n;
-    n = n >> 2;
-    int res = 1;
-    while (n > 0) {
-        n = n >> 2;
-        res = res << 2;
-    }
-    return res;
-} 
+inline unsigned int powTwo(unsigned int k) {
+    if (k == 0)
+        return 1;
+    k--;
+    for (int i=1; i<sizeof(unsigned int)*CHAR_BIT; i<<=1)
+        k = k | k >> i;
+    return k+1;
+}
 
 void CUDAKernel::Init(Phantom phantom) {
     this->phantom = phantom;
