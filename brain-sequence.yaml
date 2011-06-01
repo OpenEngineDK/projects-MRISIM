@@ -1,0 +1,128 @@
+sequence:
+  name: EchoPlanarSequence
+  tr: 2.5
+  te: 0.010
+  fov: 0.217
+  samples-x: 128
+  samples-y: 128
+  max-gx: 30e-3
+  max-gy: 30e-3
+
+  slices:
+    - lobes: 6
+      width:  0.020
+      offset: -0.080
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: -0.060
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: -0.040
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: -0.020
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: 0.0
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: 0.020
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: 0.040
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: 0.060
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
+    - lobes: 6
+      width:  0.020
+      offset: 0.080
+      flip-angle: 30.0
+      points: 256
+ 
+      rotation-axis: [0.0, 1.0, 0.0]
+      rotation-angle: 90.0
+
+      gradient-direction: [0.0, 0.0, 1.0]
+      readout-direction:  [1.0, 0.0, 0.0]
+      gradient-magnitude: 50e-3
+
