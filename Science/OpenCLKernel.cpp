@@ -81,7 +81,7 @@ struct GpuPhantomInfo {
 
 void CLErrorCheck(cl_int e, string msg) {
     if (e != CL_SUCCESS) {
-        logger.error << "[OpenCL] " << msg << logger.end;
+        logger.error << "[OpenCL] (" << e << ") " << msg << logger.end;
         throw Exception(msg);
     }
 }
@@ -168,7 +168,13 @@ void OpenCLKernel::InitOpenCL() {
     // Extra kernels setup
     
     SetupStepKernel();
+
     SetupReduceKernel();
+#if USE_FAST_REDUCE
+    SetupFastReduceKernel();
+#endif
+
+
     
     // setup invert kernel
     invertKernel.setArg(0, refMBuffer);
@@ -287,8 +293,8 @@ void OpenCLKernel::Flop(unsigned int slice) {
 #define MAX_WORK_ITEMS  (64)
 
 
-void OpenCLKernel::SetupReduce() {
-    /*
+void OpenCLKernel::SetupFastReduceKernel() {
+    
     unsigned int count = sz;
     size_t max_group_size = 0;
 
@@ -383,10 +389,10 @@ void OpenCLKernel::SetupReduce() {
 
     // done
 
+    vector<cl::Program> programs(reduce_count); // = vector<cl::Program>();
 
-    cl::Program programs[reduce_count];
+    reduce_kernels = vector<cl::Kernel>(reduce_count);
     
-    reduce_kernels = new cl::Kernel*[reduce_count];
 
     std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
@@ -411,31 +417,28 @@ void OpenCLKernel::SetupReduce() {
         //const char *options = "-cl-opt-disable";
         const char *options = NULL;
         err = programs[i].build(devices,options);
-        if (err)
-            logger.error << "Made program: " << err << logger.end;
+
         if (err) {
             string log =  programs[i].getBuildInfo<CL_PROGRAM_BUILD_LOG>(devices[0]);
             logger.error << log << logger.end;
+            throw Exception("OpenCL complie error");
         }
-        reduce_kernels[i] = new cl::Kernel(programs[i], "reduce", &err);
-        if (err) {
-            logger.error << "Made kernel: " << err << logger.end;
-            throw Exception("couldn't create kernel");
-        }
+        reduce_kernels[i] = cl::Kernel(programs[i], "reduce", &err);
+        CLErrorCheck(err, "could not create fast reduce kernel");
+
 
     }
-    */
+    logger.info << "Fast Reduce ready" << logger.end;
 }
 
-void OpenCLKernel::Reduce() {
+Vector<4, float> OpenCLKernel::FastReduce() {
 
     logger.error << "reducing..." << logger.end;
     size_t typesize = sizeof(float) ; // more to static?
     int channels = 4;
+    cl_int err;
 
-    cl::Buffer* pass_swap;
-    cl::Buffer* pass_input = &reduceB;
-    cl::Buffer* pass_output = &reduceA;
+    cl::Buffer* lastBuf;
 
     for (int i=0; i<reduce_count; i++) {        
         size_t global = reduce_group_counts[i] * reduce_item_counts[i];        
@@ -443,21 +446,43 @@ void OpenCLKernel::Reduce() {
         unsigned int operations = reduce_operation_counts[i];
         unsigned int entries = reduce_entry_counts[i];
         size_t shared_size = typesize * channels * local * operations;
+   
+            
 
-        printf("Pass[%4d] Global[%4d] Local[%4d] Groups[%4d] WorkItems[%4d] Operations[%d] Entries[%d]\n",  i, 
-               (int)global, (int)local, (int)reduce_group_counts[i], (int)reduce_item_counts[i], operations, entries);
-
-        pass_swap = pass_input;
-        pass_input = pass_output;
-        pass_output = pass_swap;
-
-
-        cl::Kernel* kern = reduce_kernels[i];
-        kern->setArg(0, *pass_output);
-        kern->setArg(1, *pass_input);
-        kern->setArg(2, shared_size);
-        kern->setArg(3, entries);
+        err = CL_SUCCESS;
+        cl::Kernel kern = reduce_kernels[i];
+        
+                
+        if (i % 2) {
+            err |= kern.setArg(0, reduceB);
+            err |= kern.setArg(1, reduceA);
+            lastBuf = &reduceB;
+        } else {
+            err |= kern.setArg(0, reduceA);
+            err |= kern.setArg(1, reduceB);
+            lastBuf = &reduceA;
+        }        
+        
+        if (i == 0) {
+            err |= kern.setArg(1, refMBuffer);
+        }
+        
+        err |= kern.setArg(2, cl::__local(shared_size));
+        err |= kern.setArg(3, entries);
+        CLErrorCheck(err, "Settings args");
+        
+        err = queue.enqueueNDRangeKernel(kern, cl::NullRange,
+                                   cl::NDRange(global), cl::NDRange(local));                        
+        CLErrorCheck(err, "fast reduce error");
     }
+//    err = queue.finish();
+//    CLErrorCheck(err, "fast reduce finish error");
+    Vector<4,float> result;
+    err = queue.enqueueReadBuffer(*lastBuf, CL_TRUE, 0, sizeof(Vector<4,float>), &result);
+    CLErrorCheck(err, "read result");
+    logger.error << result << logger.end;
+    return result;
+    
 }
 void OpenCLKernel::SetupReduceKernel() {
     cl_int err = 0,berr;
@@ -534,8 +559,15 @@ void OpenCLKernel::SetupStepKernel() {
 Vector<3,float> OpenCLKernel::GetSignal() {
     
     // reduce!
+#if USE_FAST_REDUCE
+    Vector<3, float> signal3;
+    Vector<4,float> signal4 = FastReduce();
+    signal3[0] = signal4[0];
+    signal3[1] = signal4[1];
+    signal3[2] = signal4[2];
+    return signal3;
 
-    //Reduce();
+#else
 
     cl::Event event;
     int size = width*height*depth;
@@ -592,7 +624,7 @@ Vector<3,float> OpenCLKernel::GetSignal() {
     //signal = signal2;
 
     return signal3;
-
+#endif
     
 }
 

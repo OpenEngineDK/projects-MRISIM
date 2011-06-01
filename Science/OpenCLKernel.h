@@ -20,6 +20,7 @@
 
 // config
 #define USE_FLOAT_4 1
+#define USE_FAST_REDUCE 1
 
 
 namespace MRI {
@@ -114,7 +115,7 @@ private:
     // Reduce kernel
     cl::Kernel reduceKernel;
 
-    cl::Kernel** reduce_kernels;
+    vector<cl::Kernel> reduce_kernels;
 
 
     cl::Buffer* inbuffer;
@@ -143,6 +144,9 @@ private:
     //void SetupTest4();
     void SetupReduceKernel();
     void SetupStepKernel();
+    void SetupFastReduceKernel();
+    Vector<4, float> FastReduce();
+    
     //void Test4();
 
 public:
@@ -166,8 +170,6 @@ public:
     void SetB0(float b0);
     float GetB0() const;
 
-    void Reduce();
-    void SetupReduce();
 
     //RenderNode *GetRenderNode();
 
