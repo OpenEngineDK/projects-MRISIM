@@ -110,6 +110,7 @@ public:
     virtual void Init(Phantom phantom) = 0;      // initialize kernel state to reflect the given phantom
     virtual void Step(float dt) = 0; // take a simulation step
 
+    virtual string GetName() = 0;
     virtual Phantom GetPhantom() const = 0;            // get the current phantom
     virtual Vector<3,float> GetSignal() = 0;     // get the current total magnetization (sum of all spins)
     virtual Vector<3,float>* GetMagnets() const = 0;   // get all the spin states (for debugging only).

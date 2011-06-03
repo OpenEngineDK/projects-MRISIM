@@ -158,6 +158,7 @@ public:
     void Step(float dt);    
     Vector<3,float>* GetMagnets() const;
     Phantom GetPhantom() const;
+    string GetName() { return "OpenCL"; }
     // void RFPulse(float angle, unsigned int slice);
     void InvertSpins();
     void Reset();

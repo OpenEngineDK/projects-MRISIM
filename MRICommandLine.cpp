@@ -76,7 +76,7 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
         kernel = new OpenCLKernel();
 #else
         kernel = new CPUKernel();
-#endif ENABLE_OPENCL
+#endif
 
     // load phantom
     if (yamlPhantom.empty()) {

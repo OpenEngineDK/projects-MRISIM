@@ -57,6 +57,7 @@ public:
     void Step(float dt);    
     Vector<3,float>* GetMagnets() const;
     Phantom GetPhantom() const;
+    string GetName() { return "CUDA"; }
     void InvertSpins();
     void Reset();
     void SetGradient(Vector<3,float> gradient);

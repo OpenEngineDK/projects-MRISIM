@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     unsigned int sum = 0;
     if (dstep == 0) dstep = 1;
 
-    printf("Simulating ...\n");
+    printf("Simulating using %s kernel...\n", kern->GetName().c_str());
 
     while (sim->IsRunning()) {
         sim->Simulate(dstep);
