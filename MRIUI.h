@@ -23,10 +23,6 @@
 #include <Core/IEngine.h>
 
 #include "Science/MRISim.h"
-#include "Science/CPUKernel.h"
-#include "Science/OpenCLKernel.h"
-#include "Science/CartesianFFT.h"
-#include "Science/SpinEchoSequence.h"
 
 #include "Display/CanvasSwitch.h"
 
@@ -57,6 +53,7 @@ namespace MRI {
 using namespace OpenEngine::Resources;
 using namespace OpenEngine::Display;
 using namespace OpenEngine::Devices;
+using namespace OpenEngine::Utils;
 using namespace OpenEngine::Display::OpenGL;
 using namespace MRI::Display::OpenGL;
 using namespace MRI::Science;
@@ -78,11 +75,9 @@ class MRIUI : public QMainWindow {
     MRISim* sim;
     IMRIKernel* kern;
     IMRISequence* seq;
-    // MINCResourcePtr phantom;
     SliceCanvas *samplesCanvas, *fftCanvas;
     PhantomCanvas *phantomCanvas;
     SpinCanvas* spinCanvas;
-    CartesianFFT* fft;
     WallCanvas* wcSim, *wcRF; 
     CanvasSwitch* cSwitch;
     CanvasQueue* cq;

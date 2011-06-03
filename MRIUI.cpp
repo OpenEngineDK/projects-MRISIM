@@ -55,7 +55,6 @@
 #include "Science/RFTester.h"
 #include "Science/TestRFCoil.h"
 
-// #include "Science/OpenCLTest.h"
 
 #include "Display/OpenGL/SpinCanvas.h"
 #include "Display/OpenGL/WindowCanvas.h"
@@ -388,10 +387,9 @@ ValueList Inspect() {
 class Slicer {
 private:
     SpinCanvas* spins;
-    CartesianFFT* fft;
 public:
     vector<SliceCanvas*> slices;
-    Slicer(SpinCanvas* spins = NULL, CartesianFFT* fft = NULL): spins(spins), fft(fft) {}
+    Slicer(SpinCanvas* spins = NULL): spins(spins) {}
     virtual ~Slicer() {}
 
     void SetSlice(unsigned int slice) {
@@ -484,7 +482,7 @@ MRIUI::MRIUI(QtEnvironment *env, IMRISequence* sequence, IMRIKernel* kernel, Pha
     QObject::connect(ui->radioRF, SIGNAL(toggled(bool)),
                      this, SLOT(SetRFView(bool)));
     
-    Slicer slicer(spinCanvas, fft);
+    Slicer slicer(spinCanvas);
     slicer.slices.push_back(phantomCanvas->GetSliceCanvas());
     // slicer.slices.push_back(samplesCanvas);
     // slicer.slices.push_back(fftCanvas);

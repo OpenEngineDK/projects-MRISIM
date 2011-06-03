@@ -11,7 +11,9 @@
 
 #include "Science/MRISim.h"
 #include "Science/CPUKernel.h"
+#if ENABLE_OPENCL
 #include "Science/OpenCLKernel.h"
+#endif
 #if ENABLE_CUDA
 #include "Science/CUDAKernel.h"
 #endif
@@ -70,7 +72,11 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
         kernel = new CUDAKernel();
 #endif
     else
+#if ENABLE_OPENCL
         kernel = new OpenCLKernel();
+#else
+        kernel = new CPUKernel();
+#endif ENABLE_OPENCL
 
     // load phantom
     if (yamlPhantom.empty()) {

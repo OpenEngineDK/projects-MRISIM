@@ -21,27 +21,24 @@ ELSE (FFTW_FOUND)
 ENDIF (FFTW_FOUND)
 
 
-SET (ENABLE_CUDA 0)
+#SET (ENABLE_CUDA 0)
 
-IF (ENABLE_CUDA)
-  
+IF (CUDA_FOUND) 
   CUDA_ADD_LIBRARY("CUDA_KERNELS"
-    #    Science/Kernels.cu
     Science/CUDAKernel.cu
     )
-  
-  # TARGET_LINK_LIBRARIES("CUDA_KERNELS"
-  #   ${CUDA_CUT_LIBRARIES} #cutil
-  #   )  
-
-  #SET(CUDAKERNEL Science/CUDAKernel.h Science/CUDAKernel.cpp)
-  
   ADD_DEFINITIONS(-DENABLE_CUDA)
-  
- SET (CUDA_KERNEL_LINK "CUDA_KERNELS")
+  SET (CUDA_KERNEL_LINK "CUDA_KERNELS")
+ENDIF(CUDA_FOUND)
 
-ENDIF(ENABLE_CUDA)
-
+IF (OPENCL_INCLUDE_DIR)
+  ADD_DEFINITIONS(-DENABLE_OPENCL)
+  SET(OPENCL_SOURCES  
+    Science/OpenCLKernel.h
+    Science/OpenCLKernel.cpp
+    )
+  SET(OPENCL_LINK Extensions_OpenCL)
+ENDIF (OPENCL_INCLUDE_DIR)
 
 SET (MRI_SOURCES 
 
@@ -62,10 +59,8 @@ SET (MRI_SOURCES
   Science/MRISim.h
   Science/MRISim.cpp
 
-  ${CUDAKERNEL}
+  ${OPENCL_SOURCES}
 
-  Science/OpenCLKernel.h
-  Science/OpenCLKernel.cpp
   Science/CPUKernel.h
   Science/CPUKernel.cpp
   Science/SpinEchoSequence.h
@@ -176,7 +171,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   Extensions_Inspection
   Extensions_InspectionWidget
   Extensions_PropertyTree
-  Extensions_OpenCL
+  ${OPENCL_LINK}
   minc2 # ugly hack... use a find script
   ${FFTW_LIBRARIES}
   ${CUDA_KERNEL_LINK}
@@ -204,7 +199,7 @@ TARGET_LINK_LIBRARIES(${BATCH_PROJECT_NAME}
   OpenEngine_Resources
   # Extension dependencies
   Extensions_PropertyTree
-  Extensions_OpenCL
+  ${OPENCL_LINK}
   ${FFTW_LIBRARIES}
   ${CUDA_KERNEL_LINK}
 )
