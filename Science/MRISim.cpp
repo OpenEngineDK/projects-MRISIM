@@ -157,6 +157,8 @@ bool MRISim::Step() {
     // stop the simulation if next event is a DONE signal
     if (nextEvent.second.action & MRIEvent::DONE) {
         logger.info << "Time: " << theSimTime << ", Simulation sequence finished." << logger.end;
+        logger.info << "map time: " << stepTime->GetTotal() << "s." << logger.end;
+        logger.info << "reduce time: " << reduceTime->GetTotal() << "s." << logger.end;
         Stop();
         return false; // done
     }

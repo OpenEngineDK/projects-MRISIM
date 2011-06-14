@@ -19,7 +19,7 @@
 #include <Scene/RenderNode.h>
 
 // config
-#define USE_FLOAT_4 0
+#define USE_FLOAT_4 1
 #define USE_FAST_REDUCE 0
 #define USE_WAIT 1
 

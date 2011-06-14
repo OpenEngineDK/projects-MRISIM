@@ -20,6 +20,7 @@
 #define CPU_THRESHOLD     32     // minimum number of vectors to reduce below this we simply use cpu reduction.
 #define STEP_BLOCK_SIZE   1024   // block size for the step kernel
 
+#define USE_WAIT 0
 
 namespace MRI {
 namespace Science {
@@ -215,9 +216,11 @@ void CUDAKernel::Step(float _dt) {
     /* magnetsBuffer = tmp; */
 
 	// Report timing
-	/* cudaThreadSynchronize(); */
-	/* cutStopTimer(timer);   */
-	/* double time = cutGetTimerValue( timer );  */
+#if USE_WAIT 
+    cudaThreadSynchronize();
+#endif
+	// cutStopTimer(timer);
+	// double time = cutGetTimerValue( timer );
 
 	//printf("time: %.4f ms.\n", time );
     CHECK_FOR_CUDA_ERROR();
@@ -268,6 +271,10 @@ Vector<3,float> CUDAKernel::GetSignal() {
         d_idata = d_odata;
         n = blocks;
     }
+
+#if USE_WAIT 
+    cudaThreadSynchronize();
+#endif
 
     Vector<3,float> signal;
     cudaMemcpy((void*)refMagnets, (void*)d_idata, n * sizeof(Vector<3,float>), cudaMemcpyDeviceToHost);

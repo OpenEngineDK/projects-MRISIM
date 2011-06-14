@@ -91,7 +91,6 @@ inline Vector<3,float> RotateZ(float angle, Vector<3,float> vec) {
 
 void CPUKernel::Step(float dt) {
     time += dt;
-    signal = Vector<3,float>();
     //const double omega0 = GYRO_RAD * b0;
     // const double omega0Angle = fmod(omega0*time, double(Math::PI * 2.0));
 
@@ -147,7 +146,6 @@ void CPUKernel::Step(float dt) {
 
                 // labMagnets[i] = 
                 //     RotateZ(omega0Angle, refMagnets[i]);
-                signal += refMagnets[i];
             }    
         }
     }
@@ -165,7 +163,11 @@ void CPUKernel::Flop(unsigned int slice) {
 }
 
 Vector<3,float> CPUKernel::GetSignal() {
-    return signal;
+  signal = Vector<3,float>();
+  for (unsigned int i = 0; i < sz ; ++i) {
+    signal += refMagnets[i];
+  }
+  return signal;
 }
 
 void CPUKernel::SetB0(float b0) {

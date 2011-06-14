@@ -27,11 +27,13 @@ class TimeLogger {
 private:
     std::fstream* fout;
     OpenEngine::Utils::Timer timer;
+    double total;
 public:
     TimeLogger(std::string fname);
     ~TimeLogger();
     void Start();
     void Stop();
+    double GetTotal();
 };
 
 

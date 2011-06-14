@@ -18,6 +18,7 @@ namespace Science {
     TimeLogger::TimeLogger(string fname) {
         fout = new fstream(fname.c_str(), fstream::out 
                            | fstream::trunc);
+        total = 0.0;
         
                            
     }
@@ -33,9 +34,13 @@ namespace Science {
     }
     void TimeLogger::Stop() {
         timer.Stop();
+        total += double(timer.GetElapsedIntervals(1)) * 1e-6;
         *fout  << timer.GetElapsedIntervals(1) << std::endl;
     }
 
+    double TimeLogger::GetTotal() {
+        return total;
+    }
 
 
 

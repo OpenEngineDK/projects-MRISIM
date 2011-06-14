@@ -85,7 +85,8 @@ __global__ void stepKernel(float3* magnets, unsigned char* data, SpinPack* packs
         
     //compute local field
     float dG = dot(grad, pos);
-    float deltaB0 = delta[idx];
+    //float deltaB0 = delta[idx];
+    float deltaB0 = 0.0;
     magnet = RotateZ((GYRO_RAD * dG + deltaB0) * dt, magnet);
     /* magnets[3*idx+0] = magnet.x; */
     /* magnets[3*idx+1] = magnet.y; */

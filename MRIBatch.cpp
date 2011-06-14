@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     if (dstep == 0) dstep = 1;
 
     printf("Simulating using %s kernel...\n", kern->GetName().c_str());
+    printf("Phantom dims: %d %d %d ...\n", p.texr->GetWidth(), p.texr->GetHeight(), p.texr->GetDepth());
 
     while (sim->IsRunning()) {
         sim->Simulate(dstep);

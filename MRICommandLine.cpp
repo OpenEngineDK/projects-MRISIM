@@ -68,9 +68,9 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
             }
         }
         else {
-            unsigned int f = strtol(argv[i], NULL, 10);
-            if (f > 0)
-                phantomW = phantomH = phantomD = f;
+            // unsigned int f = strtol(argv[i], NULL, 10);
+            // if (f > 0)
+            //     phantomW = phantomH = phantomD = f;
         }
     }
 
