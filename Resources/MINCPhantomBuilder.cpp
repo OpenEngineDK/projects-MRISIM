@@ -64,7 +64,9 @@ Phantom MINCPhantomBuilder::GetPhantom() {
             phantom.spinPackets[i] = SpinPacket(entry.GetPath("name", string("")),
                                                 entry.GetPath("t1", 0.0),
                                                 entry.GetPath("t2", 0.0),
-                                                entry.GetPath("ro", 0.0));
+                                                entry.GetPath("t2star", 0.0),
+                                                entry.GetPath("ro", 0.0)
+                                                );
             mincs[i] = entry.GetPath("minc", string(""));
         }
 
