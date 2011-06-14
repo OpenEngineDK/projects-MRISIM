@@ -42,10 +42,10 @@ Phantom SheppLoganBuilder::GetPhantom() {
     // Connective; 500; 70; 0.77; -9.05
     // CSF; 2569; 329; 1; -9.05
     // Fat; 350; 70; 1; -7 to -8
-    spinPackets[0] = SpinPacket("Air", 0.0, 0.0, 0.0);
-    spinPackets[1] = SpinPacket("CSF", 2.569, 0.329, 1.0);
-    spinPackets[2] = SpinPacket("Fat", 0.350, 0.070, 1.0);
-    spinPackets[3] = SpinPacket("Gray matter", 0.833, 0.083, 0.86);
+    spinPackets[0] = SpinPacket("Air", 0.0, 0.0, 0.0, 0.0);
+    spinPackets[1] = SpinPacket("CSF", 2.569, 0.329, 0.058, 1.0);
+    spinPackets[2] = SpinPacket("Fat", 0.350, 0.070, 0.058, 1.0);
+    spinPackets[3] = SpinPacket("Gray matter", 0.833, 0.083, 0.069, 0.86);
 
     phantom.spinPackets = spinPackets;
 

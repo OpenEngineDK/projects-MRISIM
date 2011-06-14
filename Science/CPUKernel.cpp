@@ -137,9 +137,9 @@ void CPUKernel::Step(float dt) {
                 //                                  -refMagnets[i][1]*dtt2, 
                 //                                  (eq[i]-refMagnets[i][2])*dtt1);
 
-                float dG = gradient * Vector<3,float>(float(int(x) + phantom.offsetX) * (phantom.sizeX*1e-3),
-                                                      float(int(y) + phantom.offsetY) * (phantom.sizeY*1e-3),
-                                                      float(int(z) + phantom.offsetZ) * (phantom.sizeZ*1e-3));
+                float dG = gradient * Vector<3,float>((float(x) + phantom.offsetX) * phantom.sizeX,
+                                                      (float(y) + phantom.offsetY) * phantom.sizeY,
+                                                      (float(z) + phantom.offsetZ) * phantom.sizeZ);
 
 
 

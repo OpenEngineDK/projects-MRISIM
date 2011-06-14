@@ -1,16 +1,16 @@
 sequence:
   name: EchoPlanarSequence
-  tr: 1.540
-  te: 0.010
+  tr: 3.30
+  te: 0.041
   fov: 0.600
   samples-x: 64
   samples-y: 64
-  max-gx: 20e-3
-  max-gy: 20e-3
+  max-gx: 4e-3
+  max-gy: 4e-3
 
   slices:
     - lobes: 6
-      width:  0.500
+      width:  0.060
       offset: 0.0
       flip-angle: 30.0
       points: 256
@@ -19,6 +19,6 @@ sequence:
       rotation-angle: 0.0
 
       gradient-direction: [0.0, 0.0, 1.0]
-      readout-direction: [1.0, 1.0, 0.0]
+      readout-direction: [1.0, 0.0, 0.0]
       gradient-magnitude: 50e-3
   

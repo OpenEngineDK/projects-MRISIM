@@ -24,16 +24,21 @@ using std::string;
 
 struct SpinPacket {
     string name;
-    float t1, t2, ro;
-    SpinPacket(): t1(0.0), t2(0.0), ro(0.0) {}
-    SpinPacket(string name, float t1, float t2, float ro): name(name), t1(t1), t2(t2), ro(ro) {}
+    float t1, t2, t2star, ro;
+    SpinPacket(): t1(0.0), t2(0.0), t2star(0.0), ro(0.0) {}
+    SpinPacket(string name, float t1, float t2, float t2star, float ro)
+  : name(name)
+  , t1(t1)
+  , t2(t2)
+  , t2star(t2star)
+  , ro(ro) {}
 };
 
 struct Phantom {
 public:
     vector<SpinPacket> spinPackets;
     float sizeX, sizeY, sizeZ;  // voxel dimensions in mm
-    int offsetX, offsetY, offsetZ;
+    float offsetX, offsetY, offsetZ;
     UCharTexture3DPtr texr;    
 
     Phantom();

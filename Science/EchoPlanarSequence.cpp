@@ -138,6 +138,10 @@ void EchoPlanarSequence::Reset(MRISim& sim) {
 
         time = start = double(k) * double(tr); 
 
+        // e.action = MRIEvent::RESET;
+        // seq.push_back(make_pair(time, e));
+
+
         // grab and reset the rf sequence for k'th slice
         IMRISequence* pulseSeq = slices[k].excitation;
         pulseSeq->Reset(sim);
@@ -157,12 +161,13 @@ void EchoPlanarSequence::Reset(MRISim& sim) {
 
         // setup initial phase encoding gradient
         e.action = MRIEvent::GRADIENT;
-        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase * gyStart);
+        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase * (gyStart-dGy));
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
         e.action = MRIEvent::GRADIENT;
         e.gradient = Vector<3,float>(0.0, 0.0, 0.0);
+        // time = start + te;
         time += tau;
         seq.push_back(make_pair(time, e));
 

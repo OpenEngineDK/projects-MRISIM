@@ -23,6 +23,7 @@
 #include "Science/ExcitationPulseSequence.h"
 #include "Science/TestRFCoil.h"
 #include "Resources/SimplePhantomBuilder.h"
+#include "Resources/TestPhantomBuilder.h"
 
 #include <Utils/PropertyTree.h>
 #include <Utils/PropertyTreeNode.h>
@@ -39,7 +40,9 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
     bool useCUDA = false;
 #endif
     string yamlSequence, yamlPhantom;
-    unsigned int phantomSize = 20;
+    unsigned int phantomW = 20;
+    unsigned int phantomH = 20;
+    unsigned int phantomD = 20;
     
     for (int i=1;i<argc;i++) {
         if (strcmp(argv[i],"-cpu") == 0)
@@ -57,10 +60,17 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
             if (i + 1 < argc)
                 yamlSequence = string(argv[i+1]);
         }
+        else if (strcmp(argv[i],"-dims") == 0) {
+            if (i + 3 < argc) {
+                phantomW = strtol(argv[i+1], NULL, 10);
+                phantomH = strtol(argv[i+2], NULL, 10);
+                phantomD = strtol(argv[i+3], NULL, 10);
+            }
+        }
         else {
             unsigned int f = strtol(argv[i], NULL, 10);
             if (f > 0)
-                phantomSize = f;
+                phantomW = phantomH = phantomD = f;
         }
     }
 
@@ -80,7 +90,7 @@ MRICommandLine::MRICommandLine(int argc, char* argv[])
 
     // load phantom
     if (yamlPhantom.empty()) {
-        IPhantomBuilder* pb = new SimplePhantomBuilder(phantomSize);
+        IPhantomBuilder* pb = new TestPhantomBuilder(Vector<3,unsigned int>(phantomW, phantomH, phantomD));
         phantom = pb->GetPhantom();
     }
     else {

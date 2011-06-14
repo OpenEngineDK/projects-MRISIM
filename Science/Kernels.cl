@@ -115,9 +115,9 @@ __kernel void mri_step(float dt,                     // 0
         //                      0);
 
         
-        float4 v = (float4)((x + phantomOffset.x) * (phantomSize.x*1e-3),
-                            (y + phantomOffset.y) * (phantomSize.y*1e-3),
-                            (z + phantomOffset.z) * (phantomSize.z*1e-3),
+        float4 v = (float4)((x + phantomOffset.x) * phantomSize.x,
+                            (y + phantomOffset.y) * phantomSize.y,
+                            (z + phantomOffset.z) * phantomSize.z,
                             0.0);
         
 
@@ -204,9 +204,9 @@ __kernel void mri_step4(float dt,                     // 0
         //                      0);
         
         
-        float4 v = (float4)((x + phantomOffset.x) * (phantomSize.x*1e-3),
-                            (y + phantomOffset.y) * (phantomSize.y*1e-3),
-                            (z + phantomOffset.z) * (phantomSize.z*1e-3),
+        float4 v = (float4)((x + phantomOffset.x) * phantomSize.x,
+                            (y + phantomOffset.y) * phantomSize.y,
+                            (z + phantomOffset.z) * phantomSize.z,
                             0.0);
         
         

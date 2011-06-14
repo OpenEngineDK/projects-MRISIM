@@ -3,8 +3,8 @@ sequence:
   tr: 1.540
   te: 0.020
   fov: 0.600
-  samples-x: 64
-  samples-y: 64
+  samples-x: 128
+  samples-y: 128
 
   slices:
     - lobes: 6

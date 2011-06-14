@@ -4,7 +4,7 @@
 __constant__ float dt;
 __constant__ float3 grad;
 __constant__ float3 rf;
-__constant__ int3 offset;
+__constant__ float3 offset;
 __constant__ uint3 dims;
 __constant__ float3 voxelSize;
 
@@ -38,23 +38,39 @@ __device__ float3 RotateY(float angle, float3 vec) {
                        vec.x * -sin(angle) + vec.z * cos(angle));
 }
 
-__global__ void stepKernel(float* magnets, unsigned char* data, SpinPack* packs, float* eq, float* delta) {
+#if USE_T_MAPS
+__global__ void stepKernel(float3* magnets, float* t1, float* t2, float* eq, float* delta) {
+#else
+__global__ void stepKernel(float3* magnets, unsigned char* data, SpinPack* packs, float* eq, float* delta) {
+#endif
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= dims.x * dims.y * dims.z) return;
+
+    #if USE_T_MAPS
+
+    #else
     const unsigned int type = data[idx];
     if (type == 0) return;
+    #endif
 
     const int3 co = idx_to_co(idx, dims);
 
-    float3 magnet = make_float3(magnets[3*idx+0],
-                                magnets[3*idx+1],
-                                magnets[3*idx+2]);
+    float3 magnet = magnets[idx];
+    /* make_float3(magnets[3*idx+0], */
+    /*                             magnets[3*idx+1], */
+    /*                             magnets[3*idx+2]); */
    
     magnet = RotateX(rf.x * GYRO_RAD * dt, magnet);
     magnet = RotateY(rf.y * GYRO_RAD * dt, magnet);
 
+    
+#if USE_T_MAPS
+    float dtt1 = dt/t1[idx];
+    float dtt2 = dt/t2[idx];
+#else
     float dtt1 = dt/packs[type].t1;
     float dtt2 = dt/packs[type].t2;
+#endif
 
     float e1 = exp(-dtt1);
     float e2 = exp(-dtt2);
@@ -70,18 +86,17 @@ __global__ void stepKernel(float* magnets, unsigned char* data, SpinPack* packs,
     //compute local field
     float dG = dot(grad, pos);
     float deltaB0 = delta[idx];
-    magnet = RotateZ(GYRO_RAD * (deltaB0 + dG) * dt, magnet);
-    magnets[3*idx+0] = magnet.x;
-    magnets[3*idx+1] = magnet.y;
-    magnets[3*idx+2] = magnet.z;
+    magnet = RotateZ((GYRO_RAD * dG + deltaB0) * dt, magnet);
+    /* magnets[3*idx+0] = magnet.x; */
+    /* magnets[3*idx+1] = magnet.y; */
+    /* magnets[3*idx+2] = magnet.z; */
+    magnets[idx] = magnet;
 }
 
-__global__ void invertKernel(float* magnets) {
+__global__ void invertKernel(float3* magnets) {
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= dims.x * dims.y * dims.z) return;
-    magnets[3*idx+0] = -magnets[3*idx+0];
-    magnets[3*idx+1] = -magnets[3*idx+1];
-    magnets[3*idx+2] = -magnets[3*idx+2];
+    magnets[idx] = RotateX(Math::PI, magnets[idx]);
 }
 
 

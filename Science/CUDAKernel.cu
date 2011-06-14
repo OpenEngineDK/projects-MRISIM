@@ -18,7 +18,8 @@
 
 #define REDUCE_BLOCK_SIZE 512    // must be power of two for algorithm to work!!!
 #define CPU_THRESHOLD     32     // minimum number of vectors to reduce below this we simply use cpu reduction.
-#define STEP_BLOCK_SIZE   256    // block size for the step kernel
+#define STEP_BLOCK_SIZE   1024   // block size for the step kernel
+
 
 namespace MRI {
 namespace Science {
@@ -38,7 +39,7 @@ CUDAKernel::CUDAKernel()
     , depth(0)
     , sz(0)
     , szPowTwo(0)
-    , b0(0.5) {
+    , b0(1.5) {
     randomgen.SeedWithTime();
 }
 
@@ -70,26 +71,72 @@ void CUDAKernel::Init(Phantom phantom) {
     deltaB0 = new float[sz];
     data = phantom.texr->GetData();
 
+    logger.info << "sz: " << sz << logger.end;
+    logger.info << "szPowTwo: " << szPowTwo << logger.end;
+
+
+    logger.info << "sp size: " << phantom.spinPackets.size() << logger.end;
+    for (unsigned int i = 0; i < phantom.spinPackets.size(); ++i) {
+            logger.info << "spt1: " << phantom.spinPackets[i].t1 << logger.end;
+            logger.info << "spt2: " << phantom.spinPackets[i].t2 << logger.end;
+            logger.info << "spt2star: " << phantom.spinPackets[i].t2star << logger.end;
+    }
+
+#if USE_T_MAPS
+    float* t1 = new float[sz * sizeof(float)];
+    float* t2 = new float[sz * sizeof(float)];
+#endif
     for (unsigned int i = 0; i < sz; ++i) {
-        deltaB0[i] = 0.0;
-        eq[i] = phantom.spinPackets[data[i]].ro * b0;
+      // logger.info << "t1: " << phantom.spinPackets[data[i]].t1 << logger.end;
+      // logger.info << "t2: " << phantom.spinPackets[data[i]].t2 << logger.end;
+      // logger.info << "t2star: " << phantom.spinPackets[data[i]].t2star << logger.end;
+      float invt2prime = 1.0/phantom.spinPackets[data[i]].t2star - 1.0/phantom.spinPackets[data[i]].t2;
+      if (invt2prime != invt2prime) {
+	// logger.info << "nan invt2prime: " << invt2prime << logger.end;
+	deltaB0[i] = 0.0;
+      }
+      else {
+	// logger.info << "invt2prime: " << invt2prime << logger.end;
+	deltaB0[i] = tan(Math::PI * randomgen.UniformFloat(-.5,.5)) * invt2prime;
+	//deltaB0[i] = 0.0;
+	//logger.info << "db0: " << deltaB0[i] << logger.end;
+      }
+      eq[i] = phantom.spinPackets[data[i]].ro * b0 * phantom.sizeX * phantom.sizeY * phantom.sizeZ;
+#if USE_T_MAPS
+        t1[i] = phantom.spinPackets[data[i]].t1;
+        t2[i] = phantom.spinPackets[data[i]].t2;
+#endif
     }
 
     // initialize gpu memory
 
-    float _voxelSize[3] = {phantom.sizeX * 1e-3, phantom.sizeY * 1e-3, phantom.sizeZ * 1e-3};
-    int _offset[3] = {phantom.offsetX, phantom.offsetY, phantom.offsetZ};
+    float _voxelSize[3] = {phantom.sizeX, phantom.sizeY, phantom.sizeZ};
+    float _offset[3] = {phantom.offsetX, phantom.offsetY, phantom.offsetZ};
     unsigned int _dims[3] = {width, height, depth};
 
     /* cudaMemcpyToSymbol(b0, &b0, sizeof(float)); */
     /* CHECK_FOR_CUDA_ERROR(); */
     cudaMemcpyToSymbol(voxelSize, &_voxelSize[0], 3 * sizeof(float));
     CHECK_FOR_CUDA_ERROR();
-    cudaMemcpyToSymbol(offset, _offset, 3 * sizeof(int));
+    cudaMemcpyToSymbol(offset, _offset, 3 * sizeof(float));
     CHECK_FOR_CUDA_ERROR();
     cudaMemcpyToSymbol(dims, _dims, 3 * sizeof(int));
     CHECK_FOR_CUDA_ERROR();
 
+#if USE_T_MAPS
+    cudaMalloc((void**)&t1Buffer, sz * sizeof(float));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)t1Buffer, (void*)t1, sz * sizeof(float), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+
+    cudaMalloc((void**)&t2Buffer, sz * sizeof(float));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)t2Buffer, (void*)t2, sz * sizeof(float), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+
+    delete t1;
+    delete t2;
+#else
     // voxel data
     unsigned int sps = phantom.spinPackets.size();
     SpinPack* sp = new SpinPack[sps];
@@ -104,14 +151,15 @@ void CUDAKernel::Init(Phantom phantom) {
     CHECK_FOR_CUDA_ERROR();
     delete sp;
 
-    cudaMalloc((void**)&eqBuffer, sz * sizeof(float));
-    CHECK_FOR_CUDA_ERROR();
-    cudaMemcpy((void*)eqBuffer, (void*)eq, sz * sizeof(float), cudaMemcpyHostToDevice);
-    CHECK_FOR_CUDA_ERROR();
-
     cudaMalloc((void**)&dataBuffer, sz * sizeof(char)); 
     CHECK_FOR_CUDA_ERROR();
     cudaMemcpy((void*)dataBuffer, (void*)data, sz * sizeof(char), cudaMemcpyHostToDevice);
+    CHECK_FOR_CUDA_ERROR();
+#endif
+
+    cudaMalloc((void**)&eqBuffer, sz * sizeof(float));
+    CHECK_FOR_CUDA_ERROR();
+    cudaMemcpy((void*)eqBuffer, (void*)eq, sz * sizeof(float), cudaMemcpyHostToDevice);
     CHECK_FOR_CUDA_ERROR();
 
     // copy magnets in reset
@@ -123,7 +171,7 @@ void CUDAKernel::Init(Phantom phantom) {
     // for now set deltab0 to all zero
     cudaMalloc((void**)&deltaBuffer, sz * sizeof(float)); 
     CHECK_FOR_CUDA_ERROR();
-    cudaMemset(deltaBuffer, 0, sz * sizeof(float));
+    cudaMemcpy((void*)deltaBuffer, (void*)deltaB0, sz * sizeof(float), cudaMemcpyHostToDevice);
     CHECK_FOR_CUDA_ERROR();
 
     Reset();
@@ -141,17 +189,27 @@ void CUDAKernel::Step(float _dt) {
     /* const dim3 gridSize((int)ceil((double(sz) / double(blockSize.x))), 1, 1); */
     const dim3 gridSize(sz / blockSize.x, 1, 1);
 
+    //logger.info << "gridsize: " << gridSize.x << logger.end;
+
     // start timer
     /* cutResetTimer(timer); */
 	/* cutStartTimer(timer); */
 
     // cuda kernel call
-    stepKernel<<< gridSize, blockSize >>>(magnetsBuffer,
+#if USE_T_MAPS
+    stepKernel<<< gridSize, blockSize >>>((float3*)magnetsBuffer,
+                                          t1Buffer,
+                                          t2Buffer,
+                                          eqBuffer,
+                                          deltaBuffer);
+
+#else
+    stepKernel<<< gridSize, blockSize >>>((float3*)magnetsBuffer,
                                           dataBuffer,
                                           spinPackBuffer,
                                           eqBuffer,
                                           deltaBuffer);
-
+#endif
     /* float* tmp = out; */
     /* out = magnetsBuffer; */
     /* magnetsBuffer = tmp; */
@@ -197,7 +255,7 @@ Vector<3,float> CUDAKernel::GetSignal() {
             case 32:
                 reduce< 32><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
             case 16:
-            reduce< 16><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
+                reduce< 16><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
             case  8:
                 reduce<  8><<< dimGrid, dimBlock, smemSize >>>((float3*)d_idata, (float3*)d_odata); break;
             case  4:
@@ -229,10 +287,10 @@ float CUDAKernel::GetB0() const {
 
 void CUDAKernel::InvertSpins() {
     // cuda kernel invert
-    const dim3 blockSize(512, 1, 1);
+    const dim3 blockSize(STEP_BLOCK_SIZE, 1, 1);
     const dim3 gridSize(sz / blockSize.x, 1, 1);
 
-    invertKernel<<< gridSize, blockSize >>>(magnetsBuffer);
+    invertKernel<<< gridSize, blockSize >>>((float3*)magnetsBuffer);
 }
 
 void CUDAKernel::SetGradient(Vector<3,float> gradient) {

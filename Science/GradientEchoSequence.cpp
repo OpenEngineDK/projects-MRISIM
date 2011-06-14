@@ -160,22 +160,14 @@ void GradientEchoSequence::Reset(MRISim& sim) {
 
         while (pulseSeq->HasNextPoint()) {
             pair<double, MRIEvent> point = pulseSeq->GetNextPoint();
-            // printf("rf point time before: %e\n", point.first);
-            // logger.info << "rf point time before: " << point.first << logger.end;
             point.first += time;
-
-            // printf("rf point time after: %e\n", point.first);
-            // logger.info << "rf point time after: " << point.first << logger.end;
-            
             seq.push_back(point);
         }
         time += pulseSeq->GetDuration();
-        // logger.info << "rf done at time: " << time << logger.end;
-        // setup phase encoding gradient
-        e.action = MRIEvent::GRADIENT;
-        e.gradient = (slices[k].readout * gxFirst) + (slices[k].phase* (gyStart + double(scanline) * dGy));
-        //Vector<3,float>(gxFirst, gyStart + double(scanline) * dGy, 0.0);
 
+        // setup phase and frequency encoding gradients
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = -(slices[k].readout * gxFirst) + (slices[k].phase* (gyStart + double(scanline) * dGy));
         seq.push_back(make_pair(time, e));
 
         // turn off phase and freq encoding gradients
@@ -186,7 +178,7 @@ void GradientEchoSequence::Reset(MRISim& sim) {
 
         // frequency encoding gradient on
         e.action = MRIEvent::GRADIENT;
-        e.gradient = slices[k].readout * (-gx);
+        e.gradient = slices[k].readout * gx;
         //Vector<3,float>(-gx, 0.0, 0.0);
         time = start + te - gxDuration * 0.5;
         seq.push_back(make_pair(time, e));
@@ -202,33 +194,16 @@ void GradientEchoSequence::Reset(MRISim& sim) {
 
         time -= samplingDT;
 
-        //phase correction
-        // e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(gxFirst, -(gyStart + double(scanline) * dGy), 0.0);
-        // seq.push_back(make_pair(time, e));
-
-        // turn off phase and turn on freq correction
-        // e.action = MRIEvent::GRADIENT;
-        // e.gradient = Vector<3,float>(-gx, 0.0, 0.0);
-        // time += tau;
-        // seq.push_back(make_pair(time, e));
+        //phase and frequency correction (back to k = (0,0))
+        e.action = MRIEvent::GRADIENT;
+        e.gradient = (slices[k].readout * gxFirst) - slices[k].phase * (gyStart + double(scanline) * dGy);
+        seq.push_back(make_pair(time, e));
 
         // frequency encoding gradient off
         e.action = MRIEvent::GRADIENT; 
-        // time += tau;
-        // time += gxDuration * 0.5;
+        time += tau;
         e.gradient = Vector<3,float>(0.0);
         seq.push_back(make_pair(time, e));
-
-
-        // time += 1e-2;
-        // while (time < start + double(tr)) {
-        //     e.action = MRIEvent::NONE;
-        //     seq.push_back(make_pair(time, e));
-        //     time += 1e-2;
-        // }
-
-        // start = time + 10.0 * samplingDT;
     }
     }
     e.action = MRIEvent::DONE;

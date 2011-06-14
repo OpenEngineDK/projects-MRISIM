@@ -50,6 +50,8 @@ SET (MRI_SOURCES
   Resources/IPhantomBuilder.h
   Resources/SimplePhantomBuilder.h
   Resources/SimplePhantomBuilder.cpp
+  Resources/TestPhantomBuilder.h
+  Resources/TestPhantomBuilder.cpp
   Resources/SheppLoganBuilder.h
   Resources/SheppLoganBuilder.cpp
   Resources/Sample3DTexture.h

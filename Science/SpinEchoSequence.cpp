@@ -197,6 +197,11 @@ void SpinEchoSequence::Reset(MRISim& sim) {
 
             time -= samplingDT;
 
+	    //phase and frequency correction (back to k = (0,0))
+	    e.action = MRIEvent::GRADIENT;
+	    e.gradient = -(slices[k].readout * gxFirst) - slices[k].phase * (gyStart + double(scanline) * dGy);
+	    seq.push_back(make_pair(time, e));
+
             // frequency encoding gradient off
             e.action = MRIEvent::GRADIENT; 
             e.gradient = Vector<3,float>(0.0);

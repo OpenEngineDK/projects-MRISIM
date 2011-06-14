@@ -17,6 +17,8 @@
 #include <Math/RandomGenerator.h>
 #include <Scene/RenderNode.h>
 
+#define USE_T_MAPS 0 // compute t1 and t2 maps and get rid of memory indirection in kernel
+
 typedef struct SpinPack {
     float t1;
     float t2;        
@@ -34,6 +36,7 @@ private:
     Phantom phantom;
     Vector<3,float>* refMagnets;
     float *eq, *deltaB0;
+
     Vector<3,float> gradient, rfSignal;
     unsigned char* data;
     unsigned int width, height, depth, sz, szPowTwo;
@@ -42,12 +45,16 @@ private:
 
     // gpu buffers
     float* magnetsBuffer;
-    unsigned char* dataBuffer;
-    SpinPack* spinPackBuffer;
     float* eqBuffer;
     float* deltaBuffer;
     float *d_odata;
 
+#if USE_T_MAPS
+    float *t1Buffer, *t2Buffer;
+#else
+    unsigned char* dataBuffer;
+    SpinPack* spinPackBuffer;
+#endif
     inline float RandomAttribute(float base, float variance);
 public:
     CUDAKernel();

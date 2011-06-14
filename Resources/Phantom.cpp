@@ -34,16 +34,15 @@ Phantom::Phantom(string filename) {
     PropertyTreeNode& ptree = *tree.GetRootNode();
     if (ptree.HaveNode("voxels")) {
         PropertyTreeNode& voxels = *ptree.GetNode("voxels");
-        sizeX = voxels.GetPath("sizeX", 1);
-        sizeY = voxels.GetPath("sizeY", 1);
-        sizeZ = voxels.GetPath("sizeZ", 1);
-        offsetX = voxels.GetPath("offsetX", 0);
-        offsetY = voxels.GetPath("offsetY", 0);
-        offsetZ = voxels.GetPath("offsetZ", 0);
-        
-        unsigned int width = voxels.GetPath("width", 1);
-        unsigned int height = voxels.GetPath("height", 1);
-        unsigned int depth = voxels.GetPath("depth", 1);
+        sizeX = voxels.GetPath("sizeX", 0.0f);
+        sizeY = voxels.GetPath("sizeY", 0.0f);
+        sizeZ = voxels.GetPath("sizeZ", 0.0f);
+        offsetX = voxels.GetPath("offsetX", 0.0f);
+        offsetY = voxels.GetPath("offsetY", 0.0f);
+        offsetZ = voxels.GetPath("offsetZ", 0.0f);
+        unsigned int width = voxels.GetPath("width", 0);
+        unsigned int height = voxels.GetPath("height", 0);
+        unsigned int depth = voxels.GetPath("depth", 0);
         
         unsigned int bytesPerVoxel = voxels.GetPath("bytesPerVoxel", 1);
         unsigned int sz = width*height*depth;
@@ -86,6 +85,7 @@ Phantom::Phantom(string filename) {
             spinPackets[i] = SpinPacket(entry.GetPath("name", string("")),
                                         entry.GetPath("t1", 0.0),
                                         entry.GetPath("t2", 0.0),
+                                        entry.GetPath("t2*", 0.0),
                                         entry.GetPath("ro", 0.0));
         }
     }
@@ -117,10 +117,11 @@ void Phantom::Save(string filename, Phantom phantom) {
     out << "spinPackets:\n";
     for (unsigned int i = 0; i < phantom.spinPackets.size(); ++i) {
         SpinPacket sp = phantom.spinPackets[i];
-        out << "  - name: " << sp.name << "\n";
-        out << "    t1: " << sp.t1 << "\n";
-        out << "    t2: " << sp.t2 << "\n";
-        out << "    ro: " << sp.ro << "\n";
+        out << "  - name: " << sp.name   << "\n";
+        out << "    t1: "   << sp.t1     << "\n";
+        out << "    t2: "   << sp.t2     << "\n";
+        out << "    t2*: "  << sp.t2star << "\n";
+        out << "    ro: "   << sp.ro     << "\n";
     }
     out.close();
 

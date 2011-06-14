@@ -31,7 +31,7 @@ Phantom SimplePhantomBuilder::GetPhantom() {
     Phantom phantom;
     const float half = float(dims)*0.5;
     const float quarter = half*0.5;
-    phantom.sizeX = phantom.sizeY = phantom.sizeZ = voxelSize; // mm^3 voxels
+    phantom.sizeX = phantom.sizeY = phantom.sizeZ = voxelSize; // m^3 voxels
     phantom.offsetX = phantom.offsetY = phantom.offsetZ = -half; // origo is in the center of the sample
     vector<SpinPacket> spinPackets(5); // four different spin packet types.
  
@@ -40,11 +40,11 @@ Phantom SimplePhantomBuilder::GetPhantom() {
     // Connective; 500; 70; 0.77; -9.05
     // CSF; 2569; 329; 1; -9.05
     // Fat; 350; 70; 1; -7 to -8
-    spinPackets[0] = SpinPacket("Air", 0.0, 0.0, 0.0);
-    spinPackets[1] = SpinPacket("Connective", 0.500, 0.070, 0.77);
-    spinPackets[2] = SpinPacket("CSF", 2.569, 0.329, 1.0);
-    spinPackets[3] = SpinPacket("Fat", 0.350, 0.070, 1.0);
-    spinPackets[4] = SpinPacket("Gray matter", 0.833, 0.083, 0.86);
+    spinPackets[0] = SpinPacket("Air", 0.0, 0.0, 0.0, 0.0);
+    spinPackets[1] = SpinPacket("White matter", 0.500, 0.070, 0.061, 0.77);
+    spinPackets[2] = SpinPacket("CSF", 2.569, 0.329, 0.058, 1.0);
+    spinPackets[3] = SpinPacket("Fat", 0.350, 0.070, 0.058, 1.0);
+    spinPackets[4] = SpinPacket("Grey matter", 0.833, 0.083, 0.069, 0.86);
 
     phantom.spinPackets = spinPackets;
 
