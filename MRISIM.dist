@@ -22,7 +22,7 @@ dist /extensions/OpenCL/OpenCL.dist  https://raw.githubusercontent.com/OpenEngin
 
 
 # required extensions
-darcs /extensions/MeshUtils			http://openengine.dk/code/extensions/MeshUtils
+git /extensions/MeshUtils			https://github.com/OpenEngineDK/extensions-MeshUtils.git
 git /extensions/SetupHelpers           https://github.com/OpenEngineDK/extensions-SetupHelpers.git
 git /extensions/Qt                    https://github.com/OpenEngineDK/extensions-Qt.git
 git /extensions/HUD                    https://github.com/OpenEngineDK/extensions-HUD.git
@@ -34,7 +34,7 @@ git /extensions/OpenGLRenderer        https://github.com/OpenEngineDK/extensions
 git /extensions/TGAResource            https://github.com/OpenEngineDK/extensions-TGAResource.git
 git /extensions/OBJResource            https://github.com/OpenEngineDK/extensions-OBJResource.git
 git /extensions/AccelerationStructures https://github.com/OpenEngineDK/extensions-AccelerationStructures.git
-darcs /extensions/CUDA 			http://openengine.dk/code/extensions/CUDA
+git /extensions/CUDA 			https://github.com/OpenEngineDK/extensions-CUDA.git
 
 git-dev /extensions/SetupHelpers           git@github.com:OpenEngineDK/extensions-SetupHelpers.git
 git-dev /extensions/HUD                    git@github.com:OpenEngineDK/extensions-HUD.git
